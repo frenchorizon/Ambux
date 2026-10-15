@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
 import type { Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
-import { formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
+import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
+import { mealIssue } from "../../game/breaks";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import type { DragState } from "./drag";
@@ -70,14 +71,16 @@ export function GanttBoard({
               onTip={(next) => setTip(next)}
             />
           ))}
-          <div
-            className="pointer-events-none absolute bottom-0 z-20 w-px bg-rose-500"
-            style={{ left: LABEL + (nowMin - DAY_START) * pxPerMin, top: 36 }}
-          >
-            <span className="absolute -left-5 top-0 rounded bg-rose-500 px-1 py-0.5 text-[10px] font-bold text-white">
-              {formatMin(nowMin, "floor")}
-            </span>
-          </div>
+          {data.live && (
+            <div
+              className="pointer-events-none absolute bottom-0 z-20 w-px bg-rose-500"
+              style={{ left: LABEL + (nowMin - DAY_START) * pxPerMin, top: 36 }}
+            >
+              <span className="absolute -left-5 top-0 rounded bg-rose-500 px-1 py-0.5 text-[10px] font-bold text-white">
+                {formatMin(nowMin, "floor")}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       {tip && tipTransport && !drag?.moved && (
@@ -107,9 +110,11 @@ function CrewRow({
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
   onTip: (tip: { x: number; y: number; transportId: string } | null) => void;
 }) {
-  const { schedules, blocks, transports, crewFilter, selectedId, patientById } = useData();
+  const { schedules, blocks, transports, crewFilter, selectedId, patientById, rules } = useData();
   const schedule = schedules.get(crew.id);
   const crewBlocks = blocks.filter((block) => block.crewId === crew.id);
+  const meal = crewBlocks.find((block) => block.kind === "repas");
+  const mealWarn = mealIssue(meal, rules);
   const count = schedule?.legs.length ?? 0;
   const hot = drag?.hoverCrewId === crew.id;
   const bad = hot && drag.preview && !drag.preview.ok && drag.preview.reason === "incompatible";
@@ -117,7 +122,7 @@ function CrewRow({
     <div className={cn("flex border-b border-line", crewFilter && crewFilter !== crew.id && "opacity-35")}>
       <div
         className="sticky left-0 z-20 flex items-center gap-2 border-r border-line bg-white px-2.5"
-        style={{ width: LABEL, height: 46 }}
+        style={{ width: LABEL, height: 54 }}
       >
         <span className="h-7 w-1.5 rounded-full" style={{ background: crew.color }} />
         <span className="min-w-0">
@@ -129,6 +134,7 @@ function CrewRow({
           </span>
           <span className="block truncate text-[11px] text-muted">
             {crew.plate} · {count} course{count > 1 ? "s" : ""}
+            {mealWarn ? ` · ${mealWarn}` : ""}
           </span>
         </span>
       </div>
@@ -136,7 +142,7 @@ function CrewRow({
         data-track
         data-crew-id={crew.id}
         className={cn("relative", hot && !bad && "bg-emerald-50/70", bad && "bg-rose-50")}
-        style={{ width, height: 46 }}
+        style={{ width, height: 54 }}
       >
         {hours().map((hour) => (
           <div
@@ -148,15 +154,34 @@ function CrewRow({
         {crewBlocks.map((block) => (
           <div
             key={block.id}
-            className="absolute top-1.5 flex h-[34px] items-center overflow-hidden rounded-md border border-dashed border-slate-400 bg-slate-200/90 px-1 text-[10px] font-semibold text-slate-700"
+            title={block.kind === "repas" ? "Pause repas obligatoire" : block.label}
+            className={cn(
+              "absolute top-4 flex h-[34px] items-center overflow-hidden rounded-md px-1 text-[10px] font-semibold",
+              block.kind === "repas"
+                ? "border border-amber-500 bg-amber-100 text-amber-950"
+                : "border border-dashed border-slate-400 bg-slate-200/90 text-slate-700",
+            )}
             style={{
               left: (block.startMin - DAY_START) * pxPerMin,
               width: Math.max(8, (block.endMin - block.startMin) * pxPerMin),
             }}
           >
-            {block.label}
+            {block.kind === "repas" ? "Repas" : block.label}
           </div>
         ))}
+        {schedule && schedule.returnKm > 0.2 && (
+          <div
+            title={`Retour dépôt à vide · ${formatKm(schedule.returnKm, 1)}`}
+            className="seg-deadhead absolute top-4 flex h-[34px] items-center overflow-hidden rounded-md border border-slate-300 px-1 text-[10px] font-semibold text-slate-800"
+            style={{
+              left: (schedule.returnStart - DAY_START) * pxPerMin,
+              width: Math.max(8, (schedule.returnEnd - schedule.returnStart) * pxPerMin),
+              backgroundColor: "#dbe4ee",
+            }}
+          >
+            {(schedule.returnEnd - schedule.returnStart) * pxPerMin > 46 ? "Retour dépôt" : ""}
+          </div>
+        )}
         {schedule?.legs.map((leg) => {
           const transport = transports.find((item) => item.id === leg.transportId);
           if (!transport) return null;
@@ -164,13 +189,14 @@ function CrewRow({
           const left = (leg.departMin - DAY_START) * pxPerMin;
           const bar = Math.max(5, (leg.endMin - leg.departMin) * pxPerMin);
           const selected = selectedId === transport.id;
+          const off = Math.abs(leg.deviationMin) >= 5;
           return (
             <button
               key={leg.transportId}
               type="button"
               className={cn(
-                "absolute top-1.5 flex h-[34px] overflow-hidden rounded-md text-left text-[10px] font-semibold text-white shadow-sm",
-                leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 5 ? "ring-2 ring-amber-400" : "",
+                "absolute top-4 flex h-[34px] overflow-hidden rounded-md text-left text-[10px] font-semibold text-white shadow-sm",
+                leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
               )}
               style={{ left, width: bar, background: crew.color, touchAction: "none" }}
@@ -182,15 +208,24 @@ function CrewRow({
                 <span
                   key={`${segment.kind}-${segment.start}`}
                   className={cn(
-                    "h-full",
+                    "relative h-full",
                     segment.kind === "deadhead" && "seg-deadhead",
                     segment.kind === "loaded" && "seg-loaded",
                     segment.kind === "pec" && "seg-pec",
                     segment.kind === "wait" && "seg-wait",
                   )}
                   style={{ width: `${((segment.end - segment.start) / Math.max(1, leg.endMin - leg.departMin)) * 100}%` }}
-                />
+                >
+                  {segment.kind === "deadhead" && (segment.end - segment.start) * pxPerMin > 36 && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-800">à vide</span>
+                  )}
+                </span>
               ))}
+              {off && (
+                <span className="pointer-events-none absolute -top-3 right-0 rounded bg-amber-500 px-1 text-[9px] font-bold leading-3 text-white">
+                  {deviationLabel(leg.deviationMin)}
+                </span>
+              )}
               {bar > 72 && (
                 <span className="pointer-events-none absolute inset-0 flex items-center px-1.5">
                   <span className="truncate drop-shadow">
@@ -202,9 +237,24 @@ function CrewRow({
             </button>
           );
         })}
+        {schedule?.legs.map((leg) => {
+          const transport = transports.find((item) => item.id === leg.transportId);
+          if (!transport) return null;
+          const planned = transport.appointmentMin ?? transport.windowStart;
+          return (
+            <div
+              key={`ghost-${leg.transportId}`}
+              title={`Heure prévue ${formatMin(planned)}`}
+              className="pointer-events-none absolute top-1 z-10 h-3 w-px bg-navy"
+              style={{ left: (planned - DAY_START) * pxPerMin }}
+            >
+              <span className="absolute -left-1 top-0 h-2 w-2 rounded-sm bg-navy" />
+            </div>
+          );
+        })}
         {drag?.moved && drag.hoverCrewId === crew.id && drag.preview?.ok && (
           <div
-            className="pointer-events-none absolute top-1.5 h-[34px] rounded-md border-2 border-white/80 opacity-80"
+            className="pointer-events-none absolute top-4 h-[34px] rounded-md border-2 border-white/80 opacity-80"
             style={{
               left: (drag.preview.departMin - DAY_START) * pxPerMin,
               width: Math.max(8, (drag.preview.leg.endMin - drag.preview.departMin) * pxPerMin),
@@ -232,14 +282,18 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
         {from?.short ?? "Départ"} → {to?.short ?? "Arrivée"}
       </div>
       <div className="mt-1 text-muted">
-        Fenêtre {formatMin(transport.windowStart)} – {formatMin(transport.windowEnd)} · prise en charge {transport.serviceMin} min
+        Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±{transport.toleranceMin ?? 20} min · PEC {transport.serviceMin} min
       </div>
       {leg && (
         <div className="mt-1 text-muted">
-          Départ {formatMin(leg.departMin)} · à vide {formatKm(leg.deadheadKm, 1)} · en charge {formatKm(leg.loadedKm, 1)}
+          Départ {formatMin(leg.departMin)} · à vide {formatKm(leg.deadheadKm, 1)} ({leg.deadheadMin} min) · en charge {formatKm(leg.loadedKm, 1)}
         </div>
       )}
-      {leg && leg.lateMin >= 5 && <div className="mt-1 font-semibold text-amber-700">Hors fenêtre : +{Math.round(leg.lateMin)} min</div>}
+      {leg && Math.abs(leg.deviationMin) >= 1 && (
+        <div className={cn("mt-1 font-semibold", leg.lateMin >= 1 ? "text-amber-700" : "text-navy")}>
+          Écart au rendez-vous : {deviationLabel(leg.deviationMin)}
+        </div>
+      )}
       {leg?.conflict && <div className="mt-1 font-semibold text-rose-700">Conflit horaire</div>}
       {leg?.incompatible && <div className="mt-1 font-semibold text-rose-700">Incompatibilité VSL</div>}
       {transport.note && <div className="mt-1 text-muted">{transport.note}</div>}

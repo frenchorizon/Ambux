@@ -1,5 +1,5 @@
-import { minutesForKm, roadKm } from "../lib/geo";
 import { indexById } from "../lib/collections";
+import { travelBetween } from "../lib/routing";
 import type { Crew, Location, TimeBlock, Transport } from "./types";
 
 export interface Segment {
@@ -21,6 +21,7 @@ export interface Leg {
   deadheadKm: number;
   loadedKm: number;
   lateMin: number;
+  deviationMin: number;
   conflict: boolean;
   incompatible: boolean;
   fromId: string;
@@ -47,8 +48,6 @@ export type PlacementPreview =
   | { ok: true; departMin: number; leg: Leg; warning?: string }
   | { ok: false; reason: "incompatible" | "conflict" | "cancelled" | "started"; message: string };
 
-const travelCache = new Map<string, { km: number; min: number }>();
-
 export function indexLocations(locations: readonly Location[]): Map<string, Location> {
   return indexById(locations);
 }
@@ -58,15 +57,19 @@ export function travelLoc(
   toId: string,
   locMap: Map<string, Location>,
 ): { km: number; min: number } {
-  const key = `${fromId}>${toId}`;
-  const cached = travelCache.get(key);
-  if (cached) return cached;
   const from = locMap.get(fromId);
   const to = locMap.get(toId);
-  const km = from && to ? roadKm(from, to) : 6;
-  const value = { km, min: minutesForKm(km) };
-  travelCache.set(key, value);
-  return value;
+  if (!from || !to) return { km: 6, min: 12 };
+  return travelBetween(fromId, toId, from, to);
+}
+
+export function plannedPickup(transport: Transport): number {
+  return transport.appointmentMin ?? transport.windowStart;
+}
+
+export function toleranceOf(transport: Transport): number {
+  if (transport.toleranceMin != null) return transport.toleranceMin;
+  return Math.max(10, Math.round((transport.windowEnd - transport.windowStart) / 2));
 }
 
 export function jumpBreaks(blocks: readonly TimeBlock[], crewId: string, time: number): number {
@@ -119,6 +122,8 @@ export function simulateLeg(
   push("pec", arrivePickup, loadedStart);
   push("loaded", loadedStart, dropoffArrive);
   push("pec", dropoffArrive, endMin);
+  const planned = plannedPickup(transport);
+  const tolerance = toleranceOf(transport);
 
   return {
     transportId: transport.id,
@@ -132,7 +137,8 @@ export function simulateLeg(
     pecMin: pec1 + pec2,
     deadheadKm: deadhead.km,
     loadedKm: loaded.km,
-    lateMin: Math.max(0, arrivePickup - transport.windowEnd),
+    lateMin: Math.max(0, arrivePickup - planned - tolerance),
+    deviationMin: Math.round(arrivePickup - planned),
     conflict: false,
     incompatible: transport.posture === "allonge" && crew.vehicleType === "vsl",
     fromId,
@@ -277,6 +283,33 @@ export function freeGaps(
   return gaps;
 }
 
+function placeInGap(
+  gap: Gap,
+  transport: Transport,
+  crew: Crew,
+  blocks: readonly TimeBlock[],
+  locMap: Map<string, Location>,
+  requested: number,
+): Leg | null {
+  const travel = travelLoc(gap.fromId, transport.pickupId, locMap);
+  const loaded = travelLoc(transport.pickupId, transport.dropoffId, locMap);
+  const minSpan = travel.min + loaded.min + transport.serviceMin;
+  if (gap.end - gap.start < minSpan - 1) return null;
+  let depart = requested;
+  if (depart < gap.start) depart = gap.start;
+  const latest = gap.end - minSpan;
+  if (depart > latest) depart = latest;
+  if (depart < gap.start - 0.2) return null;
+  let leg = simulateLeg(transport, depart, gap.fromId, crew, locMap);
+  if (leg.endMin > gap.end + 1.5) {
+    depart = Math.max(gap.start, leg.departMin - (leg.endMin - gap.end));
+    leg = simulateLeg(transport, depart, gap.fromId, crew, locMap);
+  }
+  if (leg.departMin < gap.start - 0.4 || leg.endMin > gap.end + 1.5) return null;
+  if (legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) return null;
+  return leg;
+}
+
 function bestLegInGap(
   gap: Gap,
   transport: Transport,
@@ -355,23 +388,42 @@ export function previewPlacement(
       message: "Incompatibilité : transport allongé, un VSL n'est pas habilité.",
     };
   }
-  const candidates = candidatePlacements(crew, transport, transports, blocks, locMap, nowMin);
-  if (!candidates.length) {
+  const gaps = freeGaps(
+    crew,
+    transports.filter((item) => item.id !== transport.id),
+    blocks,
+    locMap,
+    nowMin,
+  );
+  let leg: Leg | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const gap of gaps) {
+    const placed = placeInGap(gap, transport, crew, blocks, locMap, requestedDepart);
+    if (!placed || placed.departMin < nowMin - 0.2) continue;
+    const dist = Math.abs(placed.departMin - requestedDepart);
+    if (dist < bestDist) {
+      bestDist = dist;
+      leg = placed;
+    }
+  }
+  if (!leg) {
     return {
       ok: false,
       reason: "conflict",
       message: "Conflit horaire : aucun créneau libre sur cet équipage.",
     };
   }
-  candidates.sort((a, b) => {
-    const delta = Math.abs(a.departMin - requestedDepart) - Math.abs(b.departMin - requestedDepart);
-    if (Math.abs(delta) > 0.5) return delta;
-    return a.lateMin - b.lateMin;
-  });
-  const leg = candidates[0]!;
+  const tolerance = toleranceOf(transport);
   let warning: string | undefined;
-  if (leg.lateMin >= 5) warning = `Hors fenêtre : +${Math.round(leg.lateMin)} min.`;
-  else if (leg.waitMin >= 8) warning = `Attente de ${Math.round(leg.waitMin)} min avant le rendez-vous.`;
+  if (leg.lateMin >= 1) {
+    warning = `Hors tolérance : +${leg.deviationMin} min.`;
+  } else if (leg.deviationMin <= -tolerance) {
+    warning = `Hors tolérance : ${leg.deviationMin} min.`;
+  } else if (leg.deviationMin >= 5) {
+    warning = `Prise en charge en retard : +${leg.deviationMin} min.`;
+  } else if (leg.deviationMin <= -8) {
+    warning = `Prise en charge en avance : ${leg.deviationMin} min.`;
+  }
   return { ok: true, departMin: leg.departMin, leg, warning };
 }
 

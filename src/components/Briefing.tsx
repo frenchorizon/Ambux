@@ -22,23 +22,22 @@ export function Briefing() {
         <Logo light />
         <div className="max-w-xl py-10">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-200">Transport sanitaire · Rouen</p>
-          <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl">La régulation, sans la charge mentale.</h1>
+          <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl">Le planning de demain, sur la route réelle.</h1>
           <p className="mt-4 text-base leading-relaxed text-sky-100/90">
-            Ambux aide les sociétés de transport sanitaire à construire les feuilles de route : moins de kilomètres à vide, moins de retards, moins de temps au standard.
-            Cette démo vous met dans le siège du régulateur, le temps d'une journée à Rouen.
+            Ambux prépare les feuilles de route du lendemain pour le transport sanitaire programmé : fenêtres horaires, pauses repas, trajets à vide et kilométrage issu du réseau routier autour de Rouen.
           </p>
           <ol className="mt-6 space-y-2 text-sm text-sky-100/85">
-            <li>1. Placez les courses de l'après-midi sur les équipages.</li>
-            <li>2. Répondez aux appels : annulation, retard, panne, urgence.</li>
-            <li>3. Comparez votre feuille avec Optimiser, puis envoyez vers Lomaco.</li>
+            <li>1. Chargez ou saisissez les transports de demain.</li>
+            <li>2. Générez le planning, puis ajustez-le sur la timeline.</li>
+            <li>3. Imprimez les feuilles de route et envoyez-les vers Lomaco.</li>
           </ol>
         </div>
         <p className="text-xs text-sky-100/60">{DEMO_DATE} · données fictives · 100 % dans le navigateur</p>
       </section>
       <section className="flex items-center bg-paper px-6 py-10">
         <div className="mx-auto w-full max-w-md rounded-3xl border border-line bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Prise de poste</h2>
-          <p className="mt-1 text-sm text-muted">Choisissez la flotte. Une journée chargée approche les 15 courses par ambulance et 22 par VSL.</p>
+          <h2 className="text-xl font-semibold">Planning de demain</h2>
+          <p className="mt-1 text-sm text-muted">La demande est déjà chargée. Une journée chargée vise environ 15 courses par ambulance et 22 par VSL. La simulation en direct reste optionnelle.</p>
           <Stepper label="Ambulances" value={amb} min={2} max={4} onChange={setAmb} />
           <Stepper label="VSL" value={vsl} min={2} max={4} onChange={setVsl} />
           <div className="mt-4">
@@ -82,7 +81,7 @@ export function Briefing() {
               })
             }
           >
-            Prendre la régulation
+            Préparer le planning
           </Button>
         </div>
       </section>

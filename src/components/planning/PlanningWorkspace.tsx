@@ -127,7 +127,8 @@ export function PlanningWorkspace() {
             ))}
           </div>
         )}
-        <span className="hidden text-muted sm:inline">Glisser une course sur un équipage. Les hachures sont le trajet, l'aplat la prise en charge.</span>
+        <span className="hidden text-muted sm:inline">Glisser une course : le pastille marine est l'heure prévue, l'écart s'affiche en orange. Hachures « à vide » entre deux prises en charge.</span>
+        <RulesChip />
         <div className="ml-auto flex items-center gap-1">
           <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.25))} aria-label="Dézoomer">
             <Minus size={14} />
@@ -154,8 +155,11 @@ export function PlanningWorkspace() {
         <div className="flex flex-wrap items-center gap-2 border-b border-line bg-ice/60 px-3 py-1.5 text-xs">
           <span className="font-semibold">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
           <span className="text-muted">
-            {postureLabel(selected.posture)} · {formatMin(selected.windowStart)} – {formatMin(selected.windowEnd)}
+            {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)} · tolérance ±{selected.toleranceMin ?? data.rules.toleranceMin} min
           </span>
+          <Button size="sm" variant="secondary" onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}>
+            Revenir à l'heure prévue
+          </Button>
           <Button size="sm" variant="secondary" onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}>
             Meilleur créneau
           </Button>
@@ -195,6 +199,56 @@ function labelFor(
   const transport = transports.get(id);
   const patient = transport ? patients.get(transport.patientId) : undefined;
   return patient ? personName(patient) : "Course";
+}
+
+function RulesChip() {
+  const { rules, dispatch } = useData();
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted">
+      <span>Repas</span>
+      <input
+        type="number"
+        min={0}
+        max={60}
+        value={rules.mealMin}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealMin: Number(event.target.value) } })}
+        className="h-7 w-12 rounded border border-line bg-white px-1"
+        aria-label="Durée de la pause repas"
+      />
+      <span>min</span>
+      <input
+        type="time"
+        value={formatMin(rules.mealFrom)}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealFrom: parseTime(event.target.value) } })}
+        className="h-7 rounded border border-line bg-white px-1"
+        aria-label="Début de la fenêtre repas"
+      />
+      <input
+        type="time"
+        value={formatMin(rules.mealTo)}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealTo: parseTime(event.target.value) } })}
+        className="h-7 rounded border border-line bg-white px-1"
+        aria-label="Fin de la fenêtre repas"
+      />
+      <span>Tolérance ±</span>
+      <input
+        type="number"
+        min={5}
+        max={60}
+        value={rules.toleranceMin}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { toleranceMin: Number(event.target.value) } })}
+        className="h-7 w-12 rounded border border-line bg-white px-1"
+        aria-label="Tolérance horaire"
+      />
+      <span>min</span>
+    </div>
+  );
+}
+
+function parseTime(value: string): number {
+  const [hours, minutes] = value.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 12 * 60;
+  return hours * 60 + minutes;
 }
 
 function readHover(x: number, y: number, pxPerMin: number): { hoverCrewId?: string; hoverMinute?: number; overUnassigned: boolean } {

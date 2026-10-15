@@ -111,9 +111,18 @@ export function generateDay(options: {
     };
     const probe = simulateLeg(wide, cursor, fromId, crew, locMap);
     if (probe.endMin > crew.shiftEnd - 4) return null;
-    const windowStart = clamp(Math.round(probe.arrivePickup - 12), DAY_START, DAY_END - 55);
-    const windowEnd = clamp(Math.round(probe.arrivePickup + 28), windowStart + 22, DAY_END - 6);
-    const transport: Transport = { ...draft, cancelled: false, windowStart, windowEnd };
+    const appointmentMin = Math.round(probe.arrivePickup);
+    const toleranceMin = 20;
+    const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
+    const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
+    const transport: Transport = {
+      ...draft,
+      cancelled: false,
+      windowStart,
+      windowEnd,
+      appointmentMin,
+      toleranceMin,
+    };
     const leg = simulateLeg(transport, cursor, fromId, crew, locMap);
     if (leg.endMin > crew.shiftEnd) return null;
     transport.crewId = crew.id;

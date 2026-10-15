@@ -1,5 +1,6 @@
 import { indexById } from "../lib/collections";
 import { mulberry32 } from "../lib/rng";
+import { pickMealSlot } from "./breaks";
 import { metricsFromSchedules, type Metrics } from "./scoring";
 import {
   crewOrigin,
@@ -8,7 +9,7 @@ import {
   type CrewSchedule,
   type Leg,
 } from "./schedule";
-import type { Crew, Location, PlanStop, TimeBlock, Transport } from "./types";
+import { DEFAULT_RULES, type Crew, type Location, type PlanStop, type Rules, type TimeBlock, type Transport } from "./types";
 
 export interface PlanResult {
   stops: PlanStop[];
@@ -16,6 +17,7 @@ export interface PlanResult {
   metrics: Metrics;
   tested: number;
   elapsedMs: number;
+  meals: TimeBlock[];
 }
 
 interface Sol {
@@ -39,6 +41,7 @@ export function optimizePlan(input: {
   locations: readonly Location[];
   nowMin: number;
   seed?: number;
+  rules?: Rules;
 }): PlanResult {
   const started = performance.now();
   const locMap = indexById(input.locations);
@@ -84,6 +87,7 @@ export function optimizePlan(input: {
     frozenCount,
     tested: 0,
     seed: input.seed ?? 20261015,
+    rules: input.rules ?? DEFAULT_RULES,
   };
 
   const greedy = insertGreedy(cloneSol(cold), ctx);
@@ -109,11 +113,13 @@ export function optimizePlan(input: {
   }
 
   const planned = applyStops(active, stops);
+  const foreignBlocks = input.blocks.filter((block) => block.kind !== "repas");
+  const meals = mealsFor(input.crews, planned, foreignBlocks, locMap, ctx.rules);
   const metrics = metricsFromSchedules(
     input.crews,
-    scheduleFleet(input.crews, planned, input.blocks, locMap, "anchored"),
+    scheduleFleet(input.crews, planned, [...foreignBlocks, ...meals], locMap, "anchored"),
     planned,
-    input.blocks,
+    [...foreignBlocks, ...meals],
   );
 
   return {
@@ -122,7 +128,26 @@ export function optimizePlan(input: {
     metrics,
     tested: ctx.tested,
     elapsedMs: performance.now() - started,
+    meals,
   };
+}
+
+function mealsFor(
+  crews: readonly Crew[],
+  transports: readonly Transport[],
+  blocks: readonly TimeBlock[],
+  locMap: Map<string, Location>,
+  rules: Rules,
+): TimeBlock[] {
+  const schedules = scheduleFleet(crews, transports, blocks, locMap, "anchored");
+  const meals: TimeBlock[] = [];
+  for (const crew of crews) {
+    const schedule = schedules.get(crew.id);
+    if (!schedule) continue;
+    const meal = pickMealSlot(schedule, crew, rules);
+    if (meal) meals.push(meal);
+  }
+  return meals;
 }
 
 interface Ctx {
@@ -134,6 +159,7 @@ interface Ctx {
   frozenCount: Record<string, number>;
   tested: number;
   seed: number;
+  rules: Rules;
 }
 
 function emptySol(crews: readonly Crew[]): Sol {
@@ -161,7 +187,8 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     if (!compatible(crew, transport)) return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
     jobs.push(transport);
   }
-  const schedule = scheduleCrew(crew, jobs, ctx.blocks, ctx.locMap, "chain", ctx.origin[crew.id]);
+  const foreign = ctx.blocks.filter((block) => !(block.crewId === crew.id && block.kind === "repas"));
+  const schedule = scheduleCrew(crew, jobs, foreign, ctx.locMap, "chain", ctx.origin[crew.id]);
   if (!suffixOk(schedule, crew)) return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   let lateMin = 0;
   let emptyKm = schedule.returnKm;
@@ -169,7 +196,8 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     lateMin += leg.lateMin;
     emptyKm += leg.deadheadKm;
   }
-  const cost = emptyKm * 3.4 + lateMin * 9 + schedule.idleMin * 0.22;
+  const mealPenalty = pickMealSlot(schedule, crew, ctx.rules) ? 0 : 420;
+  const cost = emptyKm * 3.4 + lateMin * 9 + schedule.idleMin * 0.22 + mealPenalty;
   return {
     ok: true,
     cost,

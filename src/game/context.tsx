@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from "react";
 import { indexById } from "../lib/collections";
+import { useRoutingVersion, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
@@ -16,11 +17,14 @@ import type {
   Phase,
   PlanStop,
   Speed,
+  Rules,
+  StaffMember,
   Stats,
   TimeBlock,
   Toast,
   TomorrowItem,
   Transport,
+  Vehicle,
   ViewId,
 } from "./types";
 
@@ -54,6 +58,10 @@ export interface DataValue {
   selectedId?: string;
   crewFilter?: string;
   followNow: boolean;
+  live: boolean;
+  rules: Rules;
+  vehicles: Vehicle[];
+  staff: StaffMember[];
   dispatch: Dispatch<Action>;
   metrics: Metrics;
   schedules: Map<string, CrewSchedule>;
@@ -67,6 +75,26 @@ const DataContext = createContext<DataValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const routeVersion = useRoutingVersion();
+
+  useEffect(() => {
+    if (!state.locations.length || state.phase === "briefing") return;
+    let cancel = false;
+    void warmMatrix(state.locations).then((ok) => {
+      if (cancel) return;
+      dispatch({
+        type: "TOAST",
+        tone: ok ? "ok" : "warn",
+        message: ok
+          ? "Distances et durées calculées sur le réseau routier (OSRM)."
+          : "OSRM indisponible : durées estimées, tracés de secours.",
+      });
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [state.seed, state.phase]);
 
   useEffect(() => {
     let last = performance.now();
@@ -90,10 +118,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const locMap = useMemo(() => indexLocations(state.locations), [state.locations]);
-  const schedules = useMemo(
-    () => scheduleFleet(state.crews, state.transports, state.blocks, locMap),
-    [state.crews, state.transports, state.blocks, locMap],
-  );
+  const schedules = useMemo(() => {
+    void routeVersion;
+    return scheduleFleet(state.crews, state.transports, state.blocks, locMap);
+  }, [state.crews, state.transports, state.blocks, locMap, routeVersion]);
   const metrics = useMemo(
     () => metricsFromSchedules(state.crews, schedules, state.transports, state.blocks),
     [state.crews, schedules, state.transports, state.blocks],
@@ -125,6 +153,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       selectedId: state.selectedId,
       crewFilter: state.crewFilter,
       followNow: state.followNow,
+      live: state.live,
+      rules: state.rules,
+      vehicles: state.vehicles,
+      staff: state.staff,
       dispatch,
       metrics,
       schedules,
@@ -155,6 +187,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       state.selectedId,
       state.crewFilter,
       state.followNow,
+      state.live,
+      state.rules,
+      state.vehicles,
+      state.staff,
       metrics,
       schedules,
       locMap,

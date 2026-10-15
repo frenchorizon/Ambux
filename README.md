@@ -1,6 +1,6 @@
 # Ambux – Régulateur
 
-Démo jouable d'un outil de régulation pour le transport sanitaire programmé. Vous êtes le régulateur : feuilles de route d'ambulances et de VSL sur la métropole de Rouen, de 6 h à 20 h.
+Outil de démonstration pour préparer le planning du lendemain d'une société de transport sanitaire. Le régulateur charge les transports, génère les tournées sur de vrais itinéraires autour de Rouen, ajuste la timeline, puis imprime les feuilles de route.
 
 Tout se passe dans le navigateur. Aucun serveur, aucune donnée patient réelle.
 
@@ -18,16 +18,14 @@ npm run build
 npm run sim
 ```
 
-`sim` vérifie la génération d'une journée chargée et l'optimiseur.
+## Utiliser
 
-## Jouer
+1. Choisissez la flotte et la densité, puis **Préparer le planning**.
+2. Dans **Demande de demain**, importez un CSV ou ajoutez un transport.
+3. **Générer le planning** affecte les équipages, pose la pause repas (30 min entre 11 h et 14 h 30) et compte les trajets à vide.
+4. Sur la timeline, déplacez une prise en charge autour de l'heure prévue (pastille marine). L'écart s'affiche en orange, par exemple +12 min. **Revenir à l'heure prévue** recale le rendez-vous.
+5. La carte trace les routes réelles (OSRM) et place les véhicules le long du trajet.
+6. **Feuilles de route** ouvre une impression PDF. **Envoyer vers Lomaco** est une maquette.
+7. **Simuler la journée** est un mode optionnel : horloge accélérée et appels.
 
-1. Choisissez la flotte (2 à 4 ambulances, 2 à 4 VSL) et la densité. La journée chargée vise environ 15 courses par ambulance et 22 par VSL.
-2. Le matin est déjà posé, en désordre. L'après-midi est dans **Transports non affectés**.
-3. Glissez une course sur la ligne d'un équipage. Le bloc se cale sur un créneau libre. Hachures claires : trajet à vide. Hachures foncées : patient à bord. Aplat : prise en charge.
-4. Un patient allongé ne va pas en VSL. Un créneau trop court affiche **Conflit horaire**.
-5. Répondez aux appels (ajout, annulation, déplacement, retard, panne, pause, urgence).
-6. **Recalculer** resserre les horaires. **Optimiser** compare votre plan à une recherche locale (fenêtres horaires, sans serveur). **Valider et envoyer vers Lomaco** simule l'export.
-7. À 20 h, ou avec **Clôturer**, le bilan affiche kilomètres à vide, retards, remplissage, temps de régulation, et la référence de l'algorithme. Préparez ensuite le planning du lendemain.
-
-Espace : pause. Touches 1, 2 et 4 : vitesse. Une heure de service dure environ 45 secondes en ×1.
+Véhicules, équipages (DEA compris) et patients se modifient dans les vues du même nom.

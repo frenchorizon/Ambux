@@ -25,6 +25,12 @@ export function App() {
   return <Dashboard />;
 }
 
+function LiveCalls() {
+  const { live } = useData();
+  if (!live) return null;
+  return <CallDock />;
+}
+
 function Dashboard() {
   const { phase, view, dispatch } = useData();
   return (
@@ -51,7 +57,7 @@ function Dashboard() {
           {view === "lomaco" && <LomacoView />}
         </main>
       </div>
-      <CallDock />
+      {phase === "playing" && <LiveCalls />}
       <Toaster />
       <GameDialogs />
     </div>

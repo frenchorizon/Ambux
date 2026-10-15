@@ -38,7 +38,14 @@ export function vehicleLabel(type: VehicleType): string {
 }
 
 export function postureLabel(posture: Posture): string {
-  return posture === "allonge" ? "Allongé" : "Assis";
+  if (posture === "allonge") return "Allongé";
+  if (posture === "fauteuil") return "Fauteuil";
+  return "Assis";
+}
+
+export function deviationLabel(minutes: number): string {
+  if (minutes === 0) return "à l'heure";
+  return minutes > 0 ? `+${minutes} min` : `${minutes} min`;
 }
 
 export function kindLabel(kind: TransportKind): string {

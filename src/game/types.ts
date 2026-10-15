@@ -4,7 +4,7 @@ export const DEMO_DATE = "Jeudi 15 octobre 2026";
 export const NEXT_DATE = "Vendredi 16 octobre 2026";
 
 export type VehicleType = "ambulance" | "vsl";
-export type Posture = "assis" | "allonge";
+export type Posture = "assis" | "allonge" | "fauteuil";
 export type TransportKind = "simple" | "aller" | "retour" | "dialyse_aller" | "dialyse_retour";
 export type Density = "normale" | "chargee";
 export type Speed = 1 | 2 | 4;
@@ -17,7 +17,36 @@ export type ViewId =
   | "patients"
   | "companies"
   | "lomaco";
-export type ModalId = "optimizer" | "lomaco" | "help" | "closeDay";
+export type ModalId = "optimizer" | "lomaco" | "help" | "closeDay" | "sheets";
+
+export interface Rules {
+  toleranceMin: number;
+  mealMin: number;
+  mealFrom: number;
+  mealTo: number;
+}
+
+export const DEFAULT_RULES: Rules = {
+  toleranceMin: 20,
+  mealMin: 30,
+  mealFrom: 11 * 60,
+  mealTo: 14 * 60 + 30,
+};
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: "conducteur" | "auxiliaire";
+  dea: boolean;
+}
+
+export interface Vehicle {
+  id: string;
+  plate: string;
+  vehicleType: VehicleType;
+  name: string;
+  active: boolean;
+}
 export type CallKind =
   | "ajout"
   | "annulation"
@@ -44,6 +73,7 @@ export interface Patient {
   phone: string;
   birthYear: number;
   addressId: string;
+  mobility?: Posture;
   note?: string;
 }
 
@@ -60,6 +90,9 @@ export interface Crew {
   shiftStart: number;
   shiftEnd: number;
   delayUntil: number;
+  vehicleId?: string;
+  driverId?: string;
+  mateId?: string;
 }
 
 export interface Transport {
@@ -70,6 +103,8 @@ export interface Transport {
   dropoffId: string;
   windowStart: number;
   windowEnd: number;
+  appointmentMin?: number;
+  toleranceMin?: number;
   posture: Posture;
   serviceMin: number;
   kind: TransportKind;
@@ -86,7 +121,7 @@ export interface TimeBlock {
   crewId: string;
   startMin: number;
   endMin: number;
-  kind: "pause" | "panne";
+  kind: "pause" | "panne" | "repas";
   label: string;
 }
 
@@ -189,4 +224,8 @@ export interface GameState {
   selectedId?: string;
   crewFilter?: string;
   followNow: boolean;
+  live: boolean;
+  rules: Rules;
+  vehicles: Vehicle[];
+  staff: StaffMember[];
 }

@@ -1,4 +1,4 @@
-import { CircleHelp, FastForward, Pause, Play, Send, Sparkles, RefreshCw } from "lucide-react";
+import { CircleHelp, FastForward, FileText, Pause, Play, Send, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { useClock, useData } from "../game/context";
 import { DEMO_DATE, DAY_END, DAY_START, type Speed } from "../game/types";
@@ -11,11 +11,11 @@ const SPEEDS: Speed[] = [1, 2, 4];
 
 export function TopBar() {
   const clock = useClock();
-  const { view, dispatch, phase, metrics } = useData();
+  const { view, dispatch, phase, metrics, live } = useData();
   const progress = Math.min(1, Math.max(0, (clock.nowMin - DAY_START) / (DAY_END - DAY_START)));
   const titles: Record<string, string> = {
-    gantt: "Timeline du jour",
-    tomorrow: "Planning du lendemain",
+    gantt: "Timeline du planning",
+    tomorrow: "Demande de demain",
     crews: "Équipages",
     vehicles: "Véhicules",
     patients: "Patients",
@@ -52,36 +52,49 @@ export function TopBar() {
           <div className="text-sm font-semibold text-ink">{titles[view] ?? "Ambux"}</div>
           <div className="text-[11px] text-muted">{DEMO_DATE}</div>
         </div>
-        <div className="flex items-center gap-1.5 rounded-xl bg-ice px-2 py-1">
+        {live ? (
+          <div className="flex items-center gap-1.5 rounded-xl bg-ice px-2 py-1">
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-navy shadow-sm"
+              onClick={() => dispatch({ type: "PAUSE" })}
+              aria-label={clock.paused ? "Reprendre" : "Mettre en pause"}
+            >
+              {clock.paused ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+            <div className="px-1 text-center">
+              <div className="font-mono text-lg font-semibold tabular-nums leading-none text-navy">
+                {formatMin(clock.nowMin, "floor")}
+              </div>
+              <div className="text-[10px] text-muted">simulation</div>
+            </div>
+            {SPEEDS.map((speed) => (
+              <button
+                key={speed}
+                type="button"
+                onClick={() => dispatch({ type: "SET_SPEED", speed })}
+                className={cn(
+                  "h-8 rounded-lg px-2 text-xs font-bold",
+                  clock.speed === speed ? "bg-navy text-white" : "text-navy hover:bg-white",
+                )}
+              >
+                ×{speed}
+              </button>
+            ))}
+            <FastForward size={14} className="hidden text-muted sm:block" />
+            <button type="button" className="px-1 text-[11px] font-semibold text-navy" onClick={() => dispatch({ type: "SET_LIVE", live: false })}>
+              Quitter
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-navy shadow-sm"
-            onClick={() => dispatch({ type: "PAUSE" })}
-            aria-label={clock.paused ? "Reprendre" : "Mettre en pause"}
+            className="rounded-xl border border-line px-2 py-1 text-[11px] font-semibold text-muted hover:bg-ice"
+            onClick={() => dispatch({ type: "SET_LIVE", live: true })}
           >
-            {clock.paused ? <Play size={16} /> : <Pause size={16} />}
+            Simuler la journée
           </button>
-          <div className="px-1 text-center">
-            <div className="font-mono text-lg font-semibold tabular-nums leading-none text-navy">
-              {formatMin(clock.nowMin, "floor")}
-            </div>
-            <div className="text-[10px] text-muted">1 h ≈ 45 s</div>
-          </div>
-          {SPEEDS.map((speed) => (
-            <button
-              key={speed}
-              type="button"
-              onClick={() => dispatch({ type: "SET_SPEED", speed })}
-              className={cn(
-                "h-8 rounded-lg px-2 text-xs font-bold",
-                clock.speed === speed ? "bg-navy text-white" : "text-navy hover:bg-white",
-              )}
-            >
-              ×{speed}
-            </button>
-          ))}
-          <FastForward size={14} className="hidden text-muted sm:block" />
-        </div>
+        )}
         {metrics.lateCount > 0 && (
           <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-800">
             {metrics.lateCount} retard{metrics.lateCount > 1 ? "s" : ""}
@@ -91,32 +104,33 @@ export function TopBar() {
           <Button variant="ghost" size="icon" aria-label="Comment jouer" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "help" })}>
             <CircleHelp size={18} />
           </Button>
-          {phase === "playing" && (
+          {live && phase === "playing" && (
             <Button size="sm" variant="ghost" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "closeDay" })}>
               Clôturer
             </Button>
           )}
-          <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "COMPACT" })} disabled={phase === "review"}>
-            <RefreshCw size={14} /> Recalculer
-          </Button>
           <Button
-            variant="secondary"
             size="sm"
             onClick={() => {
               dispatch({ type: "NOTE_OPTIMIZER" });
               dispatch({ type: "OPEN_MODAL", modal: "optimizer" });
             }}
           >
-            <Sparkles size={14} /> Optimiser
+            <Sparkles size={14} /> Générer le planning
           </Button>
-          <Button size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>
-            <Send size={14} /> Valider et envoyer vers Lomaco
+          <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "sheets" })}>
+            <FileText size={14} /> Feuilles de route
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>
+            <Send size={14} /> Envoyer vers Lomaco
           </Button>
         </div>
       </div>
-      <div className="h-1 bg-ice">
-        <div className="h-full bg-brand transition-[width]" style={{ width: `${progress * 100}%` }} />
-      </div>
+      {live && (
+        <div className="h-1 bg-ice">
+          <div className="h-full bg-brand transition-[width]" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
     </header>
   );
 }

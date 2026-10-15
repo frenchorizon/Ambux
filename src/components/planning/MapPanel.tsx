@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import { useClock, useData } from "../../game/context";
-import type { CrewSchedule } from "../../game/schedule";
-import type { Crew, Location } from "../../game/types";
-import { lerpCoord, type LatLng } from "../../lib/geo";
-import { vehicleLabel } from "../../lib/format";
+import type { CrewSchedule, Leg } from "../../game/schedule";
+import { DAY_END, DAY_START, type Crew, type Location, type Transport } from "../../game/types";
+import type { LatLng } from "../../lib/geo";
+import { formatMin, vehicleLabel } from "../../lib/format";
+import { matrixSource, pathBetween, pointAlong, useRoutingVersion, warmPaths } from "../../lib/routing";
 import { cn } from "../../lib/utils";
 
-interface TimedPoint extends LatLng {
-  t: number;
-}
-
 export function MapPanel() {
-  const { crews, seed } = useData();
+  const { crews, seed, live } = useData();
+  const { nowMin } = useClock();
   const [visible, setVisible] = useState<Record<string, boolean>>({});
+  const [scrub, setScrub] = useState(8 * 60);
+  const time = live ? nowMin : scrub;
+  const source = matrixSource();
   const shown = (id: string) => visible[id] !== false;
   return (
     <div className="relative h-full min-h-[220px]">
@@ -34,9 +35,26 @@ export function MapPanel() {
         <ResizeMap />
         <Sites />
         {crews.map((crew) =>
-          shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} /> : null,
+          shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null,
         )}
       </MapContainer>
+      <div className="absolute bottom-2 left-2 right-16 z-[500] rounded-xl bg-white/95 px-3 py-2 shadow">
+        <div className="mb-1 flex items-center justify-between text-[11px] text-muted">
+          <span>{live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}</span>
+          <span>{source === "osrm" ? "Routes OSRM" : source === "estimate" ? "Tracés estimés" : "Calcul des routes…"}</span>
+        </div>
+        {!live && (
+          <input
+            type="range"
+            min={DAY_START}
+            max={DAY_END}
+            value={scrub}
+            onChange={(event) => setScrub(Number(event.target.value))}
+            className="w-full"
+            aria-label="Heure de position des véhicules"
+          />
+        )}
+      </div>
       <div className="absolute left-2 top-2 z-[500] flex max-w-[70%] flex-wrap gap-1">
         {crews.map((crew) => (
           <button
@@ -101,33 +119,40 @@ function Sites() {
   );
 }
 
-function CrewRoute({ crew }: { crew: Crew }) {
+function CrewRoute({ crew, time }: { crew: Crew; time: number }) {
   const { schedules, transportById, locMap } = useData();
-  const { nowMin } = useClock();
+  const version = useRoutingVersion();
   const schedule = schedules.get(crew.id);
-  const points = useMemo(
-    () => (schedule ? buildTrack(crew, schedule, transportById, locMap) : []),
-    [crew, schedule, transportById, locMap],
-  );
-  if (!schedule || points.length < 2) {
+  const roads = useMemo(() => {
+    void version;
+    return schedule ? buildRoads(crew, schedule, transportById, locMap) : [];
+  }, [crew, schedule, transportById, locMap, version]);
+  useEffect(() => {
+    warmPaths(roads.filter((road) => road.moves).map((road) => ({ from: road.from, to: road.to })));
+  }, [roads]);
+  if (!schedule || !roads.length) {
     const base = locMap.get(crew.baseId);
     if (!base) return null;
     return <Vehicle crew={crew} at={base} label="Au dépôt" />;
   }
-  const { done, todo } = splitTrack(points, nowMin);
-  const here = positionAt(points, nowMin) ?? points[0]!;
-  const leg = schedule.legs.find((item) => nowMin >= item.departMin && nowMin < item.endMin);
-  const status = leg ? "En course" : nowMin > (schedule.legs.at(-1)?.endMin ?? 0) ? "Retour / dispo" : "En attente";
+  const here = positionOnRoads(roads, time) ?? roads[0]!.from;
+  const moving = roads.find((road) => time >= road.t0 && time < road.t1 && road.moves);
+  const status = moving ? (moving.empty ? "Trajet à vide" : "Patient à bord") : "À l'arrêt";
   return (
     <>
-      {done.length > 1 && (
-        <Polyline positions={done.map(toPair)} pathOptions={{ color: crew.color, weight: 3, opacity: 0.35 }} />
-      )}
-      {todo.length > 1 && (
-        <>
-          <Polyline positions={todo.map(toPair)} pathOptions={{ color: "#ffffff", weight: 7, opacity: 0.9 }} />
-          <Polyline positions={todo.map(toPair)} pathOptions={{ color: crew.color, weight: 4, opacity: 0.95 }} />
-        </>
+      {roads.map((road) =>
+        road.line.length > 1 ? (
+          <Polyline
+            key={road.id}
+            positions={road.line.map(toPair)}
+            pathOptions={{
+              color: crew.color,
+              weight: road.empty ? 3 : 5,
+              opacity: road.empty ? 0.55 : 0.95,
+              dashArray: road.empty ? "7 7" : undefined,
+            }}
+          />
+        ) : null,
       )}
       <Vehicle crew={crew} at={here} label={`${vehicleLabel(crew.vehicleType)} · ${status}`} />
     </>
@@ -152,79 +177,89 @@ function Vehicle({ crew, at, label }: { crew: Crew; at: LatLng; label: string })
   );
 }
 
-function buildTrack(
+interface RoadSlice {
+  id: string;
+  t0: number;
+  t1: number;
+  from: LatLng;
+  to: LatLng;
+  line: LatLng[];
+  empty: boolean;
+  moves: boolean;
+}
+
+function buildRoads(
   crew: Crew,
   schedule: CrewSchedule,
-  transports: Map<string, { pickupId: string }>,
+  transports: Map<string, Transport>,
   locMap: Map<string, Location>,
-): TimedPoint[] {
-  const points: TimedPoint[] = [];
+): RoadSlice[] {
+  const slices: RoadSlice[] = [];
   for (const leg of schedule.legs) {
     const transport = transports.get(leg.transportId);
     const from = locMap.get(leg.fromId);
     const pickup = transport ? locMap.get(transport.pickupId) : undefined;
     const drop = locMap.get(leg.dropoffId);
     if (!from || !pickup || !drop) continue;
-    const loaded = leg.segments.find((segment) => segment.kind === "loaded");
-    for (const segment of leg.segments) {
-      const atPickup = !loaded || segment.end <= loaded.start + 0.1;
-      if (segment.kind === "deadhead") {
-        points.push({ t: segment.start, lat: from.lat, lng: from.lng });
-        points.push({ t: segment.end, lat: pickup.lat, lng: pickup.lng });
-      } else if (segment.kind === "loaded") {
-        points.push({ t: segment.start, lat: pickup.lat, lng: pickup.lng });
-        points.push({ t: segment.end, lat: drop.lat, lng: drop.lng });
-      } else if (atPickup) {
-        points.push({ t: segment.start, lat: pickup.lat, lng: pickup.lng });
-        points.push({ t: segment.end, lat: pickup.lat, lng: pickup.lng });
-      } else {
-        points.push({ t: segment.start, lat: drop.lat, lng: drop.lng });
-        points.push({ t: segment.end, lat: drop.lat, lng: drop.lng });
-      }
-    }
+    pushRoad(slices, `dead-${leg.transportId}`, leg, "deadhead", from, pickup, true);
+    pushRoad(slices, `load-${leg.transportId}`, leg, "loaded", pickup, drop, false);
   }
   const base = locMap.get(crew.baseId);
   const last = schedule.legs.at(-1);
-  if (base && last && schedule.returnKm > 0) {
+  if (base && last && schedule.returnKm > 0.15) {
     const drop = locMap.get(last.dropoffId);
     if (drop) {
-      points.push({ t: schedule.returnStart, lat: drop.lat, lng: drop.lng });
-      points.push({ t: schedule.returnEnd, lat: base.lat, lng: base.lng });
+      const path = pathBetween(drop, base);
+      slices.push({
+        id: `back-${crew.id}`,
+        t0: schedule.returnStart,
+        t1: schedule.returnEnd,
+        from: drop,
+        to: base,
+        line: path.line,
+        empty: true,
+        moves: true,
+      });
     }
   }
-  return points;
+  return slices;
 }
 
-function positionAt(points: TimedPoint[], time: number): LatLng | null {
-  if (!points.length) return null;
-  if (time <= points[0]!.t) return points[0]!;
-  const last = points[points.length - 1]!;
-  if (time >= last.t) return last;
-  for (let index = 1; index < points.length; index++) {
-    const next = points[index]!;
-    const prev = points[index - 1]!;
-    if (time <= next.t) {
-      const span = next.t - prev.t;
-      const t = span <= 0.001 ? 0 : (time - prev.t) / span;
-      return lerpCoord(prev, next, t);
-    }
-  }
-  return last;
+function pushRoad(
+  slices: RoadSlice[],
+  id: string,
+  leg: Leg,
+  kind: "deadhead" | "loaded",
+  from: LatLng,
+  to: LatLng,
+  empty: boolean,
+): void {
+  const segment = leg.segments.find((item) => item.kind === kind);
+  if (!segment) return;
+  const path = pathBetween(from, to);
+  slices.push({
+    id,
+    t0: segment.start,
+    t1: segment.end,
+    from,
+    to,
+    line: path.line,
+    empty,
+    moves: true,
+  });
 }
 
-function splitTrack(points: TimedPoint[], time: number): { done: LatLng[]; todo: LatLng[] } {
-  const here = positionAt(points, time);
-  const done: LatLng[] = [];
-  const todo: LatLng[] = [];
-  for (const point of points) {
-    if (point.t <= time) done.push(point);
-    else todo.push(point);
+function positionOnRoads(roads: readonly RoadSlice[], time: number): LatLng | null {
+  if (!roads.length) return null;
+  const active = roads.find((road) => time >= road.t0 && time <= road.t1 && road.moves);
+  if (active) {
+    const span = active.t1 - active.t0;
+    const t = span <= 0.05 ? 0 : (time - active.t0) / span;
+    return pointAlong(active.line, t);
   }
-  if (here) {
-    if (!done.length || done[done.length - 1] !== here) done.push(here);
-    todo.unshift(here);
-  }
-  return { done, todo };
+  const previous = [...roads].reverse().find((road) => road.t1 <= time);
+  if (previous) return previous.to;
+  return roads[0]!.from;
 }
 
 function toPair(point: LatLng): [number, number] {

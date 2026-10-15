@@ -4,13 +4,15 @@ import { optimizePlan, type PlanResult } from "../game/optimizer";
 import { formatKm, formatPct } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
+import { RouteSheetsDialog } from "./RouteSheets";
 
 export function GameDialogs() {
   const data = useData();
   const clock = useClock();
   return (
     <>
-      <OptimizerDialog open={data.modal === "optimizer"} nowMin={clock.nowMin} />
+      <OptimizerDialog open={data.modal === "optimizer"} nowMin={data.live ? clock.nowMin : -1} />
+      <RouteSheetsDialog open={data.modal === "sheets"} />
       <Modal
         open={data.modal === "lomaco"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
@@ -53,18 +55,17 @@ export function GameDialogs() {
       <Modal
         open={data.modal === "help"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-        title="Comment réguler"
-        description="Vous êtes le régulateur d'Ambux Rouen Métropole, de 6 h à 20 h."
+        title="Préparer demain"
+        description="Ambux construit le planning du lendemain. La simulation en direct est facultative."
       >
         <ol className="list-decimal space-y-2 pl-4 text-sm leading-relaxed">
-          <li>Glissez une course depuis « Transports non affectés » vers la ligne d'un équipage. Elle se cale sur un créneau libre.</li>
-          <li>Hachures claires : trajet à vide. Hachures foncées : patient à bord. Aplat : prise en charge.</li>
-          <li>Un patient allongé ne monte pas dans un VSL. Un chevauchement affiche « Conflit horaire ».</li>
-          <li>Répondez aux appels : ajout, annulation, retard, panne, pause.</li>
-          <li>Optimiser compare votre feuille à une recherche locale. Recalculer resserre les horaires. Lomaco est une démo.</li>
-          <li>À 20 h, ou via Clôturer, le bilan s'ouvre. Préparez ensuite le planning du lendemain.</li>
+          <li>Saisissez ou importez les transports dans Demande de demain.</li>
+          <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
+          <li>Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en orange. Revenir à l'heure prévue recale le rendez-vous.</li>
+          <li>Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est signalée sur la ligne.</li>
+          <li>Imprimez les feuilles de route, puis envoyez-les vers Lomaco (démo).</li>
+          <li>Simuler la journée rejoue l'horloge et les appels, sans remplacer le planning.</li>
         </ol>
-        <p className="mt-3 text-xs text-muted">Raccourcis : espace pour la pause, 1 / 2 / 4 pour la vitesse.</p>
       </Modal>
     </>
   );
@@ -92,6 +93,7 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
           locations: current.data.locations,
           nowMin: current.nowMin,
           seed: current.data.seed,
+          rules: current.data.rules,
         });
         if (!cancel) setResult(plan);
       } catch {
@@ -109,8 +111,8 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
       open={open}
       wide
       onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-      title="Optimiser les tournées"
-      description="Recherche locale : insertions et échanges, fenêtres horaires, compatibilité allongé / VSL. Les courses déjà parties ne bougent pas."
+      title="Générer le planning"
+      description="Recherche locale sur les durées routières, la tolérance horaire, la pause repas et la compatibilité ambulance / VSL."
     >
       {!result && !error && <p className="text-sm text-muted">Calcul des tournées…</p>}
       {error && <p className="text-sm text-rose-700">{error}</p>}
@@ -148,8 +150,8 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
             <Button variant="secondary" onClick={() => data.dispatch({ type: "CLOSE_MODAL" })}>
               Garder mon plan
             </Button>
-            <Button onClick={() => data.dispatch({ type: "APPLY_STOPS", stops: result.stops })}>
-              Appliquer le plan optimisé
+            <Button onClick={() => data.dispatch({ type: "APPLY_STOPS", stops: result.stops, meals: result.meals })}>
+              Appliquer ce planning
             </Button>
           </div>
         </>
