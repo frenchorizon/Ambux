@@ -1,9 +1,10 @@
-import { CircleHelp, FastForward, FileText, Pause, Play, Send, Sparkles } from "lucide-react";
+import { CircleHelp, FastForward, FileText, Moon, Pause, Play, Send, Sparkles, Sun } from "lucide-react";
 import { useEffect } from "react";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
 import { MISSION_DATE, DAY_END, DAY_START, type Speed } from "../game/types";
 import { formatMin } from "../lib/format";
+import { toggleTheme, useDark } from "../lib/theme";
 import { cn } from "../lib/utils";
 import { MobileNav } from "./Sidebar";
 import { Button } from "./ui/button";
@@ -21,8 +22,10 @@ export function TopBar() {
     vehicles: "Véhicules",
     patients: "Patients",
     companies: "Groupes de sociétés",
+    feuille: "Feuille équipage",
     lomaco: "Export du planning",
   };
+  const dark = useDark();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -102,6 +105,14 @@ export function TopBar() {
           </span>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+            onClick={() => toggleTheme()}
+          >
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
+          </Button>
           <Button variant="ghost" size="icon" aria-label="Comment jouer" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "help" })}>
             <CircleHelp size={18} />
           </Button>
@@ -112,6 +123,7 @@ export function TopBar() {
           )}
           <Button
             size="sm"
+            data-tour="generer"
             onClick={() => {
               dispatch({ type: "NOTE_OPTIMIZER" });
               dispatch({ type: "OPEN_MODAL", modal: "optimizer" });
@@ -122,7 +134,7 @@ export function TopBar() {
           <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "sheets" })}>
             <FileText size={14} /> Feuilles de route
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>
+          <Button variant="secondary" size="sm" data-tour="export" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>
             <Send size={14} /> Exporter le CSV
           </Button>
         </div>

@@ -1,4 +1,4 @@
-import { Briefing } from "./components/Briefing";
+import { useEffect, useState } from "react";
 import { CallDock } from "./components/CallDock";
 import { GameDialogs } from "./components/GameDialogs";
 import { KpiBar } from "./components/KpiBar";
@@ -12,6 +12,10 @@ import {
   TomorrowView,
   VehiclesView,
 } from "./components/SecondaryViews";
+import { Cinema } from "./components/pitch/Cinema";
+import { CrewSheet } from "./components/pitch/CrewSheet";
+import { Landing } from "./components/pitch/Landing";
+import { Tour } from "./components/pitch/Tour";
 import { Sidebar } from "./components/Sidebar";
 import { Toaster } from "./components/Toaster";
 import { TopBar } from "./components/TopBar";
@@ -21,7 +25,7 @@ import { matrixSource, useRoutingVersion } from "./lib/routing";
 
 export function App() {
   const { phase } = useData();
-  if (phase === "briefing") return <Briefing />;
+  if (phase === "briefing") return <Landing />;
   if (phase === "report") return <Report />;
   return <Dashboard />;
 }
@@ -45,6 +49,15 @@ function LiveCalls() {
 
 function Dashboard() {
   const { phase, view, dispatch } = useData();
+  const [entry] = useState(claimEntry);
+  const [cinema, setCinema] = useState(entry.cinema);
+  const [tour, setTour] = useState(() => entry.tour && !entry.cinema && !tourSeen());
+
+  useEffect(() => {
+    if (!tour || cinema) return;
+    dispatch({ type: "SET_VIEW", view: "gantt" });
+  }, [cinema, dispatch, tour]);
+
   return (
     <div className="flex h-dvh overflow-hidden bg-paper text-ink">
       <Sidebar />
@@ -68,11 +81,54 @@ function Dashboard() {
           {view === "patients" && <PatientsView />}
           {view === "companies" && <CompaniesView />}
           {view === "lomaco" && <LomacoView />}
+          {view === "feuille" && <CrewSheet />}
         </main>
       </div>
       {phase === "playing" && <LiveCalls />}
       <Toaster />
       <GameDialogs />
+      {cinema && (
+        <Cinema
+          onClose={() => {
+            setCinema(false);
+            dispatch({ type: "SET_VIEW", view: "gantt" });
+            if (localStorage.getItem("ambux.tour.v1") !== "1") setTour(true);
+          }}
+        />
+      )}
+      {tour && !cinema && <Tour onDone={() => setTour(false)} />}
     </div>
   );
+}
+
+let entryLatch: { cinema: boolean; tour: boolean } | null = null;
+let entryLatchTimer = 0;
+
+function tourSeen(): boolean {
+  try {
+    return localStorage.getItem("ambux.tour.v1") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function claimEntry(): { cinema: boolean; tour: boolean } {
+  if (entryLatch) return entryLatch;
+  let cinema = false;
+  let tour = false;
+  try {
+    cinema = sessionStorage.getItem("ambux.cinema") === "1";
+    tour = sessionStorage.getItem("ambux.tour") === "1";
+    sessionStorage.removeItem("ambux.cinema");
+    sessionStorage.removeItem("ambux.tour");
+  } catch {
+    cinema = false;
+    tour = false;
+  }
+  entryLatch = { cinema, tour };
+  window.clearTimeout(entryLatchTimer);
+  entryLatchTimer = window.setTimeout(() => {
+    entryLatch = null;
+  }, 100);
+  return entryLatch;
 }

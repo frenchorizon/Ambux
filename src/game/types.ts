@@ -17,7 +17,8 @@ export type ViewId =
   | "vehicles"
   | "patients"
   | "companies"
-  | "lomaco";
+  | "lomaco"
+  | "feuille";
 export type ModalId = "optimizer" | "lomaco" | "help" | "closeDay" | "sheets";
 
 export interface Rules {

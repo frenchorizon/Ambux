@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --color-ink: #12283c;
   --color-muted: #5c7285;
   --color-navy: #0c2e4d;
@@ -73,4 +74,53 @@ body {
 
 .leaflet-control-attribution {
   font-size: 10px;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-ink: #e7eef6;
+  --color-muted: #9aafc2;
+  --color-navy: #07131f;
+  --color-navy-2: #10283c;
+  --color-brand: #4c92ef;
+  --color-brand-2: #2f78d6;
+  --color-ice: #163049;
+  --color-paper: #0b1622;
+  --color-line: #2a4156;
+  --color-card: #12202e;
+}
+
+html.dark .bg-white {
+  background-color: var(--color-card);
+}
+
+html.dark .text-navy {
+  color: #d5e4f3;
+}
+
+.route-live {
+  stroke-dasharray: 8 7;
+  animation: ambux-march 0.9s linear infinite;
+}
+
+@keyframes ambux-march {
+  to {
+    stroke-dashoffset: -30;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-live {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }

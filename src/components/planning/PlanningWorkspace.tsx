@@ -189,12 +189,14 @@ export function PlanningWorkspace() {
           </Button>
         </div>
       )}
-      <ReviewStrip />
+      <div data-tour="controle">
+        <ReviewStrip />
+      </div>
       <div className="flex min-h-0 flex-1">
         <div className={cn("min-h-0 min-w-0 flex-1", narrow && pane !== "plan" && "hidden")}>
           <GanttBoard drag={drag} pxPerMin={pxPerMin} query={query} onStart={start} />
         </div>
-        <div className={cn("min-h-0 border-line", narrow ? (pane === "carte" ? "min-w-0 flex-1" : "hidden") : "w-[min(400px,34%)] shrink-0 border-l")}>
+        <div data-tour="carte" className={cn("min-h-0 border-line", narrow ? (pane === "carte" ? "min-w-0 flex-1" : "hidden") : "w-[min(400px,34%)] shrink-0 border-l")}>
           <MapPanel />
         </div>
         <div className={cn("min-h-0 border-line", narrow ? (pane === "file" ? "min-w-0 flex-1" : "hidden") : "flex w-[260px] shrink-0 flex-col border-l")}>

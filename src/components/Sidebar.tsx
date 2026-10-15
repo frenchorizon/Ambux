@@ -3,6 +3,7 @@ import {
   Cable,
   CalendarClock,
   ChartNoAxesGantt,
+  ClipboardList,
   Menu,
   Stethoscope,
   Truck,
@@ -18,6 +19,7 @@ import { Modal } from "./ui/dialog";
 const ITEMS: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: "tomorrow", label: "Planning du lendemain", icon: <CalendarClock size={18} /> },
   { id: "gantt", label: "Timeline Gantt", icon: <ChartNoAxesGantt size={18} /> },
+  { id: "feuille", label: "Feuille équipage", icon: <ClipboardList size={18} /> },
   { id: "crews", label: "Équipages", icon: <Users size={18} /> },
   { id: "vehicles", label: "Véhicules", icon: <Truck size={18} /> },
   { id: "patients", label: "Patients", icon: <Stethoscope size={18} /> },
@@ -29,20 +31,19 @@ export function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="9" fill={light ? "#1d6fdb" : "#163e66"} />
+        <rect width="32" height="32" rx="9" fill={light ? "#1d6fdb" : "#0c2e4d"} />
         <path
-          d="M6 22h7.2l2.1-6.4 2.2 4.3H26"
+          d="M6.5 21.5c3.4-7 6.6-7 9.4-2.6 1.8 2.8 3.6 3.1 9.6-1.2"
           fill="none"
-          stroke="#9ec5ff"
-          strokeWidth="2"
+          stroke="#b9d4ff"
+          strokeWidth="1.8"
           strokeLinecap="round"
-          strokeLinejoin="round"
         />
-        <circle cx="23.2" cy="10.5" r="2.2" fill="#7eb6ff" />
-        <path d="M15 7.2v5.6M12.2 10h5.6" stroke="white" strokeWidth="1.7" strokeLinecap="round" />
+        <circle cx="24.6" cy="18.2" r="1.7" fill="#7eb6ff" />
+        <path d="M16 6.6v5.8M13.1 9.5h5.8" stroke="white" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
       <div>
-        <div className={cn("text-base font-bold leading-none", light ? "text-white" : "text-ink")}>Ambux</div>
+        <div className={cn("font-display text-lg leading-none", light ? "text-white" : "text-ink")}>Ambux</div>
         <div className={cn("mt-1 text-[11px] font-medium", light ? "text-sky-100" : "text-muted")}>Régulateur</div>
       </div>
     </div>
@@ -64,6 +65,7 @@ export function NavList({ onPick }: { onPick?: () => void }) {
               dispatch({ type: "SET_VIEW", view: item.id });
               onPick?.();
             }}
+            data-tour={item.id === "feuille" ? "feuille" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
               active ? "bg-white/15 text-white" : "text-sky-100/80 hover:bg-white/10 hover:text-white",
@@ -83,6 +85,7 @@ export function NavList({ onPick }: { onPick?: () => void }) {
 
 export function Sidebar() {
   const narrow = useNarrow();
+  const { dispatch } = useData();
   if (narrow) return null;
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col bg-navy px-3 py-4 text-white">
@@ -90,7 +93,14 @@ export function Sidebar() {
         <Logo light />
       </div>
       <NavList />
-      <p className="mt-auto px-2 pt-4 text-[11px] leading-relaxed text-sky-100/60">
+      <button
+        type="button"
+        className="mt-auto px-2 pt-4 text-left text-[11px] font-semibold text-sky-100/70 hover:text-white"
+        onClick={() => dispatch({ type: "REPLAY" })}
+      >
+        Retour à l'accueil
+      </button>
+      <p className="px-2 pt-2 text-[11px] leading-relaxed text-sky-100/60">
         Démo locale pour les sociétés de transport sanitaire. Aucune donnée patient réelle.
       </p>
     </aside>
@@ -99,6 +109,7 @@ export function Sidebar() {
 
 export function MobileNav() {
   const narrow = useNarrow();
+  const { dispatch } = useData();
   const [open, setOpen] = useState(false);
   if (!narrow) return null;
   return (
@@ -114,6 +125,16 @@ export function MobileNav() {
       <Modal open={open} onClose={() => setOpen(false)} title="Navigation">
         <div className="rounded-xl bg-navy p-2">
           <NavList onPick={() => setOpen(false)} />
+          <button
+            type="button"
+            className="mt-2 w-full px-3 py-2 text-left text-xs font-semibold text-sky-100/80"
+            onClick={() => {
+              setOpen(false);
+              dispatch({ type: "REPLAY" });
+            }}
+          >
+            Retour à l'accueil
+          </button>
         </div>
       </Modal>
     </>
