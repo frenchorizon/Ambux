@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #12283c;
+  --color-muted: #5c7285;
+  --color-navy: #0c2e4d;
+  --color-navy-2: #12385c;
+  --color-brand: #1d6fdb;
+  --color-brand-2: #1557b0;
+  --color-ice: #e7f1fb;
+  --color-paper: #eef3f8;
+  --color-line: #d5e2ee;
+  --color-card: #ffffff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b7c9db transparent;
+}
+
+.seg-deadhead {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.15) 0 3px,
+    rgba(255, 255, 255, 0.72) 3px 6px
+  );
+}
+
+.seg-loaded {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.05) 0 3px,
+    rgba(0, 0, 0, 0.28) 3px 6px
+  );
+}
+
+.seg-pec {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.seg-wait {
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 0 2px,
+    rgba(255, 255, 255, 0.55) 2px 4px
+  );
+}
+
+.gantt-scroll {
+  scrollbar-gutter: stable;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #d5e4f2;
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+}
