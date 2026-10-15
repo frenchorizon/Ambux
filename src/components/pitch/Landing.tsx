@@ -161,7 +161,7 @@ export function Landing() {
 
 function oneClick(dispatch: ReturnType<typeof useData>["dispatch"]): void {
   sessionStorage.setItem("ambux.cinema", "1");
-  dispatch({ type: "START", amb: 3, vsl: 3, density: "chargee", seed: 20261015 });
+  dispatch({ type: "START", amb: 3, vsl: 3, density: "normale", seed: 20261015 });
 }
 
 function Stat({ k, v }: { k: string; v: string }) {
