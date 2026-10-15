@@ -1,7 +1,8 @@
 import { CircleHelp, FastForward, FileText, Pause, Play, Send, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { useClock, useData } from "../game/context";
-import { DEMO_DATE, DAY_END, DAY_START, type Speed } from "../game/types";
+import { listDrafts } from "../game/persist";
+import { MISSION_DATE, DAY_END, DAY_START, type Speed } from "../game/types";
 import { formatMin } from "../lib/format";
 import { cn } from "../lib/utils";
 import { MobileNav } from "./Sidebar";
@@ -20,7 +21,7 @@ export function TopBar() {
     vehicles: "Véhicules",
     patients: "Patients",
     companies: "Groupes de sociétés",
-    lomaco: "Synchronisation Lomaco",
+    lomaco: "Export du planning",
   };
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function TopBar() {
         <MobileNav />
         <div className="min-w-[140px]">
           <div className="text-sm font-semibold text-ink">{titles[view] ?? "Ambux"}</div>
-          <div className="text-[11px] text-muted">{DEMO_DATE}</div>
+          <div className="text-[11px] text-muted">{MISSION_DATE}{draftLabel()}</div>
         </div>
         {live ? (
           <div className="flex items-center gap-1.5 rounded-xl bg-ice px-2 py-1">
@@ -97,7 +98,7 @@ export function TopBar() {
         )}
         {metrics.lateCount > 0 && (
           <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-800">
-            {metrics.lateCount} retard{metrics.lateCount > 1 ? "s" : ""}
+            {metrics.lateCount} hors créneau
           </span>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -122,7 +123,7 @@ export function TopBar() {
             <FileText size={14} /> Feuilles de route
           </Button>
           <Button variant="secondary" size="sm" onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>
-            <Send size={14} /> Envoyer vers Lomaco
+            <Send size={14} /> Exporter le CSV
           </Button>
         </div>
       </div>
@@ -133,4 +134,9 @@ export function TopBar() {
       )}
     </header>
   );
+}
+
+function draftLabel(): string {
+  const latest = listDrafts()[0];
+  return latest ? ` · brouillon v${latest.version}` : "";
 }

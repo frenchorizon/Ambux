@@ -4,6 +4,8 @@ import { useRoutingVersion, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
+import { saveDraft } from "./persist";
+import { reviewIssues, type Issue } from "./review";
 import { initialState, reducer, type Action } from "./reducer";
 import type {
   Call,
@@ -68,6 +70,7 @@ export interface DataValue {
   locMap: Map<string, Location>;
   patientById: Map<string, Patient>;
   transportById: Map<string, Transport>;
+  issues: Issue[];
 }
 
 const ClockContext = createContext<ClockValue | null>(null);
@@ -95,6 +98,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       cancel = true;
     };
   }, [state.seed, state.phase]);
+
+  useEffect(() => {
+    if (state.phase === "briefing") return;
+    saveDraft(state);
+  }, [state]);
 
   useEffect(() => {
     let last = performance.now();
@@ -128,6 +136,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
   const patientById = useMemo(() => indexById(state.patients), [state.patients]);
   const transportById = useMemo(() => indexById(state.transports), [state.transports]);
+  const issues = useMemo(
+    () =>
+      reviewIssues({
+        crews: state.crews,
+        transports: state.transports,
+        blocks: state.blocks,
+        rules: state.rules,
+        schedules,
+        patients: patientById,
+      }),
+    [state.crews, state.transports, state.blocks, state.rules, schedules, patientById],
+  );
 
   const data = useMemo<DataValue>(
     () => ({
@@ -163,6 +183,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       locMap,
       patientById,
       transportById,
+      issues,
     }),
     [
       state.phase,
@@ -196,6 +217,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       locMap,
       patientById,
       transportById,
+      issues,
     ],
   );
 

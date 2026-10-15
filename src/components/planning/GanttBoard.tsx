@@ -8,15 +8,17 @@ import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import type { DragState } from "./drag";
 
-const LABEL = 188;
+const LABEL = 210;
 
 export function GanttBoard({
   drag,
   pxPerMin,
+  query,
   onStart,
 }: {
   drag: DragState | null;
   pxPerMin: number;
+  query: string;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
 }) {
   const data = useData();
@@ -60,12 +62,15 @@ export function GanttBoard({
               ))}
             </div>
           </div>
-          {data.crews.map((crew) => (
+          {data.crews
+            .filter((crew) => !data.crewFilter || crew.id === data.crewFilter)
+            .map((crew) => (
             <CrewRow
               key={crew.id}
               crew={crew}
               width={width}
               pxPerMin={pxPerMin}
+              query={query}
               drag={drag}
               onStart={onStart}
               onTip={(next) => setTip(next)}
@@ -99,6 +104,7 @@ function CrewRow({
   crew,
   width,
   pxPerMin,
+  query,
   drag,
   onStart,
   onTip,
@@ -106,23 +112,33 @@ function CrewRow({
   crew: Crew;
   width: number;
   pxPerMin: number;
+  query: string;
   drag: DragState | null;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
   onTip: (tip: { x: number; y: number; transportId: string } | null) => void;
 }) {
-  const { schedules, blocks, transports, crewFilter, selectedId, patientById, rules } = useData();
+  const { schedules, blocks, transports, selectedId, patientById, rules } = useData();
   const schedule = schedules.get(crew.id);
   const crewBlocks = blocks.filter((block) => block.crewId === crew.id);
   const meal = crewBlocks.find((block) => block.kind === "repas");
   const mealWarn = mealIssue(meal, rules);
+  const needle = query.trim().toLowerCase();
+  const legs = (schedule?.legs ?? []).filter((leg) => {
+    if (!needle) return true;
+    const transport = transports.find((item) => item.id === leg.transportId);
+    const patient = transport ? patientById.get(transport.patientId) : undefined;
+    const name = patient ? personName(patient).toLowerCase() : "";
+    return name.includes(needle) || (transport?.dossier.toLowerCase().includes(needle) ?? false);
+  });
+  if (needle && legs.length === 0) return null;
   const count = schedule?.legs.length ?? 0;
   const hot = drag?.hoverCrewId === crew.id;
   const bad = hot && drag.preview && !drag.preview.ok && drag.preview.reason === "incompatible";
   return (
-    <div className={cn("flex border-b border-line", crewFilter && crewFilter !== crew.id && "opacity-35")}>
+    <div className="flex border-b border-line">
       <div
         className="sticky left-0 z-20 flex items-center gap-2 border-r border-line bg-white px-2.5"
-        style={{ width: LABEL, height: 54 }}
+        style={{ width: LABEL, height: 64 }}
       >
         <span className="h-7 w-1.5 rounded-full" style={{ background: crew.color }} />
         <span className="min-w-0">
@@ -133,7 +149,7 @@ function CrewRow({
             </Badge>
           </span>
           <span className="block truncate text-[11px] text-muted">
-            {crew.plate} · {count} course{count > 1 ? "s" : ""}
+            {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)} · {count} course{count > 1 ? "s" : ""}
             {mealWarn ? ` · ${mealWarn}` : ""}
           </span>
         </span>
@@ -142,7 +158,7 @@ function CrewRow({
         data-track
         data-crew-id={crew.id}
         className={cn("relative", hot && !bad && "bg-emerald-50/70", bad && "bg-rose-50")}
-        style={{ width, height: 54 }}
+        style={{ width, height: 64 }}
       >
         {hours().map((hour) => (
           <div
@@ -182,7 +198,7 @@ function CrewRow({
             {(schedule.returnEnd - schedule.returnStart) * pxPerMin > 46 ? "Retour dépôt" : ""}
           </div>
         )}
-        {schedule?.legs.map((leg) => {
+        {legs.map((leg) => {
           const transport = transports.find((item) => item.id === leg.transportId);
           if (!transport) return null;
           const patient = patientById.get(transport.patientId);
@@ -191,11 +207,11 @@ function CrewRow({
           const selected = selectedId === transport.id;
           const off = Math.abs(leg.deviationMin) >= 5;
           return (
+            <span key={leg.transportId} className="contents">
             <button
-              key={leg.transportId}
               type="button"
               className={cn(
-                "absolute top-4 flex h-[34px] overflow-hidden rounded-md text-left text-[10px] font-semibold text-white shadow-sm",
+                "absolute top-6 flex h-[34px] overflow-hidden rounded-md text-left text-[10px] font-semibold text-white shadow-sm",
                 leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
               )}
@@ -221,10 +237,8 @@ function CrewRow({
                   )}
                 </span>
               ))}
-              {off && (
-                <span className="pointer-events-none absolute -top-3 right-0 rounded bg-amber-500 px-1 text-[9px] font-bold leading-3 text-white">
-                  {deviationLabel(leg.deviationMin)}
-                </span>
+              {leg.kmEstimated && bar > 54 && (
+                <span className="pointer-events-none absolute bottom-0 left-0 rounded-tr bg-rose-700 px-1 text-[8px] font-bold text-white">km estimé</span>
               )}
               {bar > 72 && (
                 <span className="pointer-events-none absolute inset-0 flex items-center px-1.5">
@@ -235,9 +249,19 @@ function CrewRow({
                 </span>
               )}
             </button>
+            {off && (
+              <span
+                key={`dev-${leg.transportId}`}
+                className="pointer-events-none absolute z-10 rounded bg-amber-500 px-1 text-[10px] font-bold leading-4 text-white"
+                style={{ left: left + Math.max(0, bar - 42), top: 2 }}
+              >
+                {deviationLabel(leg.deviationMin)}
+              </span>
+            )}
+            </span>
           );
         })}
-        {schedule?.legs.map((leg) => {
+        {legs.map((leg) => {
           const transport = transports.find((item) => item.id === leg.transportId);
           if (!transport) return null;
           const planned = transport.appointmentMin ?? transport.windowStart;
@@ -287,6 +311,7 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
       {leg && (
         <div className="mt-1 text-muted">
           Départ {formatMin(leg.departMin)} · à vide {formatKm(leg.deadheadKm, 1)} ({leg.deadheadMin} min) · en charge {formatKm(leg.loadedKm, 1)}
+          {leg.kmEstimated ? " · km estimé" : ""}
         </div>
       )}
       {leg && Math.abs(leg.deviationMin) >= 1 && (

@@ -45,18 +45,18 @@ export function LomacoView() {
   const data = useData();
   return (
     <div className="h-full overflow-auto p-4">
-      <PageTitle title="Synchronisation Lomaco" text="Connecteur de démonstration. Les feuilles de route partent ensemble, une fois le planning validé." />
+      <PageTitle title="Export du planning" text="Le fichier CSV reprend le planning retenu, y compris les courses à traiter. Il n'y a pas d'envoi fictif." />
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <article className="rounded-2xl border border-line bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">Statut</div>
-          <div className="mt-1 text-lg font-semibold text-emerald-700">Connecté (démo)</div>
+          <div className="mt-1 text-lg font-semibold">Fichier local</div>
         </article>
         <article className="rounded-2xl border border-line bg-white p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted">Envois</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted">Exports</div>
           <div className="mt-1 text-lg font-semibold">{data.stats.lomacoSends}</div>
         </article>
         <article className="rounded-2xl border border-line bg-white p-4">
-          <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>Envoyer vers Lomaco</Button>
+          <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>Exporter le CSV</Button>
         </article>
       </div>
       <article className="rounded-2xl border border-line bg-white p-4">

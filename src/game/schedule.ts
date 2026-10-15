@@ -22,6 +22,8 @@ export interface Leg {
   loadedKm: number;
   lateMin: number;
   deviationMin: number;
+  outOfTolerance: boolean;
+  kmEstimated: boolean;
   conflict: boolean;
   incompatible: boolean;
   fromId: string;
@@ -56,10 +58,10 @@ export function travelLoc(
   fromId: string,
   toId: string,
   locMap: Map<string, Location>,
-): { km: number; min: number } {
+): { km: number; min: number; source: "osrm" | "estimate" } {
   const from = locMap.get(fromId);
   const to = locMap.get(toId);
-  if (!from || !to) return { km: 6, min: 12 };
+  if (!from || !to) return { km: 6, min: 12, source: "estimate" };
   return travelBetween(fromId, toId, from, to);
 }
 
@@ -139,8 +141,12 @@ export function simulateLeg(
     loadedKm: loaded.km,
     lateMin: Math.max(0, arrivePickup - planned - tolerance),
     deviationMin: Math.round(arrivePickup - planned),
+    outOfTolerance: arrivePickup > planned + tolerance + 0.5 || arrivePickup < planned - tolerance - 0.5,
+    kmEstimated: deadhead.source !== "osrm" || loaded.source !== "osrm",
     conflict: false,
-    incompatible: transport.posture === "allonge" && crew.vehicleType === "vsl",
+    incompatible:
+      (transport.posture === "allonge" && crew.vehicleType === "vsl") ||
+      (crew.vehicleType === "ambulance" && !crew.dea),
     fromId,
     dropoffId: transport.dropoffId,
     segments,
@@ -345,6 +351,7 @@ export function candidatePlacements(
   nowMin: number,
 ): Leg[] {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return [];
+  if (crew.vehicleType === "ambulance" && !crew.dea) return [];
   const gaps = freeGaps(
     crew,
     transports.filter((item) => item.id !== transport.id),
@@ -386,6 +393,13 @@ export function previewPlacement(
       ok: false,
       reason: "incompatible",
       message: "Incompatibilité : transport allongé, un VSL n'est pas habilité.",
+    };
+  }
+  if (crew.vehicleType === "ambulance" && !crew.dea) {
+    return {
+      ok: false,
+      reason: "incompatible",
+      message: "Incompatibilité : cette ambulance n'a pas de DEA enregistré.",
     };
   }
   const gaps = freeGaps(

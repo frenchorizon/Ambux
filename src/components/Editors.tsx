@@ -3,6 +3,7 @@ import { useData } from "../game/context";
 import { DAY_END, DAY_START, type Posture, type Transport, type VehicleType } from "../game/types";
 import { formatKm, formatMin, kindLabel, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { geocodeAddress } from "../lib/routing";
+import { CsvImport } from "./CsvImport";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
@@ -284,7 +285,6 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
 
 export function TomorrowView() {
   const data = useData();
-  const [csv, setCsv] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const sites = data.locations.filter((location) => location.kind !== "domicile");
   const homes = data.locations.filter((location) => location.kind === "domicile");
@@ -307,22 +307,7 @@ export function TomorrowView() {
         <Button variant="secondary" onClick={() => data.dispatch({ type: "PLACE_MEALS" })}>Placer les repas</Button>
       </div>
       {openForm && <TransportForm sites={sites} homes={homes} onDone={() => setOpenForm(false)} />}
-      <label className="mb-4 block text-xs font-semibold">
-        Import CSV — Nom;Prénom;Adresse;Destination;Heure;Mobilité;Retour;Note
-        <textarea value={csv} onChange={(event) => setCsv(event.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-line p-2 font-mono text-xs font-normal" placeholder="MARTIN;Jeanne;12 rue des Sapins, Sotteville-lès-Rouen;CHU Charles-Nicolle;08:15;assis;oui;" />
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="mt-2"
-          onClick={() => {
-            void importCsv(csv, data);
-            setCsv("");
-          }}
-        >
-          Importer
-        </Button>
-      </label>
+      <CsvImport />
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         {data.transports.length === 0 && <p className="p-4 text-sm text-muted">Aucune course. Ajoutez-en une ou importez un fichier.</p>}
         {data.transports.filter((transport) => !transport.cancelled).map((transport) => {
@@ -377,6 +362,7 @@ function TransportForm({
   const [time, setTime] = useState("09:00");
   const [posture, setPosture] = useState<Posture>("assis");
   const [retour, setRetour] = useState(false);
+  const [returnTime, setReturnTime] = useState("13:00");
   const [note, setNote] = useState("");
   return (
     <form
@@ -420,6 +406,8 @@ function TransportForm({
           },
         });
         if (retour) {
+          const [rh, rm] = returnTime.split(":").map(Number);
+          const back = (rh || 0) * 60 + (rm || 0);
           data.dispatch({
             type: "ADD_TRANSPORT",
             transport: {
@@ -428,9 +416,9 @@ function TransportForm({
               pickupId: siteId,
               dropoffId: homeId,
               kind: "retour",
-              appointmentMin: appointment + 180,
-              windowStart: appointment + 150,
-              windowEnd: appointment + 220,
+              appointmentMin: back,
+              windowStart: back - tolerance,
+              windowEnd: back + tolerance,
               seriesId: id,
             },
           });
@@ -453,84 +441,30 @@ function TransportForm({
         <option value="allonge">Allongé</option>
       </select>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={retour} onChange={(event) => setRetour(event.target.checked)} /> Retour
+        <input
+          type="checkbox"
+          checked={retour}
+          onChange={(event) => {
+            const on = event.target.checked;
+            setRetour(on);
+            if (on) {
+              const [hours, minutes] = time.split(":").map(Number);
+              const back = (hours || 9) * 60 + (minutes || 0) + data.rules.sessionMin;
+              const hh = String(Math.floor(back / 60) % 24).padStart(2, "0");
+              const mm = String(back % 60).padStart(2, "0");
+              setReturnTime(`${hh}:${mm}`);
+            }
+          }}
+        />{" "}
+        Retour
       </label>
+      {retour && (
+        <input type="time" value={returnTime} onChange={(event) => setReturnTime(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" aria-label="Heure du retour" />
+      )}
       <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note" className="h-9 rounded-lg border border-line px-2 text-sm sm:col-span-2" />
       <Button type="submit" size="sm">Enregistrer</Button>
     </form>
   );
-}
-
-async function importCsv(raw: string, data: ReturnType<typeof useData>) {
-  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  let added = 0;
-  for (const line of lines) {
-    if (/^nom\s*;/i.test(line)) continue;
-    const [lastName, firstName, address, destination, time, mobility, retour, note] = line.split(";").map((part) => part?.trim() ?? "");
-    if (!lastName || !time) continue;
-    const [hours, minutes] = time.split(":").map(Number);
-    const appointment = (hours || 8) * 60 + (minutes || 0);
-    const posture: Posture = mobility?.toLowerCase().startsWith("all") ? "allonge" : mobility?.toLowerCase().startsWith("fau") ? "fauteuil" : "assis";
-    const site = data.locations.find((location) => destination && (location.name.toLowerCase().includes(destination.toLowerCase()) || location.short.toLowerCase().includes(destination.toLowerCase())))
-      ?? data.locations.find((location) => location.kind === "chu");
-    let home = data.locations.find((location) => address && location.name.toLowerCase().includes(address.toLowerCase().slice(0, 12)));
-    let created = undefined as undefined | (typeof data.locations)[number];
-    if (!home && address) {
-      const hit = await geocodeAddress(address);
-      if (hit) {
-        created = {
-          id: `imp-${added}-${Date.now()}`,
-          name: hit.label,
-          short: hit.label,
-          kind: "domicile",
-          lat: hit.lat,
-          lng: hit.lng,
-          city: "Rouen",
-        };
-        home = created;
-      }
-    }
-    if (!home || !site) continue;
-    const patientId = `pat-imp-${Date.now()}-${added}`;
-    const tolerance = data.rules.toleranceMin;
-    data.dispatch({
-      type: "ADD_TRANSPORT",
-      location: created,
-      patient: {
-        id: patientId,
-        firstName: firstName || "Alex",
-        lastName,
-        phone: "06 00 00 00 00",
-        birthYear: 1955,
-        addressId: home.id,
-        mobility: posture,
-        note,
-      },
-      transport: {
-        id: `t-imp-${Date.now()}-${added}`,
-        dossier: `DOS-I${50000 + added}`,
-        patientId,
-        pickupId: home.id,
-        dropoffId: site.id,
-        appointmentMin: appointment,
-        toleranceMin: tolerance,
-        windowStart: Math.max(DAY_START, appointment - tolerance),
-        windowEnd: Math.min(DAY_END - 10, appointment + tolerance),
-        posture,
-        serviceMin: posture === "allonge" ? 16 : 10,
-        kind: /^oui/i.test(retour) ? "aller" : "simple",
-        priority: "normal",
-        cancelled: false,
-        note,
-      },
-    });
-    added += 1;
-  }
-  data.dispatch({
-    type: "TOAST",
-    message: added ? `${added} transport${added > 1 ? "s" : ""} importé${added > 1 ? "s" : ""}.` : "Aucune ligne reconnue.",
-    tone: added ? "ok" : "warn",
-  });
 }
 
 function PageTitle({ title, text }: { title: string; text: string }) {

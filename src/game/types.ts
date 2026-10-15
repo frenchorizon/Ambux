@@ -1,7 +1,8 @@
 export const DAY_START = 6 * 60;
 export const DAY_END = 20 * 60;
-export const DEMO_DATE = "Jeudi 15 octobre 2026";
-export const NEXT_DATE = "Vendredi 16 octobre 2026";
+export const MISSION_ISO = "2026-10-16";
+export const MISSION_DATE = "Vendredi 16 octobre 2026";
+export const MAX_VEHICLES = 20;
 
 export type VehicleType = "ambulance" | "vsl";
 export type Posture = "assis" | "allonge" | "fauteuil";
@@ -24,6 +25,10 @@ export interface Rules {
   mealMin: number;
   mealFrom: number;
   mealTo: number;
+  maxAmb: number;
+  maxVsl: number;
+  sessionMin: number;
+  amplitudeMin: number;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -31,6 +36,10 @@ export const DEFAULT_RULES: Rules = {
   mealMin: 30,
   mealFrom: 11 * 60,
   mealTo: 14 * 60 + 30,
+  maxAmb: 15,
+  maxVsl: 25,
+  sessionMin: 4 * 60,
+  amplitudeMin: 11 * 60,
 };
 
 export interface StaffMember {
@@ -90,6 +99,7 @@ export interface Crew {
   shiftStart: number;
   shiftEnd: number;
   delayUntil: number;
+  dea: boolean;
   vehicleId?: string;
   driverId?: string;
   mateId?: string;
@@ -109,6 +119,8 @@ export interface Transport {
   serviceMin: number;
   kind: TransportKind;
   seriesId?: string;
+  /** Arrivée au centre de dialyse, avant la durée de séance. */
+  centerArriveMin?: number;
   priority: "normal" | "urgent";
   cancelled: boolean;
   crewId?: string;

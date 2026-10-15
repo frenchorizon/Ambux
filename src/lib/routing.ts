@@ -8,7 +8,7 @@ export interface Travel {
 }
 
 const travelById = new Map<string, Travel>();
-const pathByCoord = new Map<string, LatLng[]>();
+const pathByCoord = new Map<string, { line: LatLng[]; source: "osrm" | "estimate" }>();
 const pending = new Set<string>();
 let version = 0;
 let matrixState: "idle" | "loading" | "osrm" | "estimate" = "idle";
@@ -48,16 +48,21 @@ function coordKey(a: LatLng, b: LatLng): string {
   return `${a.lat.toFixed(4)},${a.lng.toFixed(4)}>${b.lat.toFixed(4)},${b.lng.toFixed(4)}`;
 }
 
-export function travelBetween(fromId: string, toId: string, from: LatLng, to: LatLng): { km: number; min: number } {
+export function travelBetween(
+  fromId: string,
+  toId: string,
+  from: LatLng,
+  to: LatLng,
+): { km: number; min: number; source: "osrm" | "estimate" } {
   const known = travelById.get(idKey(fromId, toId));
-  if (known) return { km: known.km, min: known.min };
+  if (known) return { km: known.km, min: known.min, source: known.source };
   const km = roadKm(from, to);
-  return { km, min: minutesForKm(km) };
+  return { km, min: minutesForKm(km), source: "estimate" };
 }
 
 export function pathBetween(from: LatLng, to: LatLng): { line: LatLng[]; source: "osrm" | "estimate" } {
   const known = pathByCoord.get(coordKey(from, to));
-  if (known && known.length > 1) return { line: known, source: "osrm" };
+  if (known && known.line.length > 1) return known;
   return { line: estimatePath(from, to), source: "estimate" };
 }
 
@@ -97,7 +102,7 @@ export async function warmMatrix(locations: readonly { id: string; lat: number; 
   const usable = locations.slice(0, 90);
   const coords = usable.map((location) => `${location.lng},${location.lat}`).join(";");
   try {
-    const response = await fetch(`${OSRM}/table/v1/driving/${coords}?annotations=duration,distance`);
+    const response = await fetchRouting(`${OSRM}/table/v1/driving/${coords}?annotations=duration,distance`);
     if (!response.ok) throw new Error(String(response.status));
     const data = (await response.json()) as {
       code?: string;
@@ -157,7 +162,7 @@ async function pump(): Promise<void> {
 async function fetchPath(from: LatLng, to: LatLng): Promise<void> {
   const key = coordKey(from, to);
   try {
-    const response = await fetch(
+    const response = await fetchRouting(
       `${OSRM}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`,
     );
     if (!response.ok) throw new Error(String(response.status));
@@ -167,16 +172,39 @@ async function fetchPath(from: LatLng, to: LatLng): Promise<void> {
     };
     const coordinates = data.routes?.[0]?.geometry?.coordinates;
     if (data.code !== "Ok" || !coordinates?.length) throw new Error("route");
-    pathByCoord.set(
-      key,
-      coordinates.map(([lng, lat]) => ({ lat, lng })),
-    );
+    pathByCoord.set(key, {
+      line: coordinates.map(([lng, lat]) => ({ lat, lng })),
+      source: "osrm",
+    });
     bump();
   } catch {
-    pathByCoord.set(key, estimatePath(from, to));
+    pathByCoord.set(key, { line: estimatePath(from, to), source: "estimate" });
+    bump();
   } finally {
     pending.delete(key);
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchRouting(url: string): Promise<Response> {
+  let last = "réseau";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await sleep(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 180));
+    try {
+      const response = await fetch(url);
+      if (response.status === 429 || response.status >= 500) {
+        last = String(response.status);
+        continue;
+      }
+      return response;
+    } catch {
+      last = "réseau";
+    }
+  }
+  throw new Error(last);
 }
 
 function estimatePath(from: LatLng, to: LatLng): LatLng[] {

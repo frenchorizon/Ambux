@@ -174,8 +174,14 @@ function cloneSol(sol: Sol): Sol {
   return { routes, unassigned: sol.unassigned.slice() };
 }
 
+function maxCourses(crew: Crew, rules: Rules): number {
+  return crew.vehicleType === "ambulance" ? rules.maxAmb : rules.maxVsl;
+}
+
 function compatible(crew: Crew, transport: Transport): boolean {
-  return !(transport.posture === "allonge" && crew.vehicleType === "vsl");
+  if (transport.posture === "allonge" && crew.vehicleType === "vsl") return false;
+  if (crew.vehicleType === "ambulance" && !crew.dea) return false;
+  return true;
 }
 
 function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEval {
@@ -187,17 +193,26 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     if (!compatible(crew, transport)) return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
     jobs.push(transport);
   }
+  const frozen = ctx.frozenCount[crew.id] ?? 0;
+  if (frozen + jobs.length > maxCourses(crew, ctx.rules)) {
+    return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
+  }
   const foreign = ctx.blocks.filter((block) => !(block.crewId === crew.id && block.kind === "repas"));
   const schedule = scheduleCrew(crew, jobs, foreign, ctx.locMap, "chain", ctx.origin[crew.id]);
-  if (!suffixOk(schedule, crew)) return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
+  if (!suffixOk(schedule, crew) || !seriesOrderOk(jobs, schedule)) {
+    return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
+  }
   let lateMin = 0;
   let emptyKm = schedule.returnKm;
   for (const leg of schedule.legs) {
     lateMin += leg.lateMin;
     emptyKm += leg.deadheadKm;
   }
-  const mealPenalty = pickMealSlot(schedule, crew, ctx.rules) ? 0 : 420;
-  const cost = emptyKm * 3.4 + lateMin * 9 + schedule.idleMin * 0.22 + mealPenalty;
+  if (jobs.length > 0 && ctx.rules.mealMin > 0 && !pickMealSlot(schedule, crew, ctx.rules)) {
+    return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
+  }
+  const load = frozen + jobs.length;
+  const cost = emptyKm * 3.4 + lateMin * 9 + schedule.idleMin * 0.22 + load * load * 2.4;
   return {
     ok: true,
     cost,
@@ -210,9 +225,29 @@ function suffixOk(schedule: CrewSchedule, crew: Crew): boolean {
     (leg: Leg) =>
       !leg.incompatible &&
       !leg.conflict &&
-      leg.lateMin <= 18 &&
-      leg.endMin <= crew.shiftEnd + 12,
+      leg.lateMin <= 0.5 &&
+      !leg.outOfTolerance &&
+      leg.endMin <= crew.shiftEnd + 0.5,
   );
+}
+
+function seriesOrderOk(jobs: readonly Transport[], schedule: CrewSchedule): boolean {
+  const index = new Map<string, number>();
+  schedule.legs.forEach((leg, position) => index.set(leg.transportId, position));
+  const groups = new Map<string, Transport[]>();
+  for (const job of jobs) {
+    if (!job.seriesId || !job.kind.startsWith("dialyse")) continue;
+    const list = groups.get(job.seriesId) ?? [];
+    list.push(job);
+    groups.set(job.seriesId, list);
+  }
+  for (const list of groups.values()) {
+    const aller = list.find((transport) => transport.kind.includes("aller"));
+    const retour = list.find((transport) => transport.kind.includes("retour"));
+    if (!aller || !retour) continue;
+    if ((index.get(retour.id) ?? 0) <= (index.get(aller.id) ?? 0)) return false;
+  }
+  return true;
 }
 
 function seriesPenalty(sol: Sol, ctx: Ctx): number {
@@ -234,7 +269,7 @@ function seriesPenalty(sol: Sol, ctx: Ctx): number {
   let penalty = 0;
   for (const list of groups.values()) {
     const crews = new Set(list.map((transport) => crewOf.get(transport.id)));
-    if (crews.size > 1) penalty += 36;
+    if (crews.size > 1) penalty += list.some((transport) => transport.kind.startsWith("dialyse")) ? 160 : 36;
     const aller = list.find((transport) => transport.kind.endsWith("aller"));
     const retour = list.find((transport) => transport.kind.endsWith("retour"));
     if (aller && retour && crewOf.get(aller.id) === crewOf.get(retour.id)) {
@@ -273,6 +308,7 @@ function insertGreedy(sol: Sol, ctx: Ctx): Sol {
   sol.unassigned = [];
   for (const transport of pending) {
     let best: { crewId: string; index: number; delta: number } | null = null;
+    const partner = partnerCrew(transport, sol, ctx);
     for (const crew of ctx.crews) {
       if (!compatible(crew, transport)) continue;
       const ids = sol.routes[crew.id] ?? [];
@@ -280,12 +316,13 @@ function insertGreedy(sol: Sol, ctx: Ctx): Sol {
       const before = evaluateSuffix(crew, ids.slice(frozen), ctx);
       if (!before.ok && ids.length > frozen) continue;
       const base = before.ok ? before.cost : 0;
+      const affinity = !partner ? 0 : partner === crew.id ? -100 : 110;
       for (let index = frozen; index <= ids.length; index++) {
         const next = ids.slice();
         next.splice(index, 0, transport.id);
         const evaluation = evaluateSuffix(crew, next.slice(frozen), ctx);
         if (!evaluation.ok) continue;
-        const delta = evaluation.cost - base;
+        const delta = evaluation.cost - base + affinity;
         if (!best || delta < best.delta) best = { crewId: crew.id, index, delta };
       }
     }
@@ -297,6 +334,17 @@ function insertGreedy(sol: Sol, ctx: Ctx): Sol {
     }
   }
   return sol;
+}
+
+function partnerCrew(transport: Transport, sol: Sol, ctx: Ctx): string | null {
+  if (!transport.seriesId || !transport.kind.startsWith("dialyse")) return null;
+  for (const [crewId, ids] of Object.entries(sol.routes)) {
+    for (const id of ids) {
+      const other = ctx.byId.get(id);
+      if (other && other.id !== transport.id && other.seriesId === transport.seriesId) return crewId;
+    }
+  }
+  return null;
 }
 
 function rank(transport: Transport): number {

@@ -19,7 +19,8 @@ export function PlanningWorkspace() {
   const clock = useClock();
   const narrow = useNarrow();
   const [pane, setPane] = useState<Pane>("plan");
-  const [pxPerMin, setPxPerMin] = useState(1.7);
+  const [pxPerMin, setPxPerMin] = useState(2.2);
+  const [query, setQuery] = useState("");
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const bag = useRef({ data, clock, pxPerMin });
@@ -128,13 +129,33 @@ export function PlanningWorkspace() {
           </div>
         )}
         <span className="hidden text-muted sm:inline">Glisser une course : le pastille marine est l'heure prévue, l'écart s'affiche en orange. Hachures « à vide » entre deux prises en charge.</span>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Patient ou dossier"
+          aria-label="Rechercher un patient"
+          className="h-7 w-40 rounded border border-line bg-white px-2"
+        />
+        <select
+          value={data.crewFilter ?? ""}
+          aria-label="Filtrer un équipage"
+          onChange={(event) => data.dispatch({ type: "SET_CREW_FILTER", crewId: event.target.value || undefined })}
+          className="h-7 rounded border border-line bg-white px-1"
+        >
+          <option value="">Tous les équipages</option>
+          {data.crews.map((crew) => (
+            <option key={crew.id} value={crew.id}>
+              {crew.code}
+            </option>
+          ))}
+        </select>
         <RulesChip />
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.25))} aria-label="Dézoomer">
+          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.35))} aria-label="Dézoomer">
             <Minus size={14} />
           </button>
           <span className="w-10 text-center font-semibold tabular-nums">{Math.round(pxPerMin * 100)}%</span>
-          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.min(4.2, value + 0.25))} aria-label="Zoomer">
+          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.min(6, value + 0.35))} aria-label="Zoomer">
             <Plus size={14} />
           </button>
           <Button
@@ -168,16 +189,15 @@ export function PlanningWorkspace() {
           </Button>
         </div>
       )}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className={cn("min-h-0", narrow ? (pane === "plan" ? "flex-1" : "hidden") : "min-h-[240px] flex-1")}>
-            <GanttBoard drag={drag} pxPerMin={pxPerMin} onStart={start} />
-          </div>
-          <div className={cn("min-h-0 border-t border-line", narrow ? (pane === "carte" ? "flex-1" : "hidden") : "h-[250px]")}>
-            <MapPanel />
-          </div>
+      <ReviewStrip />
+      <div className="flex min-h-0 flex-1">
+        <div className={cn("min-h-0 min-w-0 flex-1", narrow && pane !== "plan" && "hidden")}>
+          <GanttBoard drag={drag} pxPerMin={pxPerMin} query={query} onStart={start} />
         </div>
-        <div className={cn("min-h-0 border-line lg:w-[320px] lg:border-l", narrow ? (pane === "file" ? "flex-1" : "hidden") : "flex")}>
+        <div className={cn("min-h-0 border-line", narrow ? (pane === "carte" ? "min-w-0 flex-1" : "hidden") : "w-[min(400px,34%)] shrink-0 border-l")}>
+          <MapPanel />
+        </div>
+        <div className={cn("min-h-0 border-line", narrow ? (pane === "file" ? "min-w-0 flex-1" : "hidden") : "flex w-[260px] shrink-0 flex-col border-l")}>
           <UnassignedPanel drag={drag} onStart={start} />
         </div>
       </div>
@@ -241,6 +261,84 @@ function RulesChip() {
         aria-label="Tolérance horaire"
       />
       <span>min</span>
+      <span>Amplitude</span>
+      <input
+        type="number"
+        min={8}
+        max={14}
+        step={0.5}
+        value={rules.amplitudeMin / 60}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { amplitudeMin: Math.round(Number(event.target.value) * 60) } })}
+        className="h-7 w-14 rounded border border-line bg-white px-1"
+        aria-label="Amplitude en heures"
+      />
+      <span>h</span>
+      <span>Max AMB</span>
+      <input
+        type="number"
+        min={1}
+        max={40}
+        value={rules.maxAmb}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { maxAmb: Number(event.target.value) } })}
+        className="h-7 w-12 rounded border border-line bg-white px-1"
+        aria-label="Charge max ambulance"
+      />
+      <span>VSL</span>
+      <input
+        type="number"
+        min={1}
+        max={40}
+        value={rules.maxVsl}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { maxVsl: Number(event.target.value) } })}
+        className="h-7 w-12 rounded border border-line bg-white px-1"
+        aria-label="Charge max VSL"
+      />
+      <span>Séance</span>
+      <input
+        type="number"
+        min={1}
+        max={8}
+        step={0.5}
+        value={rules.sessionMin / 60}
+        onChange={(event) => dispatch({ type: "SET_RULES", rules: { sessionMin: Math.round(Number(event.target.value) * 60) } })}
+        className="h-7 w-12 rounded border border-line bg-white px-1"
+        aria-label="Durée de séance de dialyse en heures"
+      />
+      <span>h</span>
+    </div>
+  );
+}
+
+function ReviewStrip() {
+  const { issues, dispatch } = useData();
+  const [open, setOpen] = useState(false);
+  const shown = issues.filter((issue) => issue.kind !== "km_estime").slice(0, 30);
+  const estimated = issues.find((issue) => issue.kind === "km_estime");
+  return (
+    <div className="border-b border-line bg-white px-3 py-1 text-xs">
+      <button type="button" className="font-semibold text-navy" onClick={() => setOpen((value) => !value)}>
+        À contrôler · {shown.length}
+        {estimated ? ` · ${estimated.title}` : ""}
+      </button>
+      {open && (
+        <ul className="mt-1 max-h-36 space-y-1 overflow-auto">
+          {shown.length === 0 && <li className="text-muted">Rien à contrôler.</li>}
+          {shown.map((issue) => (
+            <li key={issue.id}>
+              <button
+                type="button"
+                className={cn("text-left", issue.level === "bloquant" ? "text-rose-800" : "text-amber-900")}
+                onClick={() => {
+                  if (issue.transportId) dispatch({ type: "SELECT", id: issue.transportId });
+                  if (issue.crewId) dispatch({ type: "SET_CREW_FILTER", crewId: issue.crewId });
+                }}
+              >
+                {issue.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

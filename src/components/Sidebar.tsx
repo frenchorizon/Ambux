@@ -22,7 +22,7 @@ const ITEMS: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: "vehicles", label: "Véhicules", icon: <Truck size={18} /> },
   { id: "patients", label: "Patients", icon: <Stethoscope size={18} /> },
   { id: "companies", label: "Groupes de sociétés", icon: <Building size={18} /> },
-  { id: "lomaco", label: "Synchronisation Lomaco", icon: <Cable size={18} /> },
+  { id: "lomaco", label: "Export CSV", icon: <Cable size={18} /> },
 ];
 
 export function Logo({ light = false }: { light?: boolean }) {

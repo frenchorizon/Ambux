@@ -14,7 +14,8 @@ import { irand, mulberry32, pick, shuffle } from "../lib/rng";
 import { clamp } from "../lib/utils";
 import { personName } from "../lib/format";
 import { metricsFromSchedules } from "./scoring";
-import { indexLocations, previewPlacement, scheduleFleet, simulateLeg } from "./schedule";
+import { indexLocations, previewPlacement, scheduleFleet, simulateLeg, travelLoc } from "./schedule";
+import { shiftForIndex } from "./shifts";
 import type {
   Call,
   Crew,
@@ -29,7 +30,7 @@ import type {
   TransportKind,
   VehicleType,
 } from "./types";
-import { DAY_END, DAY_START } from "./types";
+import { DAY_END, DAY_START, DEFAULT_RULES } from "./types";
 
 export interface GeneratedFields {
   seed: number;
@@ -102,17 +103,26 @@ export function generateDay(options: {
     cursor: number,
     fromId: string,
     draft: Omit<Transport, "crewId" | "departMin" | "cancelled">,
-  ): { transport: Transport; cursor: number; locId: string } | null => {
+  ): { transport: Transport; cursor: number; locId: string; dropoffArrive: number } | null => {
     const wide: Transport = {
       ...draft,
       cancelled: false,
       windowStart: DAY_START,
       windowEnd: DAY_END,
     };
-    const probe = simulateLeg(wide, cursor, fromId, crew, locMap);
+    const inbound = travelLoc(fromId, draft.pickupId, locMap);
+    const toleranceMin = draft.toleranceMin ?? 20;
+    let departBase = cursor;
+    if (draft.appointmentMin != null) {
+      const ideal = draft.appointmentMin - inbound.min;
+      const latest = draft.appointmentMin + toleranceMin - inbound.min;
+      if (cursor > latest + 0.5) return null;
+      departBase = Math.max(cursor, ideal);
+    }
+    const probe = simulateLeg(wide, departBase, fromId, crew, locMap);
     if (probe.endMin > crew.shiftEnd - 4) return null;
-    const appointmentMin = Math.round(probe.arrivePickup);
-    const toleranceMin = 20;
+    const appointmentMin = draft.appointmentMin ?? Math.round(probe.arrivePickup);
+    if (draft.appointmentMin != null && Math.abs(probe.arrivePickup - appointmentMin) > toleranceMin + 0.5) return null;
     const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
     const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
     const transport: Transport = {
@@ -123,15 +133,19 @@ export function generateDay(options: {
       appointmentMin,
       toleranceMin,
     };
-    const leg = simulateLeg(transport, cursor, fromId, crew, locMap);
+    const leg = simulateLeg(transport, departBase, fromId, crew, locMap);
     if (leg.endMin > crew.shiftEnd) return null;
+    if (Math.abs(leg.arrivePickup - appointmentMin) > toleranceMin + 0.5) return null;
     transport.crewId = crew.id;
     transport.departMin = leg.departMin;
     transports.push(transport);
+    const pec1 = Math.max(4, Math.round(transport.serviceMin * 0.58));
+    const pec2 = Math.max(3, transport.serviceMin - pec1);
     return {
       transport,
       cursor: leg.endMin + irand(rng, 2, 6),
       locId: transport.dropoffId,
+      dropoffArrive: Math.round(leg.endMin - pec2),
     };
   };
 
@@ -147,6 +161,7 @@ export function generateDay(options: {
       seriesId: string;
       posture: Posture;
       after: number;
+      centerArrive: number;
     }[] = [];
 
     if (dialyse.length && crewIndex % 2 === 0) {
@@ -180,7 +195,8 @@ export function generateDay(options: {
           centerId: center.id,
           seriesId,
           posture,
-          after: 12 * 60 + irand(rng, 10, 80),
+          centerArrive: placed.dropoffArrive,
+          after: placed.dropoffArrive + DEFAULT_RULES.sessionMin,
         });
       }
     }
@@ -198,6 +214,9 @@ export function generateDay(options: {
           dropoffId: due.homeId,
           windowStart: DAY_START,
           windowEnd: DAY_END,
+          appointmentMin: due.after,
+          toleranceMin: 20,
+          centerArriveMin: due.centerArrive,
           posture: due.posture,
           serviceMin: due.posture === "allonge" ? irand(rng, 12, 16) : irand(rng, 7, 10),
           kind: "dialyse_retour",
@@ -209,8 +228,7 @@ export function generateDay(options: {
           cursor = placed.cursor;
           locId = placed.locId;
         } else {
-          due.after = cursor + 40;
-          pending.push(due);
+          keepReturn(due);
         }
         continue;
       }
@@ -266,7 +284,7 @@ export function generateDay(options: {
     }
 
     for (const due of pending) {
-      const placed = pushJob(crew, cursor, locId, {
+      const placed = pushJob(crew, Math.max(cursor, due.after - 40), locId, {
         id: `t-${options.seed.toString(36)}-${transports.length + 1}`,
         dossier: nextDossier(),
         patientId: due.patient.id,
@@ -274,6 +292,9 @@ export function generateDay(options: {
         dropoffId: due.homeId,
         windowStart: DAY_START,
         windowEnd: DAY_END,
+        appointmentMin: due.after,
+        toleranceMin: 20,
+        centerArriveMin: due.centerArrive,
         posture: due.posture,
         serviceMin: 10,
         kind: "dialyse_retour",
@@ -281,11 +302,46 @@ export function generateDay(options: {
         priority: "normal",
         note: "Retour de dialyse",
       });
-      if (!placed) continue;
-      cursor = placed.cursor;
-      locId = placed.locId;
+      if (placed) {
+        cursor = placed.cursor;
+        locId = placed.locId;
+      } else {
+        keepReturn(due);
+      }
     }
   });
+
+  function keepReturn(due: {
+    patient: Patient;
+    homeId: string;
+    centerId: string;
+    seriesId: string;
+    posture: Posture;
+    after: number;
+    centerArrive: number;
+  }): void {
+    if (transports.some((transport) => transport.seriesId === due.seriesId && transport.kind === "dialyse_retour")) return;
+    const toleranceMin = 20;
+    transports.push({
+      id: `t-${options.seed.toString(36)}-${transports.length + 1}`,
+      dossier: nextDossier(),
+      patientId: due.patient.id,
+      pickupId: due.centerId,
+      dropoffId: due.homeId,
+      windowStart: due.after - toleranceMin,
+      windowEnd: due.after + toleranceMin,
+      appointmentMin: due.after,
+      toleranceMin,
+      centerArriveMin: due.centerArrive,
+      posture: due.posture,
+      serviceMin: 10,
+      kind: "dialyse_retour",
+      seriesId: due.seriesId,
+      priority: "normal",
+      cancelled: false,
+      note: "Retour de dialyse",
+    });
+  }
 
   const scrambled = scrambleMorning(transports, crews, locMap, rng);
   const calls = buildCalls(scrambled, patients, crews, locations, rng, nextPatient, nextDossier);
@@ -349,16 +405,16 @@ function makeCrews(amb: number, vsl: number): Crew[] {
         driver: pair[0],
         mate: pair[1],
         vehicleType: type,
-        plate: PLATES[plate++ % PLATES.length]!,
+        plate: `GR-${String(200 + plate++).padStart(3, "0")}-HK`,
         vehicleName:
           type === "ambulance"
             ? AMBULANCE_MODELS[index % AMBULANCE_MODELS.length]!
             : VSL_MODELS[index % VSL_MODELS.length]!,
         color: CREW_COLORS[crews.length % CREW_COLORS.length]!,
         baseId: DEPOT_ID,
-        shiftStart: DAY_START,
-        shiftEnd: DAY_END,
+        ...shiftForIndex(crews.length, DEFAULT_RULES.amplitudeMin),
         delayUntil: 0,
+        dea: type === "ambulance",
       });
     }
   };
@@ -366,17 +422,6 @@ function makeCrews(amb: number, vsl: number): Crew[] {
   add("vsl", vsl);
   return crews;
 }
-
-const PLATES = [
-  "GR-204-HK",
-  "GR-318-LM",
-  "GR-442-NP",
-  "GR-519-QS",
-  "GR-627-RT",
-  "GR-734-VB",
-  "GR-851-WX",
-  "GR-908-YZ",
-];
 
 function scrambleMorning(
   source: Transport[],

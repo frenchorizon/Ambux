@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useClock, useData } from "../game/context";
+import { downloadCsv, planningToCsv } from "../game/csv";
 import { optimizePlan, type PlanResult } from "../game/optimizer";
-import { formatKm, formatPct } from "../lib/format";
+import { reviewIssues } from "../game/review";
+import { scheduleFleet } from "../game/schedule";
+import { MISSION_ISO } from "../game/types";
+import { formatKm } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
 import { RouteSheetsDialog } from "./RouteSheets";
@@ -16,8 +20,8 @@ export function GameDialogs() {
       <Modal
         open={data.modal === "lomaco"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-        title="Valider et envoyer vers Lomaco"
-        description="Les feuilles de route du jour sont transmises au logiciel de facturation. Connexion de démonstration, aucun envoi réel."
+        title="Exporter le planning"
+        description="CSV du planning retenu, à réimporter dans le logiciel de facturation. Aucun envoi réseau."
       >
         <ul className="mb-4 space-y-1 text-sm">
           {data.crews.map((crew) => {
@@ -32,11 +36,32 @@ export function GameDialogs() {
             );
           })}
         </ul>
+        <p className="mb-3 text-xs text-muted">
+          Les courses non placées sont dans le fichier avec le statut a_traiter. Les km estimés sont marqués estime.
+        </p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => data.dispatch({ type: "CLOSE_MODAL" })}>
-            Annuler
+            Fermer
           </Button>
-          <Button onClick={() => data.dispatch({ type: "SEND_LOMACO" })}>Envoyer</Button>
+          <Button
+            onClick={() => {
+              downloadCsv(
+                `ambux-planning-${MISSION_ISO}.csv`,
+                planningToCsv({
+                  crews: data.crews,
+                  transports: data.transports,
+                  patients: data.patientById,
+                  locations: data.locMap,
+                  schedules: data.schedules,
+                  blocks: data.blocks,
+                }),
+              );
+              data.dispatch({ type: "NOTE_EXPORT" });
+              data.dispatch({ type: "CLOSE_MODAL" });
+            }}
+          >
+            Télécharger le CSV
+          </Button>
         </div>
       </Modal>
       <Modal
@@ -63,7 +88,7 @@ export function GameDialogs() {
           <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
           <li>Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en orange. Revenir à l'heure prévue recale le rendez-vous.</li>
           <li>Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est signalée sur la ligne.</li>
-          <li>Imprimez les feuilles de route, puis envoyez-les vers Lomaco (démo).</li>
+          <li>Imprimez les feuilles de route, puis exportez le CSV du planning retenu.</li>
           <li>Simuler la journée rejoue l'horloge et les appels, sans remplacer le planning.</li>
         </ol>
       </Modal>
@@ -112,7 +137,7 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
       wide
       onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
       title="Générer le planning"
-      description="Recherche locale sur les durées routières, la tolérance horaire, la pause repas et la compatibilité ambulance / VSL."
+      description="Tolérance dure, charge max, pause repas, dialyse liée et DEA. Ce qui ne tient pas reste dans À contrôler."
     >
       {!result && !error && <p className="text-sm text-muted">Calcul des tournées…</p>}
       {error && <p className="text-sm text-rose-700">{error}</p>}
@@ -134,12 +159,16 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
                   yours={`${data.metrics.placed} / ${data.metrics.total}`}
                   algo={`${result.metrics.placed} / ${result.metrics.total}`}
                 />
-                <Compare label="Retards" yours={String(data.metrics.lateCount)} algo={String(result.metrics.lateCount)} />
-                <Compare label="Taux de remplissage" yours={formatPct(data.metrics.fillRate)} algo={formatPct(result.metrics.fillRate)} />
-                <Compare label="Score du plan" yours={`${data.metrics.planScore} / 84`} algo={`${result.metrics.planScore} / 84`} />
+                <Compare label="Hors créneau" yours={String(data.metrics.lateCount)} algo={String(result.metrics.lateCount)} />
+                <Compare
+                  label="À traiter"
+                  yours={String(data.issues.filter((issue) => issue.kind === "non_place").length)}
+                  algo={String(result.unassignedIds.length)}
+                />
               </tbody>
             </table>
           </div>
+          <ProposedIssues result={result} />
           <p className="mt-3 text-xs text-muted">
             {result.tested.toLocaleString("fr-FR")} évaluations en {Math.round(result.elapsedMs)} ms.
             {result.metrics.emptyKm + 1 < data.metrics.emptyKm
@@ -157,6 +186,40 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
         </>
       )}
     </Modal>
+  );
+}
+
+function ProposedIssues({ result }: { result: PlanResult }) {
+  const data = useData();
+  const transports = data.transports.map((transport) => {
+    const stop = result.stops.find((item) => item.transportId === transport.id);
+    if (!stop) return { ...transport, crewId: undefined, departMin: undefined };
+    return { ...transport, crewId: stop.crewId, departMin: stop.departMin };
+  });
+  const blocks = [...data.blocks.filter((block) => block.kind !== "repas"), ...result.meals];
+  const schedules = scheduleFleet(data.crews, transports, blocks, data.locMap);
+  const issues = reviewIssues({
+    crews: data.crews,
+    transports,
+    blocks,
+    rules: data.rules,
+    schedules,
+    patients: data.patientById,
+  })
+    .filter((issue) => issue.kind !== "km_estime")
+    .slice(0, 8);
+  if (!issues.length) return <p className="mt-3 text-sm text-emerald-800">Rien à contrôler sur ce planning.</p>;
+  return (
+    <div className="mt-3">
+      <h3 className="text-sm font-semibold">À contrôler</h3>
+      <ul className="mt-1 max-h-36 space-y-1 overflow-auto text-xs">
+        {issues.map((issue) => (
+          <li key={issue.id} className="rounded-lg bg-amber-50 px-2 py-1 text-amber-950">
+            {issue.title}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

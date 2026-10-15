@@ -57,7 +57,7 @@ export function metricsFromSchedules(
       loadedKm += leg.loadedKm;
       productiveMin += leg.loadedMin + leg.pecMin;
       lateMin += leg.lateMin;
-      if (leg.lateMin >= 5) lateCount += 1;
+      if (leg.outOfTolerance || leg.lateMin >= 1) lateCount += 1;
       if (leg.incompatible) incompatCount += 1;
     }
   }

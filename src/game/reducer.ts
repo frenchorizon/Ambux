@@ -30,7 +30,9 @@ import type {
   VehicleType,
   ViewId,
 } from "./types";
-import { DAY_END, DAY_START, DEFAULT_RULES } from "./types";
+import { shiftForIndex } from "./shifts";
+import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE } from "./types";
+import type { DraftSnapshot } from "./persist";
 
 export type Choice = "accept" | "refuse" | "expire";
 
@@ -63,6 +65,12 @@ export type Action =
   | { type: "UPDATE_PATIENT"; patient: Patient; location?: Location }
   | { type: "UPDATE_TRANSPORT"; transport: Transport }
   | { type: "ADD_TRANSPORT"; transport: Transport; patient?: Patient; location?: Location }
+  | {
+      type: "IMPORT_BATCH";
+      rows: { transport: Transport; patient: Patient; location?: Location; retour?: Transport }[];
+    }
+  | { type: "RESTORE"; snapshot: DraftSnapshot }
+  | { type: "NOTE_EXPORT" }
   | { type: "REMOVE_TRANSPORT"; id: string }
   | { type: "NOTE_OPTIMIZER" }
   | { type: "RESOLVE_CALL"; callId: string; choice: Choice }
@@ -212,14 +220,30 @@ export function reducer(state: GameState, action: Action): GameState {
       return placeMeals(state);
     case "SNAP_BACK":
       return snapBack(state, action.transportId);
-    case "SET_RULES": {
-      const rules = { ...state.rules, ...action.rules };
-      const transports =
-        action.rules.toleranceMin == null
-          ? state.transports
-          : state.transports.map((transport) => ({ ...transport, toleranceMin: rules.toleranceMin }));
-      return placeMeals({ ...state, rules, transports });
-    }
+    case "SET_RULES":
+      return applyRules(state, { ...state.rules, ...action.rules });
+    case "IMPORT_BATCH":
+      return importBatch(state, action.rows);
+    case "RESTORE":
+      return restoreDraft(state, action.snapshot);
+    case "NOTE_EXPORT":
+      return withToast(
+        {
+          ...state,
+          stats: { ...state.stats, lomacoSends: state.stats.lomacoSends + 1 },
+          lomaco: [
+            ...state.lomaco,
+            {
+              id: `export-${state.toastSeq}`,
+              atMin: state.nowMin,
+              message: `Export CSV du planning du ${MISSION_DATE}.`,
+              ok: true,
+            },
+          ],
+        },
+        "Fichier CSV téléchargé.",
+        "ok",
+      );
     case "SET_LIVE":
       return setLive(state, action.live);
     case "ADD_VEHICLE":
@@ -669,7 +693,7 @@ function fleetOf(crews: GameState["crews"]): { crews: GameState["crews"]; vehicl
     });
     staff.push({ id: driverId, name: crew.driver, role: "conducteur", dea: false });
     if (mateId) staff.push({ id: mateId, name: crew.mate, role: "auxiliaire", dea: true });
-    return { ...crew, vehicleId, driverId, mateId };
+    return { ...crew, vehicleId, driverId, mateId, dea: crew.vehicleType === "ambulance" };
   });
   return { crews: next, vehicles, staff };
 }
@@ -737,9 +761,68 @@ function snapBack(state: GameState, transportId: string): GameState {
   return assign(state, transport.id, crew.id, depart);
 }
 
+function applyRules(state: GameState, rules: Rules): GameState {
+  const crews =
+    rules.amplitudeMin === state.rules.amplitudeMin
+      ? state.crews
+      : state.crews.map((crew, index) => ({ ...crew, ...shiftForIndex(index, rules.amplitudeMin) }));
+  const transports = state.transports.map((transport) => {
+    const appointment =
+      transport.kind === "dialyse_retour" && transport.centerArriveMin != null
+        ? transport.centerArriveMin + rules.sessionMin
+        : (transport.appointmentMin ?? transport.windowStart);
+    return {
+      ...transport,
+      appointmentMin: appointment,
+      toleranceMin: rules.toleranceMin,
+      windowStart: appointment - rules.toleranceMin,
+      windowEnd: appointment + rules.toleranceMin,
+    };
+  });
+  return placeMeals({ ...state, rules, crews, transports });
+}
+
+function importBatch(
+  state: GameState,
+  rows: { transport: Transport; patient: Patient; location?: Location; retour?: Transport }[],
+): GameState {
+  let locations = state.locations;
+  let patients = state.patients;
+  let transports = state.transports;
+  for (const row of rows) {
+    if (row.location && !locations.some((item) => item.id === row.location!.id)) locations = [...locations, row.location];
+    if (!patients.some((item) => item.id === row.patient.id)) patients = [...patients, row.patient];
+    transports = [...transports, row.transport];
+    if (row.retour) transports = [...transports, row.retour];
+  }
+  const count = rows.reduce((sum, row) => sum + (row.retour ? 2 : 1), 0);
+  return withToast({ ...state, locations, patients, transports }, `${count} transport${count > 1 ? "s" : ""} ajouté${count > 1 ? "s" : ""}.`, "ok");
+}
+
+function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
+  return withToast(
+    {
+      ...initialState,
+      ...snapshot,
+      phase: "playing",
+      view: "gantt",
+      modal: null,
+      live: false,
+      paused: true,
+      nowMin: DAY_START,
+      followNow: false,
+      toastSeq: state.toastSeq + 1,
+      selectedId: undefined,
+    },
+    `Brouillon v${snapshot.version} repris · ${snapshot.missionDate}.`,
+    "ok",
+  );
+}
+
 function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, name: string): GameState {
   const clean = plate.trim().toUpperCase();
   if (clean.length < 4) return withToast(state, "Immatriculation trop courte.", "warn");
+  if (state.crews.length >= MAX_VEHICLES) return withToast(state, `Plafond de ${MAX_VEHICLES} véhicules.`, "warn");
   const id = `veh-${state.toastSeq}`;
   const vehicle: Vehicle = { id, plate: clean, vehicleType, name: name.trim() || (vehicleType === "ambulance" ? "Ambulance" : "VSL"), active: true };
   const index = state.crews.length;
@@ -758,9 +841,9 @@ function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, n
     vehicleName: vehicle.name,
     color: CREW_COLORS[index % CREW_COLORS.length]!,
     baseId: state.crews[0]?.baseId ?? "depot-sud",
-    shiftStart: DAY_START,
-    shiftEnd: DAY_END,
+    ...shiftForIndex(index, state.rules.amplitudeMin),
     delayUntil: 0,
+    dea: vehicleType === "ambulance" && Boolean(driver?.dea || mate?.dea),
     vehicleId: id,
     driverId: driver?.id,
     mateId: mate?.id,
@@ -837,11 +920,12 @@ function setCrewStaff(state: GameState, crewId: string, driverId: string, mateId
   if (crew.vehicleType === "ambulance" && mate && !mate.dea && !driver.dea) {
     return withToast(state, "L'équipage ambulance doit inclure un DEA.", "warn");
   }
+  const dea = crew.vehicleType === "ambulance" && Boolean(driver.dea || mate?.dea);
   return {
     ...state,
     crews: state.crews.map((item) =>
       item.id === crewId
-        ? { ...item, driverId, mateId, driver: driver.name, mate: mate?.name ?? "" }
+        ? { ...item, driverId, mateId, driver: driver.name, mate: mate?.name ?? "", dea }
         : item,
     ),
   };

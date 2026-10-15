@@ -1,5 +1,5 @@
 import { useData } from "../game/context";
-import { NEXT_DATE } from "../game/types";
+import { MISSION_DATE } from "../game/types";
 import { formatKm, formatMin, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
@@ -24,7 +24,7 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
       wide
       onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
       title="Feuilles de route"
-      description={`${NEXT_DATE} · une feuille par équipage, trajets à vide compris.`}
+      description={`${MISSION_DATE} · une feuille par équipage, trajets à vide compris.`}
     >
       <div className="max-h-[50vh] space-y-3 overflow-auto">
         {data.crews.map((crew) => {
@@ -39,7 +39,7 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
               <p className="text-xs text-muted">
                 {crew.driver}
                 {crew.mate ? ` · ${crew.mate}` : ""}
-                {crew.vehicleType === "ambulance" ? " · DEA à bord" : " · conducteur seul"}
+                {crew.dea ? " · DEA à bord" : crew.vehicleType === "ambulance" ? " · DEA non enregistré" : " · conducteur seul"}
                 {meal ? ` · repas ${formatMin(meal.startMin)}–${formatMin(meal.endMin)}` : " · repas non posé"}
               </p>
               <p className="mt-1 text-xs text-muted">{legs.length} courses · retour dépôt {formatKm(schedule?.returnKm ?? 0, 1)}</p>
@@ -75,17 +75,17 @@ function sheetHtml(data: ReturnType<typeof useData>): string {
             <td>${transport ? postureLabel(transport.posture) : ""}</td>
             <td>${from ? `${from.name}, ${from.city}` : ""}</td>
             <td>${to ? `${to.name}, ${to.city}` : ""}</td>
-            <td>${formatKm(leg.deadheadKm, 1)} à vide</td>
-            <td>${formatKm(leg.loadedKm, 1)}</td>
+            <td>${formatKm(leg.deadheadKm, 1)} à vide${leg.kmEstimated ? " · km estimé" : ""}</td>
+            <td>${formatKm(leg.loadedKm, 1)}${leg.kmEstimated ? " · km estimé" : ""}</td>
           </tr>`;
         })
         .join("");
       return `<section>
         <h2>${crew.code} — ${vehicleLabel(crew.vehicleType)} ${crew.plate}</h2>
-        <p>${crew.driver}${crew.mate ? " · " + crew.mate : ""}${crew.vehicleType === "ambulance" ? " · DEA" : ""}</p>
-        <p>Repas : ${meal ? `${formatMin(meal.startMin)} – ${formatMin(meal.endMin)}` : "non placé"} · Retour dépôt ${formatKm(schedule?.returnKm ?? 0, 1)} à vide</p>
+        <p>${crew.driver}${crew.mate ? " · " + crew.mate : ""}${crew.dea ? " · DEA à bord" : ""}</p>
+        <p>Vacation ${formatMin(crew.shiftStart)} – ${formatMin(crew.shiftEnd)} · Repas : ${meal ? `${formatMin(meal.startMin)} – ${formatMin(meal.endMin)}` : "non placé"} · Retour dépôt ${formatKm(schedule?.returnKm ?? 0, 1)} à vide${schedule?.legs.some((leg) => leg.kmEstimated) ? " · certains km sont estimés" : ""}</p>
         <table>
-          <thead><tr><th>Départ</th><th>Prise en charge</th><th>Patient</th><th>Mobilité</th><th>Départ</th><th>Destination</th><th>À vide</th><th>En charge</th></tr></thead>
+          <thead><tr><th>Départ</th><th>Prise en charge</th><th>Patient</th><th>Mobilité</th><th>Lieu de prise en charge</th><th>Destination</th><th>À vide</th><th>En charge</th></tr></thead>
           <tbody>${rows || "<tr><td colspan='8'>Aucune course</td></tr>"}</tbody>
         </table>
       </section>`;
@@ -102,8 +102,8 @@ function sheetHtml(data: ReturnType<typeof useData>): string {
       th { background: #e7f1fb; }
       section { break-inside: avoid; }
     </style></head><body>
-    <h1>Ambux — feuilles de route du ${NEXT_DATE}</h1>
-    <p>Dépôt Sud, Le Petit-Quevilly. Kilomètres issus du réseau routier lorsque OSRM répond.</p>
+    <h1>Ambux — feuilles de route du ${MISSION_DATE}</h1>
+    <p>Dépôt Sud, Le Petit-Quevilly. La mention DEA n'apparaît que si un DEA est enregistré sur l'équipage. « km estimé » = itinéraire non routier, non opposable.</p>
     ${sections}
     </body></html>`;
 }

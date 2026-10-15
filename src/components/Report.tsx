@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { useClock, useData } from "../game/context";
 import { optimizePlan, type PlanResult } from "../game/optimizer";
-import { dayScore } from "../game/scoring";
-import { DAY_START, NEXT_DATE } from "../game/types";
+import { DAY_START, MISSION_DATE } from "../game/types";
 import { formatKm, formatPct, formatRegulation, personName } from "../lib/format";
 import { Button } from "./ui/button";
 
 export function Report() {
   const data = useData();
   const clock = useClock();
-  const score = dayScore(data.metrics, data.stats, clock.regulationMs, data.calls.length);
   const [bench, setBench] = useState<PlanResult | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -52,15 +50,16 @@ export function Report() {
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold">Journée clôturée</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted">{score.detail}</p>
+            <p className="mt-1 max-w-xl text-sm text-muted">
+              {data.issues.length ? `${data.issues.length} point${data.issues.length > 1 ? "s" : ""} à contrôler.` : "Rien à contrôler sur la feuille engagée."}
+            </p>
           </div>
-          <ScoreRing score={score.total} grade={score.grade} title={score.title} />
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Km à vide" value={formatKm(data.metrics.emptyKm)} detail={`départ ${formatKm(data.stats.baselineEmptyKm)}`} />
           <Stat label="Transports planifiés" value={`${data.metrics.placed} / ${data.metrics.total}`} detail={`au poste : ${data.stats.baselinePlaced}`} />
-          <Stat label="Retards" value={String(data.metrics.lateCount)} detail={`${Math.round(data.metrics.lateMin)} min cumulées`} />
-          <Stat label="Temps de régulation" value={formatRegulation(clock.regulationMs)} detail={`+${score.timePts} pts · appels +${score.callPts}`} />
+          <Stat label="Hors créneau" value={String(data.metrics.lateCount)} detail={`${Math.round(data.metrics.lateMin)} min au-delà de la tolérance`} />
+          <Stat label="Temps de régulation" value={formatRegulation(clock.regulationMs)} detail="horloge réelle" />
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           <article className="rounded-2xl border border-line bg-white p-4">
@@ -74,8 +73,7 @@ export function Report() {
                   <Row label="Km à vide" a={formatKm(data.metrics.emptyKm)} b={formatKm(bench.metrics.emptyKm)} />
                   <Row label="Taux de remplissage" a={formatPct(data.metrics.fillRate)} b={formatPct(bench.metrics.fillRate)} />
                   <Row label="Courses placées" a={String(data.metrics.placed)} b={String(bench.metrics.placed)} />
-                  <Row label="Retards" a={String(data.metrics.lateCount)} b={String(bench.metrics.lateCount)} />
-                  <Row label="Score du plan" a={`${data.metrics.planScore}`} b={`${bench.metrics.planScore}`} />
+                  <Row label="Hors créneau" a={String(data.metrics.lateCount)} b={String(bench.metrics.lateCount)} />
                 </tbody>
               </table>
             )}
@@ -93,7 +91,7 @@ export function Report() {
               <li>Mouvements manuels : {data.stats.moves}</li>
               <li>Optimiseur consulté : {data.stats.optimizerUsed ? "oui" : "non"}{data.stats.optimizerApplied ? ", plan appliqué" : ""}</li>
               <li>Appels traités : {data.stats.callsHandled} · manqués : {data.stats.callsMissed}</li>
-              <li>Envois Lomaco : {data.stats.lomacoSends}</li>
+              <li>Exports CSV : {data.stats.lomacoSends}</li>
               <li>Remplissage : {formatPct(data.metrics.fillRate)}</li>
             </ul>
             {late.length > 0 && (
@@ -117,41 +115,7 @@ export function Report() {
           <Button onClick={() => data.dispatch({ type: "REVIEW", view: "tomorrow" })}>Préparer le planning de demain</Button>
           <Button variant="secondary" onClick={() => data.dispatch({ type: "REPLAY" })}>Rejouer la journée</Button>
         </div>
-        <p className="mt-3 text-xs text-muted">{NEXT_DATE} reprend les dialyses et les retours que vous cochez.</p>
-      </div>
-    </div>
-  );
-}
-
-function ScoreRing({ score, grade, title }: { score: number; grade: string; title: string }) {
-  const radius = 46;
-  const circ = 2 * Math.PI * radius;
-  const dash = (score / 100) * circ;
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3">
-      <svg width="112" height="112" viewBox="0 0 112 112" aria-hidden>
-        <circle cx="56" cy="56" r={radius} fill="none" stroke="#e7f1fb" strokeWidth="10" />
-        <circle
-          cx="56"
-          cy="56"
-          r={radius}
-          fill="none"
-          stroke="#1d6fdb"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ - dash}`}
-          transform="rotate(-90 56 56)"
-        />
-        <text x="56" y="52" textAnchor="middle" fontSize="22" fontWeight="700" fill="#12283c">
-          {score}
-        </text>
-        <text x="56" y="70" textAnchor="middle" fontSize="12" fill="#5c7285">
-          / 100 · {grade}
-        </text>
-      </svg>
-      <div>
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="text-xs text-muted">Note de la journée</div>
+        <p className="mt-3 text-xs text-muted">{MISSION_DATE} · la simulation ne remplace pas le planning exporté.</p>
       </div>
     </div>
   );
