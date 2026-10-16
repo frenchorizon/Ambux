@@ -7,6 +7,8 @@ import { scheduleFleet } from "../game/schedule";
 import { formatKm } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
+import { LomacoExportPanel } from "./LomacoExport";
+import { LomacoImportDialog } from "./LomacoImport";
 import { RouteSheetsDialog } from "./RouteSheets";
 
 export function GameDialogs() {
@@ -16,12 +18,14 @@ export function GameDialogs() {
     <>
       <OptimizerDialog open={data.modal === "optimizer"} nowMin={data.live ? clock.nowMin : -1} />
       <RouteSheetsDialog open={data.modal === "sheets"} />
+      <LomacoImportDialog open={data.modal === "import"} />
       <Modal
         open={data.modal === "lomaco"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-        title="Exporter le planning"
-        description="CSV du planning retenu, à réimporter dans le logiciel de facturation. Aucun envoi réseau."
+        title="Exporter vers Lomaco"
+        description="Feuilles de route à réimporter dans Lomaco. Aucun envoi réseau : les conducteurs gardent l'application du téléphone."
       >
+        <LomacoExportPanel />
         <ul className="mb-4 space-y-1 text-sm">
           {data.crews.map((crew) => {
             const count = data.transports.filter((transport) => transport.crewId === crew.id && !transport.cancelled).length;
@@ -84,11 +88,11 @@ export function GameDialogs() {
         description="Ambux construit le planning du lendemain. La simulation en direct est facultative."
       >
         <ol className="list-decimal space-y-2 pl-4 text-sm leading-relaxed">
-          <li>Saisissez ou importez les transports dans Demande de demain.</li>
+          <li>Importer lit les exports Lomaco (xlsx, xls, csv), puis Générer le planning pose les tournées.</li>
           <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
           <li>Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en orange. Revenir à l'heure prévue recale le rendez-vous.</li>
           <li>Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est signalée sur la ligne.</li>
-          <li>Imprimez les feuilles de route, puis exportez le CSV du planning retenu.</li>
+          <li>Exporter vers Lomaco écrit une feuille par équipage (CSV, Excel ou PDF).</li>
           <li>Simuler la journée rejoue l'horloge et les appels, sans remplacer le planning.</li>
         </ol>
       </Modal>

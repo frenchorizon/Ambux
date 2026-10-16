@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.5.0 — 2026-10-16
+
+Tag `v0.5.0`. Branche `feat/v0.5-import-lomaco`.
+
+- Flux fichier, sans API : Importer (menu ⋯) lit un ou plusieurs `.xlsx`, `.xls` ou `.csv`.
+- Les colonnes se reconnaissent (heure RDV, adresses, AMB/VSL/TAP, aller/retour, équipage, immatriculation). Le profil « Lomaco (à confirmer) » se règle puis s'enregistre.
+- Aperçu des courses, véhicules et équipages, avec les lignes rejetées. TAP est planifié comme un VSL.
+- Export des feuilles de route : une feuille par équipage en CSV ou Excel, colonnes réglables, même profil, plus l'impression PDF. Les conducteurs restent sur l'application Lomaco.
+
 ## v0.4.1 — 2026-10-16
 
 Tag `v0.4.1`. Les trous du parcours quotidien sont rejoués par `npm test`.

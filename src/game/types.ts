@@ -23,7 +23,7 @@ export type ViewId =
   | "companies"
   | "lomaco"
   | "feuille";
-export type ModalId = "optimizer" | "lomaco" | "help" | "closeDay" | "sheets";
+export type ModalId = "optimizer" | "lomaco" | "import" | "help" | "closeDay" | "sheets";
 
 export interface Rules {
   toleranceMin: number;
@@ -133,6 +133,10 @@ export interface Transport {
   note?: string;
   /** Minutes d'attente du véhicule à l'établissement (séance, consultation). */
   stayMin?: number;
+  /** Prestation lue dans l'export Lomaco. TAP est planifié comme un VSL. */
+  service?: "AMB" | "VSL" | "TAP";
+  /** Code équipage demandé à l'import, avant génération. */
+  requestedCrew?: string;
 }
 
 export interface TimeBlock {

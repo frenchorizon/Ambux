@@ -69,10 +69,10 @@ export type Action =
   | { type: "ADD_TRANSPORT"; transport: Transport; patient?: Patient; location?: Location }
   | {
       type: "IMPORT_BATCH";
-      rows: { transport: Transport; patient: Patient; location?: Location; retour?: Transport }[];
+      rows: { transport: Transport; patient: Patient; location?: Location; locations?: Location[]; retour?: Transport }[];
     }
   | { type: "RESTORE"; snapshot: DraftSnapshot }
-  | { type: "NOTE_EXPORT" }
+  | { type: "NOTE_EXPORT"; message?: string }
   | { type: "REMOVE_TRANSPORT"; id: string }
   | { type: "NOTE_OPTIMIZER" }
   | { type: "RESOLVE_CALL"; callId: string; choice: Choice }
@@ -248,12 +248,12 @@ export function reducer(state: GameState, action: Action): GameState {
             {
               id: `export-${state.toastSeq}`,
               atMin: state.nowMin,
-              message: `Export CSV du planning du ${state.missionLabel}.`,
+              message: action.message ?? `Export CSV du planning du ${state.missionLabel}.`,
               ok: true,
             },
           ],
         },
-        "Fichier CSV téléchargé.",
+        action.message ?? "Fichier CSV téléchargé.",
         "ok",
       );
     case "SET_LIVE":
@@ -820,13 +820,16 @@ function applyRules(state: GameState, rules: Rules): GameState {
 
 function importBatch(
   state: GameState,
-  rows: { transport: Transport; patient: Patient; location?: Location; retour?: Transport }[],
+  rows: { transport: Transport; patient: Patient; location?: Location; locations?: Location[]; retour?: Transport }[],
 ): GameState {
   let locations = state.locations;
   let patients = state.patients;
   let transports = state.transports;
   for (const row of rows) {
-    if (row.location && !locations.some((item) => item.id === row.location!.id)) locations = [...locations, row.location];
+    const incoming = [...(row.locations ?? []), ...(row.location ? [row.location] : [])];
+    for (const place of incoming) {
+      if (!locations.some((item) => item.id === place.id)) locations = [...locations, place];
+    }
     if (!patients.some((item) => item.id === row.patient.id)) patients = [...patients, row.patient];
     transports = [...transports, row.transport];
     if (row.retour) transports = [...transports, row.retour];

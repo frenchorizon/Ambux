@@ -127,6 +127,7 @@ export function TopBar() {
         <div className="absolute right-2 top-14 z-50 w-64 rounded-2xl border border-line bg-card p-1 shadow-xl">
           <MenuButton icon={<Undo2 size={16} />} label="Annuler" onClick={() => { setMenu(false); undo(); }} />
           <MenuButton icon={<Redo2 size={16} />} label="Rétablir" onClick={() => { setMenu(false); redo(); }} />
+          <MenuButton icon={<FileText size={16} />} label="Importer" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "import" }); }} />
           <MenuButton icon={<FileText size={16} />} label="Feuilles de route" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "sheets" }); }} />
           <MenuButton icon={<Send size={16} />} label="Exporter le CSV" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "lomaco" }); }} />
           <MenuButton label="Feuille équipage" onClick={() => go(dispatch, setMenu, "feuille")} />
