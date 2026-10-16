@@ -1,6 +1,6 @@
 # Scorecard QA — journée du régulateur
 
-Mesure du 16 octobre 2026, branche `qa/journee-regulateur`, révision exercée `0ded3c5`.
+Mesure du 16 octobre 2026, branche `qa/journee-regulateur`, révision exercée `7fd3451`.
 
 **Score : 38 / 40 = 95 %.**
 
@@ -11,7 +11,7 @@ Même grille de 40 contrôles. 15 courses ambulance et 25 courses VSL sont un ex
 - Navigateur : Google Chrome du système, Playwright `channel: chrome`, locale `fr-FR`. Pas d'iPhone physique.
 - Téléphone émulé : 390×844. Bureau : 1440×900.
 - Application : `npm run dev` sur `http://127.0.0.1:5280`.
-- Bout en bout : `npx playwright test e2e/journee-regulateur.spec.ts` — **19 passés, 1 ignoré, 0 échec, 1,8 min**. L'ignoré est le menu latéral sur le projet téléphone : cette barre n'existe qu'au bureau.
+- Bout en bout : `npx playwright test e2e/journee-regulateur.spec.ts` — **19 passés, 1 ignoré, 0 échec, 26,5 s**. L'ignoré est le menu latéral sur le projet téléphone : cette barre n'existe qu'au bureau.
 - Unitaire ce run : `scripts/schedulerRules.test.ts` et `scripts/rules.test.ts` — **36/36**. Lomaco et segments (14 tests) n'ont pas été relancés : ces fichiers n'ont pas changé.
 - Le routage des gestes Gantt est forcé en estimation (`ambux.routing=estimate`) pour que le temps affiché ne bouge pas sous un aller-retour OSRM. Les tuiles et le secours de routage sont testés à part, réseau réel.
 
@@ -68,10 +68,10 @@ Demande « chargee », 3 ambulances et 3 VSL : **108 courses**.
 
 | Viewport | Clic sur Générer | Solveur (`elapsedMs`) | Après le clic, jusqu'à Appliquer | Mur | Courses posées |
 | --- | --- | --- | --- | --- | --- |
-| 1440×900 | 92 ms | 656 ms, 24 465 évaluations | 766 ms | 858 ms | 90 |
-| 390×844 | 5 543 ms | 594 ms, 52 459 évaluations | 679 ms | 6 222 ms | 92 |
+| 1440×900 | 100 ms | 655 ms, 24 870 évaluations | 770 ms | 870 ms | 90 |
+| 390×844 | 105 ms | 650 ms, 26 272 évaluations | 755 ms | 860 ms | 90 |
 
-Le calcul est du même ordre des deux côtés, autour de 0,6 s. L'écart vient du clic : en 390×844 Playwright attend que le bouton Générer du bandeau soit stable au-dessus de la liste de 108 lignes. Une fois le clic parti, le dialogue s'ouvre aussi vite qu'au bureau. Le contrôle 29 reste PASS (sous 20 s). Ce n'est pas un ralentissement de l'optimiseur.
+Le clic téléphone est revenu au même ordre que le bureau (105 ms, budget du test : sous 2 s). Le solveur reste autour de 0,6 s. Le contrôle 29 reste PASS (sous 20 s, premier bloc sous 3 s).
 
 ## Correctifs de cette mesure
 
@@ -81,6 +81,7 @@ Le calcul est du même ordre des deux côtés, autour de 0,6 s. L'écart vient d
 - `bestSlot`, `snapBack` et `compact` passent `state.rules`.
 - « Données et export » se referme quand la vue quitte cette section, et se rouvre sur Patients, Véhicules, etc. Vérifié au bureau.
 - Les champs Nom et Prénom ont un `aria-label`. Vérifié dans l'import e2e.
+- Le toast d'ouverture (« Demande de demain chargée ») restait 4,6 s en haut de l'écran et recouvrait Générer en 390×844. Il est placé sous la barre et ne capte plus les clics. Les lignes de demande hors écran sautent la mise en page (`content-visibility: auto`). Le bouton du bandeau ne rétrécit plus.
 
 ## Encore ouvert
 
@@ -97,10 +98,6 @@ La demande et le CSV la montrent. L'infobulle du Gantt est réservée à `!narro
 ### 3. Le motif du D-pad reste affiché après un refus de glisser
 
 Toast et `.dpad-reason` coexistent. `DPad.tsx`, laissé au lead.
-
-### 4. Le clic Générer met ~5,5 s à partir en 390×844
-
-Détail dans le tableau ci-dessus. Le solveur reste sous la seconde. Piste : la liste Demande de demain (`Editors.tsx`) en `flex-wrap` sur 108 lignes, qui empêche le bandeau d'être stable. Pas de correctif dans cette mesure : le budget de 20 s tient, et virtualiser la liste sortirait du correctif minimal.
 
 ## Hors périmètre de cette mesure
 
