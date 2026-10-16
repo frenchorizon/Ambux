@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
-import { snap5, visualParts, type Leg } from "../../game/schedule";
+import { displayedDepart, snap5, visualParts, type Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
 import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
 import { mealIssue } from "../../game/breaks";
@@ -261,7 +261,7 @@ function CrewRow({
               onDragStart={(event) => event.preventDefault()}
               data-transport-id={transport.id}
               data-posture={transport.posture}
-              data-depart={Math.round(leg.departMin)}
+              data-depart={displayedDepart(leg.departMin)}
               data-end={Math.round(leg.endMin)}
               data-appointment={Math.round(transport.appointmentMin ?? transport.windowStart)}
               onPointerDown={(event) => onStart(transport.id, event)}

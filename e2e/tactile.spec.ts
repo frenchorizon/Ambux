@@ -187,6 +187,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await page.screenshot({ path: "/opt/cursor/artifacts/v080-gantt-phone.png" });
     await touch(page, "pointerup", from.x, box!.y + box!.height / 2, 12);
     await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+    await expect(page.locator(".dpad-reason")).toHaveCount(0);
     expect((await barById(page, from.id)).depart).toBe(from.depart);
     expect((await barById(page, from.id)).crew).toBe(from.crew);
   });

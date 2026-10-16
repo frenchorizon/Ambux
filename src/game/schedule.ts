@@ -223,6 +223,8 @@ export function scheduleCrew(
 
   for (const transport of jobs) {
     cursor = jumpBreaks(blocks, crew.id, cursor);
+    const keepGrid = mode === "anchored" && transport.departMin != null && transport.departMin % 5 === 0;
+    const onGrid = (time: number) => (keepGrid ? ceil5(time) : time);
     let depart =
       mode === "chain"
         ? smartDepart(cursor, transport, locId, locMap)
@@ -230,12 +232,12 @@ export function scheduleCrew(
     let conflict = mode === "anchored" && depart > (transport.departMin ?? depart) + 1;
     const jumped = jumpBreaks(blocks, crew.id, depart);
     if (jumped > depart + 1) conflict = true;
-    depart = jumped;
+    depart = onGrid(jumped);
     let leg = simulateLeg(transport, depart, locId, crew, locMap, rules);
     const hit = legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin);
     if (hit) {
       conflict = true;
-      const pushed = jumpBreaks(blocks, crew.id, Math.max(depart, hit.endMin));
+      const pushed = onGrid(jumpBreaks(blocks, crew.id, Math.max(depart, hit.endMin)));
       leg = simulateLeg(transport, pushed, locId, crew, locMap, rules);
     }
     if (conflict || legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) {
@@ -415,6 +417,17 @@ export function candidatePlacements(
 /** Créneaux de prise en charge : toujours un multiple de 5 minutes. */
 export function snap5(min: number): number {
   return Math.round(min / 5) * 5;
+}
+
+/** Pousse vers le créneau de 5 minutes suivant, sans reculer un départ déjà calé. */
+export function ceil5(min: number): number {
+  return Math.ceil((min - 1e-6) / 5) * 5;
+}
+
+/** L'heure affichée reste sur la grille quand le calcul n'en est écarté que par un arrondi. */
+export function displayedDepart(min: number): number {
+  const snapped = snap5(min);
+  return Math.abs(snapped - min) <= 0.51 ? snapped : Math.round(min);
 }
 
 export function previewPlacement(

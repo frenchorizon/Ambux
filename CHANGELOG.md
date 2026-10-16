@@ -15,6 +15,7 @@ Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`. Le
 - Régénérer sans tout bouleverser : les courses épinglées et déjà en place restent. Le résumé nomme les courses déplacées. Annuler revient en une seule étape.
 - Un déplacement à la main épingle la course. Rien ne déplace une course épinglée sans un geste explicite.
 - Poser un créneau indique quelles courses suivantes sont décalées. Une suivante épinglée bloque le geste.
+- Une course déjà calée sur 5 minutes le reste à l'écran si la simulation ancrée ou l'annulation la pousse. L'attente d'une séance se lit sur la timeline, y compris sur téléphone. Un refus de glisser efface la raison précédente de la croix.
 
 ## v0.7.0 — 2026-10-16
 

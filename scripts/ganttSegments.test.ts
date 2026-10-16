@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
 import { ganttEdgeDelta, previewCacheKey, sameAssignment } from "../src/components/planning/drag.ts";
-import { previewOnGrid, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
+import { previewOnGrid, scheduleCrew, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Transport } from "../src/game/types.ts";
 
 const depot: Location = { id: "g-depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
@@ -148,6 +148,22 @@ describe("segments du Gantt", () => {
     assert.equal(sameAssignment("amb-1", 487, "amb-1", 490), false);
     assert.equal(sameAssignment("amb-1", 485, "vsl-1", 485), false);
     assert.equal(sameAssignment(undefined, 485, "amb-1", 485), false);
+  });
+
+  it("ne sort pas de la grille de 5 minutes une course ancrée qui est poussée", () => {
+    seedRoads();
+    const block = {
+      id: "pause",
+      crewId: "c1",
+      startMin: 8 * 60,
+      endMin: 8 * 60 + 7,
+      kind: "pause" as const,
+      label: "Pause",
+    };
+    const schedule = scheduleCrew(crew(), [trip({ departMin: 8 * 60, crewId: "c1" })], [block], locMap, "anchored");
+    const depart = schedule.legs[0]?.departMin ?? 0;
+    assert.equal(depart % 5, 0);
+    assert.ok(depart >= 8 * 60 + 7);
   });
 
   it("décale le planning seulement près du bord visible", () => {

@@ -69,6 +69,7 @@ export function PlanningWorkspace() {
     dragRef.current = next;
     captureRef.current = { el, pointerId };
     setPendingId(null);
+    setNote(null);
     setDrag(next);
     setGesture("drag");
     try {
@@ -215,6 +216,7 @@ export function PlanningWorkspace() {
       setPendingId(null);
       setGesture("idle");
       releaseCapture();
+      setNote(null);
       commit(latest, bag.current);
     };
     const abort = () => {
@@ -334,7 +336,7 @@ export function PlanningWorkspace() {
             </div>
             {selectedLeg && (
               <p className="text-[12px] leading-snug text-ink">
-                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min / dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
+                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min / dépose {selectedLeg.dropoffMin} min{(selected.stayMin ?? 0) > 0 ? ` / attente ${selected.stayMin} min` : ""} · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
                 {selectedLeg.kmEstimated ? " · estimé" : ""}
               </p>
             )}
