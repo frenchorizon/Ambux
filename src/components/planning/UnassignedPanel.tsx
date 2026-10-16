@@ -5,11 +5,13 @@ import { formatMin, personName } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { LateCallForm, ReoptButton } from "../imprevus/Imprevus";
 import type { DragState } from "./drag";
 
 export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
   const { transports, patientById, locMap, dispatch } = useData();
   const [query, setQuery] = useState("");
+  const [late, setLate] = useState(false);
   const items = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return transports
@@ -50,8 +52,17 @@ export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
           placeholder="Patient, adresse…"
           className="mt-2 h-12 w-full rounded-xl border border-line bg-white px-3 text-base outline-none focus:ring-2 focus:ring-brand/30"
         />
+        <Button type="button" variant="secondary" className="mt-2 h-11 w-full" onClick={() => setLate((value) => !value)}>
+          Appel tardif
+        </Button>
+        <ReoptButton />
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-2">
+        {late && (
+          <div className="mb-3 rounded-xl border border-line bg-white p-3">
+            <LateCallForm onDone={() => setLate(false)} />
+          </div>
+        )}
         {items.length === 0 && (
           <p className="px-2 py-8 text-center text-sm text-muted">
             Tous les transports sont affectés. Belle régulation.

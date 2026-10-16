@@ -4,12 +4,17 @@ Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas �
 
 ## v0.8.0 — 2026-10-16
 
-Branche `feat/v0.8-gantt-tactile`. Le tag est posé quand cette branche et les apports QA, menu et imprévus sont réunis sur `main` et que `npm test` est vert.
+Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`. Le tag attend la branche menu `ux/donnees-menu`.
 
 - Le bloc suit le doigt à chaque image. Le contrôle de créneau ne se relance que si l'équipage ou la minute calée sur 5 minutes change. Près du bord, le planning défile pendant le glisser.
 - L'appui long se voit (anneau bleu) avant le déplacement. Le défilement, le seuil de 18 px et le zoom restent.
 - Un créneau impossible montre un fantôme rose et la raison complète pendant le glisser (allongé sur VSL, ambulance sans DEA, conflit, course engagée, transport annulé).
 - Reposer la course sur le même équipage et le même créneau de 5 minutes n'ajoute pas d'annulation. Échap annule un glisser en cours, sans écrire la course.
+- Absence d'équipage ou panne de véhicule, sur la journée ou un créneau : les courses concernées vont dans À placer, ou sont replacées si on le demande.
+- Appel tardif : formulaire court, pose immédiate quand un créneau existe.
+- Régénérer sans tout bouleverser : les courses épinglées et déjà en place restent. Le résumé nomme les courses déplacées. Annuler revient en une seule étape.
+- Un déplacement à la main épingle la course. Rien ne déplace une course épinglée sans un geste explicite.
+- Poser un créneau indique quelles courses suivantes sont décalées. Une suivante épinglée bloque le geste.
 
 ## v0.7.0 — 2026-10-16
 

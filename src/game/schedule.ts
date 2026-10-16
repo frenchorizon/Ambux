@@ -560,10 +560,12 @@ export function suggestCompact(
     if (!schedule) continue;
     let cursor = crew.shiftStart;
     let locId = crew.baseId;
-    for (const leg of schedule.legs) {
+    const legs = schedule.legs;
+    for (let index = 0; index < legs.length; index++) {
+      const leg = legs[index]!;
       const transport = byId.get(leg.transportId);
       if (!transport) continue;
-      if (leg.departMin <= nowMin) {
+      if (leg.departMin <= nowMin || transport.pinned) {
         cursor = Math.max(cursor, leg.endMin);
         locId = transport.dropoffId;
         continue;
@@ -580,10 +582,14 @@ export function suggestCompact(
         depart = jumpBreaks(blocks, crew.id, hit.endMin);
         next = simulateLeg(transport, depart, locId, crew, locMap, rules);
       }
-      if (Math.abs(next.departMin - (transport.departMin ?? next.departMin)) > 0.6) {
+      const pinnedFollower = legs.slice(index + 1).find((item) => byId.get(item.transportId)?.pinned);
+      const collidesPin = pinnedFollower != null && next.endMin > pinnedFollower.departMin + 0.4;
+      if (!collidesPin && Math.abs(next.departMin - (transport.departMin ?? next.departMin)) > 0.6) {
         updates.set(transport.id, next.departMin);
+        cursor = next.endMin;
+      } else {
+        cursor = Math.max(cursor, leg.endMin);
       }
-      cursor = next.endMin;
       locId = transport.dropoffId;
     }
   }
