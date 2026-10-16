@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { pickMealSlot } from "../src/game/breaks.ts";
 import { previewCsv } from "../src/game/csv.ts";
+import { previewCrews, previewVehicles } from "../src/game/fleetCsv.ts";
 import { generateDay } from "../src/game/generate.ts";
 import { recordHistory } from "../src/game/history.ts";
 import { optimizePlan } from "../src/game/optimizer.ts";
@@ -149,6 +150,28 @@ describe("règles de planning", () => {
 });
 
 describe("journée du régulateur", () => {
+  it("importe véhicules et équipages, et rejette les lignes fausses", () => {
+    const vehicles = previewVehicles(
+      ["immatriculation;type;nom", "ZZ;ambulance;Court", "GR-777-AA;voiture;Inconnu", "GR-777-AA;ambulance;Master", "GR-777-AA;vsl;Doublon"].join("\n"),
+      ["AB-123-CD"],
+    );
+    assert.equal(vehicles.accepted.length, 1);
+    assert.equal(vehicles.accepted[0]?.plate, "GR-777-AA");
+    assert.equal(vehicles.rejected.length, 3);
+    const crews = previewCrews(
+      ["immatriculation;conducteur;auxiliaire;dea", "INCONNU;MARTIN Paul;DURAND Lea;oui", "GR-777-AA;MARTIN Paul;DURAND Lea;non", "GR-777-AA;MARTIN Paul;;non", "GR-200-BB;PETIT Jean;DURAND Lea;non"].join("\n"),
+      [
+        { plate: "GR-777-AA", vehicleType: "ambulance" },
+        { plate: "GR-200-BB", vehicleType: "vsl" },
+      ],
+    );
+    assert.equal(crews.rejected.length, 4);
+    assert.equal(crews.accepted.length, 0);
+    const ok = previewCrews("GR-777-AA;MARTIN Paul;DURAND Lea;oui\n", [{ plate: "GR-777-AA", vehicleType: "ambulance" }]);
+    assert.equal(ok.accepted.length, 1);
+    assert.equal(ok.accepted[0]?.dea, true);
+  });
+
   it("importe un CSV, relie l'aller-retour et rejette une mauvaise date", async () => {
     const raw = [
       "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour",
