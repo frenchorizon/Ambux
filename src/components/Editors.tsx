@@ -325,7 +325,7 @@ export function TomorrowView() {
               <span className="min-w-36 font-semibold">{patient ? personName(patient) : "Patient"}</span>
               <span className="text-muted">{from?.short} → {to?.short}</span>
               <Badge className="bg-paper text-navy">{postureLabel(transport.posture)}</Badge>
-              <span className="text-xs text-muted">{kindLabel(transport.kind)}{crew ? ` · ${crew.code}` : " · non affecté"}</span>
+              <span className="text-xs text-muted">{kindLabel(transport.kind)}{transport.stayMin ? ` · attente ${transport.stayMin} min` : ""}{crew ? ` · ${crew.code}` : " · non affecté"}</span>
               <button type="button" className="ml-auto text-xs font-semibold text-brand" onClick={() => { data.dispatch({ type: "SELECT", id: transport.id }); data.dispatch({ type: "SET_VIEW", view: "gantt" }); }}>
                 Timeline
               </button>
