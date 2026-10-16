@@ -376,6 +376,7 @@ test("journée chargée : plus de 80 courses", async ({ page }) => {
   const started = Date.now();
   await expect(page.getByRole("button", { name: "Appliquer ce planning" })).toBeVisible({ timeout: 45_000 });
   const elapsed = Date.now() - started;
+  expect(clickMs, `le bouton Générer a attendu ${clickMs} ms`).toBeLessThan(2_000);
   expect(clickMs + elapsed, `${clickMs + elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
   const solver = await page.getByText(/évaluations en/).innerText();
   console.log(`QA_PERF_MS ${clickMs + elapsed} QA_CLICK_MS ${clickMs} QA_AFTER_CLICK_MS ${elapsed} QA_SOLVER ${solver} QA_DEMAND ${demand}`);

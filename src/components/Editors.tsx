@@ -321,7 +321,7 @@ export function TomorrowView() {
           const to = data.locMap.get(transport.dropoffId);
           const crew = data.crews.find((item) => item.id === transport.crewId);
           return (
-            <div key={transport.id} className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2 text-sm last:border-b-0">
+            <div key={transport.id} className="demand-row flex flex-wrap items-center gap-2 border-b border-line px-4 py-2 text-sm last:border-b-0">
               <span className="w-14 font-mono text-xs">{formatMin(transport.appointmentMin ?? transport.windowStart)}</span>
               <span className="min-w-36 font-semibold">{patient ? personName(patient) : "Patient"}</span>
               <span className="text-muted">{from?.short} → {to?.short}</span>
@@ -349,7 +349,7 @@ export function TomorrowView() {
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         {data.tomorrowItems.length === 0 && <p className="p-4 text-sm text-muted">Aucune série habituelle (dialyse, aller-retour) sur cette journée.</p>}
         {data.tomorrowItems.map((item) => (
-          <label key={item.id} className="flex items-start gap-3 border-b border-line px-4 py-2 text-sm last:border-b-0">
+          <label key={item.id} className="demand-row flex items-start gap-3 border-b border-line px-4 py-2 text-sm last:border-b-0">
             <input type="checkbox" className="mt-1" checked={item.include} onChange={() => data.dispatch({ type: "TOGGLE_TOMORROW", id: item.id })} />
             <span>{item.patientName} · {item.timeLabel} · {item.from} → {item.to}</span>
           </label>

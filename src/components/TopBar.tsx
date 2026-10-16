@@ -96,7 +96,7 @@ export function TopBar() {
           </>
         )}
         <Button
-          className="h-11 px-3"
+          className="h-11 shrink-0 px-3"
           data-tour="generer"
           onClick={() => {
             dispatch({ type: "NOTE_OPTIMIZER" });
