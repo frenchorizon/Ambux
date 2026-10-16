@@ -10,7 +10,11 @@ export async function openPlanning(page: Page) {
 
 export async function openMenu(page: Page, label: string) {
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: label, exact: true }).click();
+  await page.getByRole("banner").getByRole("button", { name: label, exact: true }).click();
+}
+
+export async function goTimeline(page: Page) {
+  await page.getByRole("navigation").getByRole("button", { name: "Timeline", exact: true }).click();
 }
 
 export type Bar = {

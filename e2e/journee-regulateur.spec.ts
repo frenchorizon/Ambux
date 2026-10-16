@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import * as XLSX from "xlsx";
-import { barById, bars, center, mealWindows, minutes, openMenu, openPlanning, shiftSpans, touch } from "./helpers";
+import { barById, bars, center, goTimeline, mealWindows, minutes, openMenu, openPlanning, shiftSpans, touch } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -58,19 +58,21 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   ].join("\n");
   await page.locator("textarea").fill(csv);
   await page.getByRole("button", { name: "Prévisualiser" }).click();
-  await expect(page.getByText(/ZORAQA Line/)).toBeVisible();
-  await expect(page.getByText(/retour 14:15/)).toBeVisible();
-  await expect(page.getByText(/1999-01-01/)).toBeVisible();
-  await expect(page.getByText(/Heure invalide/)).toBeVisible();
+  const accepted = page.locator("li.bg-paper");
+  const rejected = page.locator("li.bg-rose-50");
+  await expect(accepted.filter({ hasText: "ZORAQA Line" })).toBeVisible();
+  await expect(accepted.filter({ hasText: "retour 14:15" })).toBeVisible();
+  await expect(rejected.filter({ hasText: "1999-01-01" })).toBeVisible();
+  await expect(rejected.filter({ hasText: "Heure invalide" })).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
-  await expect(page.getByText(/transport.*ajouté/)).toBeVisible();
-  await expect(page.getByText("ZORAQA Line").first()).toBeVisible();
-  await expect(page.getByText("Aller", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Retour", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajouté/)).toBeVisible();
+  const linked = page.locator("div.border-b").filter({ hasText: "ZORAQA Line" });
+  await expect(linked.filter({ hasText: "Aller" })).toBeVisible();
+  await expect(linked.filter({ hasText: "Retour" })).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
-  await page.getByPlaceholder("Nom").fill("SEANCEQA");
-  await page.getByPlaceholder("Prénom").fill("Ines");
+  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("SEANCEQA");
+  await page.getByRole("textbox", { name: "Prénom", exact: true }).fill("Ines");
   await page.locator("input[type='time']").first().fill("09:30");
   await page.getByRole("checkbox", { name: "Retour" }).check();
   await page.getByLabel("Attente à l'établissement (min)").fill("45");
@@ -96,11 +98,11 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/introuvable pour l'équipage/)).toBeVisible();
   await expect(page.getByText(/GR-100-QA/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner" }).click();
-  await expect(page.getByText(/transport.*ajouté/)).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajouté/)).toBeVisible();
 
   await openMenu(page, "Patients");
   await page.getByRole("button", { name: "Modifier" }).first().click();
-  await page.getByPlaceholder("Nom").fill("ZATEST");
+  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("ZATEST");
   await page.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByRole("heading", { name: /ZATEST/ }).first()).toBeVisible();
 
@@ -137,6 +139,7 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
 
 test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
+  await page.addInitScript(() => localStorage.setItem("ambux.routing", "estimate"));
   await openPlanning(page);
   const phone = testInfo.project.name === "phone";
 
@@ -189,7 +192,7 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   const card = page.locator("article").filter({ hasText: patient });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Meilleur créneau" }).click();
-  await page.getByRole("button", { name: "Timeline" }).click();
+  await goTimeline(page);
   await expect(page.locator(`[data-transport-id="${parked.id}"]`)).toBeVisible();
 });
 
@@ -204,7 +207,7 @@ test("séries, date, reprise du lendemain et brouillon", async ({ page }) => {
   await page.getByRole("button", { name: "Ajouter les séries cochées" }).click();
   await expect(page.getByText("Aucune série nouvelle à ajouter.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Timeline" }).click();
+  await goTimeline(page);
   await page.getByLabel("Date de mission").fill("2026-10-19");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-19");
   await page.getByRole("button", { name: "Annuler" }).click();
@@ -216,7 +219,7 @@ test("séries, date, reprise du lendemain et brouillon", async ({ page }) => {
   await page.getByRole("button", { name: "Reprendre au jour suivant" }).click();
   await expect(page.getByText(/sans affectation/)).toBeVisible();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-20");
-  await page.getByRole("button", { name: "Timeline" }).click();
+  await goTimeline(page);
   await expect(page.locator("[data-transport-id]")).toHaveCount(0);
   await page.getByRole("button", { name: "À placer" }).click();
   await expect(page.getByRole("button", { name: "Meilleur créneau" }).first()).toBeVisible();
@@ -346,7 +349,7 @@ test("journée chargée : plus de 80 courses", async ({ page }) => {
   await page.getByRole("button", { name: "Préparer ce planning" }).click();
   await expect(page.getByRole("heading", { name: "Demande de demain" })).toBeVisible();
   const started = Date.now();
-  await page.getByRole("button", { name: /^Générer/ }).click();
+  await page.getByRole("banner").getByRole("button", { name: /^Générer/ }).click();
   await expect(page.getByRole("button", { name: "Appliquer ce planning" })).toBeVisible({ timeout: 45_000 });
   const elapsed = Date.now() - started;
   expect(elapsed, `${elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
@@ -390,16 +393,19 @@ function workbook(): Buffer {
 
 async function nudgeFive(page: Page): Promise<{ id: string; before: number; after: number }> {
   const candidates = (await bars(page)).filter((item) => item.posture === "assis");
+  const seen: string[] = [];
   for (const candidate of candidates.slice(0, 8)) {
     await center(page, candidate.id);
     await page.locator(`[data-transport-id="${candidate.id}"]`).click();
     const before = (await barById(page, candidate.id)).depart;
     await page.getByRole("button", { name: "5 minutes plus tard" }).click();
     const after = (await barById(page, candidate.id)).depart;
-    if ((await page.locator(".dpad-reason").count()) > 0 && after === before) continue;
-    if (after !== before) return { id: candidate.id, before, after };
+    seen.push(`${before}->${after}`);
+    if (after === before) continue;
+    if (after % 5 === 0 && after > before && after - before <= 15) return { id: candidate.id, before, after };
+    await page.getByRole("button", { name: "Annuler" }).click();
   }
-  throw new Error("aucune course n'a accepté +5 minutes");
+  throw new Error(`aucune course n'est restée sur la grille de 5 minutes (${seen.join(", ")})`);
 }
 
 async function changeVehicle(page: Page): Promise<{ id: string; before: string; after: string }> {
@@ -445,7 +451,7 @@ async function mouseReject(page: Page, id: string, crewId: string) {
   await page.mouse.down();
   await page.mouse.move(from.x, box!.y + box!.height / 2, { steps: 12 });
   await page.mouse.up();
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité|Conflit horaire/).first()).toBeVisible();
 }
 
 async function touchReject(page: Page, id: string, crewId: string) {
@@ -457,5 +463,5 @@ async function touchReject(page: Page, id: string, crewId: string) {
   await page.waitForTimeout(500);
   await touch(page, "pointermove", from.x, box!.y + box!.height / 2);
   await touch(page, "pointerup", from.x, box!.y + box!.height / 2);
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité|Conflit horaire/).first()).toBeVisible();
 }
