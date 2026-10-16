@@ -69,8 +69,8 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(zora.filter({ hasText: "Retour" }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
-  await page.getByPlaceholder("Nom").fill("SEANCEQA");
-  await page.getByPlaceholder("Prénom").fill("Ines");
+  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("SEANCEQA");
+  await page.getByRole("textbox", { name: "Prénom", exact: true }).fill("Ines");
   await page.locator("input[type='time']").first().fill("09:30");
   await page.getByRole("checkbox", { name: "Retour" }).check();
   await page.getByLabel("Attente à l'établissement (min)").fill("45");
@@ -100,7 +100,7 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
 
   await openMenu(page, "Patients");
   await page.getByRole("button", { name: "Modifier" }).first().click();
-  await page.getByPlaceholder("Nom").fill("ZATEST");
+  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("ZATEST");
   await page.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByRole("heading", { name: /ZATEST/ }).first()).toBeVisible();
 
