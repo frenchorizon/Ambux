@@ -15,8 +15,8 @@ test("l'attente de séance reste lisible sur la timeline étroite", async ({ pag
   await openPlanning(page);
   await openMenu(page, "Demande de demain");
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
-  await page.getByPlaceholder("Nom").fill("SEANCEGANTT");
-  await page.getByPlaceholder("Prénom").fill("Lea");
+  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("SEANCEGANTT");
+  await page.getByRole("textbox", { name: "Prénom", exact: true }).fill("Lea");
   await page.locator("input[type='time']").first().fill("09:30");
   await page.getByLabel("Attente à l'établissement (min)").fill("45");
   await page.getByRole("button", { name: "Enregistrer" }).click();
