@@ -236,7 +236,7 @@ function seriesOrderOk(jobs: readonly Transport[], schedule: CrewSchedule): bool
   schedule.legs.forEach((leg, position) => index.set(leg.transportId, position));
   const groups = new Map<string, Transport[]>();
   for (const job of jobs) {
-    if (!job.seriesId || !job.kind.startsWith("dialyse")) continue;
+    if (!job.seriesId) continue;
     const list = groups.get(job.seriesId) ?? [];
     list.push(job);
     groups.set(job.seriesId, list);

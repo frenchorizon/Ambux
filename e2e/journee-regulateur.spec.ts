@@ -71,8 +71,14 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(linked.filter({ hasText: "Retour" })).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
-  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("SEANCEQA");
-  await page.getByRole("textbox", { name: "Prénom", exact: true }).fill("Ines");
+  const lastName = page.getByRole("textbox", { name: "Nom", exact: true });
+  const firstName = page.getByRole("textbox", { name: "Prénom", exact: true });
+  await expect(lastName).toHaveCount(1);
+  await expect(firstName).toHaveCount(1);
+  await expect(lastName).toHaveAttribute("aria-label", "Nom");
+  await expect(firstName).toHaveAttribute("aria-label", "Prénom");
+  await lastName.fill("SEANCEQA");
+  await firstName.fill("Ines");
   await page.locator("input[type='time']").first().fill("09:30");
   await page.getByRole("checkbox", { name: "Retour" }).check();
   await page.getByLabel("Attente à l'établissement (min)").fill("45");
@@ -340,6 +346,21 @@ test("OSRM muet : bandeau et tracés estimés", async ({ page }) => {
   await expect(page.locator(".leaflet-container")).toBeVisible();
 });
 
+test("le menu Données et export suit la vue", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "la barre latérale n'existe qu'au bureau");
+  await openPlanning(page);
+  const section = page.locator("aside").getByRole("button", { name: "Données et export" });
+  await expect(section).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("aside").getByRole("button", { name: "Demande de demain" })).toHaveCount(0);
+  await section.click();
+  await expect(section).toHaveAttribute("aria-expanded", "true");
+  await page.locator("aside").getByRole("button", { name: "Patients", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Patients" })).toBeVisible();
+  await expect(section).toHaveAttribute("aria-expanded", "true");
+  await goTimeline(page);
+  await expect(section).toHaveAttribute("aria-expanded", "false");
+});
+
 test("journée chargée : plus de 80 courses", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/");
@@ -349,21 +370,24 @@ test("journée chargée : plus de 80 courses", async ({ page }) => {
   expect(demand).toBeGreaterThanOrEqual(80);
   await page.getByRole("button", { name: "Préparer ce planning" }).click();
   await expect(page.getByRole("heading", { name: "Demande de demain" })).toBeVisible();
-  const started = Date.now();
+  const clickStarted = Date.now();
   await page.getByRole("banner").getByRole("button", { name: /^Générer/ }).click();
+  const clickMs = Date.now() - clickStarted;
+  const started = Date.now();
   await expect(page.getByRole("button", { name: "Appliquer ce planning" })).toBeVisible({ timeout: 45_000 });
   const elapsed = Date.now() - started;
-  expect(elapsed, `${elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
-  console.log(`QA_PERF_MS ${elapsed} QA_DEMAND ${demand}`);
+  expect(clickMs + elapsed, `${clickMs + elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
+  const solver = await page.getByText(/évaluations en/).innerText();
+  console.log(`QA_PERF_MS ${clickMs + elapsed} QA_CLICK_MS ${clickMs} QA_AFTER_CLICK_MS ${elapsed} QA_SOLVER ${solver} QA_DEMAND ${demand}`);
   await page.getByRole("button", { name: "Appliquer ce planning" }).click();
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
   const placed = await page.locator("[data-transport-id]").count();
   expect(placed).toBeGreaterThan(40);
   console.log(`QA_PLACED ${placed}`);
-  const clickStarted = Date.now();
+  const barStarted = Date.now();
   await page.locator("[data-transport-id]").first().click();
   await expect(page.locator("[data-dpad]")).toBeVisible();
-  expect(Date.now() - clickStarted).toBeLessThan(3_000);
+  expect(Date.now() - barStarted).toBeLessThan(3_000);
 });
 
 function clock(min: number): string {

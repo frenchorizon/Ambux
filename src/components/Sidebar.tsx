@@ -13,7 +13,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useData } from "../game/context";
 import type { ViewId } from "../game/types";
 import { cn } from "../lib/utils";
@@ -62,7 +62,12 @@ export function Logo({ light = false }: { light?: boolean }) {
 
 export function NavList({ onPick }: { onPick?: () => void }) {
   const { view, dispatch, calls } = useData();
-  const [more, setMore] = useState(MORE.some((item) => item.id === view));
+  const belongs = MORE.some((item) => item.id === view);
+  const [override, setOverride] = useState<boolean | null>(null);
+  useEffect(() => {
+    setOverride(null);
+  }, [view]);
+  const more = override ?? belongs;
   const pending = calls.filter((call) => call.spawned && !call.resolved).length;
   return (
     <nav className="flex flex-col gap-1">
@@ -72,7 +77,7 @@ export function NavList({ onPick }: { onPick?: () => void }) {
       <button
         type="button"
         className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-sky-100/70 hover:text-white"
-        onClick={() => setMore((value) => !value)}
+        onClick={() => setOverride(!more)}
         aria-expanded={more}
       >
         <ChevronDown size={14} className={cn("transition-transform", more && "rotate-180")} />

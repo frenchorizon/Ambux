@@ -382,14 +382,14 @@ function bestSlot(state: GameState, transportId: string): GameState {
   const transport = state.transports.find((item) => item.id === transportId);
   if (!transport) return state;
   const locMap = indexLocations(state.locations);
-  const slot = bestSlotFor(transport, state.crews, state.transports, state.blocks, locMap, horizon(state));
+  const slot = bestSlotFor(transport, state.crews, state.transports, state.blocks, locMap, horizon(state), state.rules);
   if (!slot) return withToast(state, "Conflit horaire : aucun équipage compatible n'a de créneau.", "warn");
   return assign(state, transport.id, slot.crewId, slot.departMin);
 }
 
 function compact(state: GameState): GameState {
   const locMap = indexLocations(state.locations);
-  const updates = suggestCompact(state.crews, state.transports, state.blocks, locMap, horizon(state));
+  const updates = suggestCompact(state.crews, state.transports, state.blocks, locMap, horizon(state), state.rules);
   if (!updates.size) {
     return withToast(state, "Rien à resserrer : les départs collent déjà aux fenêtres.", "info");
   }
@@ -768,7 +768,7 @@ function snapBack(state: GameState, transportId: string): GameState {
   const locMap = indexLocations(state.locations);
   const appointment = plannedPickup(transport);
   if (!transport.crewId) {
-    const slot = bestSlotFor(transport, state.crews, state.transports, state.blocks, locMap, horizon(state));
+    const slot = bestSlotFor(transport, state.crews, state.transports, state.blocks, locMap, horizon(state), state.rules);
     if (!slot) return withToast(state, "Aucun créneau compatible pour revenir à l'heure prévue.", "warn");
     return assign(state, transport.id, slot.crewId, appointment);
   }

@@ -5,7 +5,7 @@ import type { Crew } from "./types";
 import { formatMin } from "../lib/format";
 
 export const CSV_COLUMNS =
-  "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour";
+  "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour;attente";
 
 export function csvSpec(iso: string): string {
   const [year, month, day] = iso.split("-");
@@ -15,7 +15,8 @@ export function csvSpec(iso: string): string {
     "Obligatoire : nom, heure_rdv (HH:MM), adresse_depart, adresse_arrivee, mobilite (assis, allongé ou fauteuil).",
     `date : ${iso}, ${slash}, ou vide. Toute autre date est rejetée.`,
     "sens : aller, retour, simple (vide = simple, indiqué dans l'aperçu), ou ar.",
-    "ar exige heure_retour. Aucune adresse inconnue n'est remplacée par le CHU.",
+    "ar exige heure_retour. attente : minutes entières sur place, 480 maximum, vide si aucune.",
+    "Aucune adresse inconnue n'est remplacée par le CHU.",
     "Un libellé reconnu est affiché dans l'aperçu avant fusion. Une adresse ambiguë est rejetée.",
   ].join(" ");
 }
@@ -245,6 +246,10 @@ async function parseLine(
   if (sens === "ar" && retourClock == null) {
     return { line, raw, reason: "Aller-retour sans heure_retour : le retour n'est pas inventé." };
   }
+  const stay = parseStay(record.attente);
+  if (stay === "bad") {
+    return { line, raw, reason: `Attente invalide « ${record.attente} ». Minutes entières, 480 maximum.` };
+  }
   if (!record.adresse_depart) return { line, raw, reason: "Adresse de départ manquante." };
   if (!record.adresse_arrivee) return { line, raw, reason: "Adresse d'arrivée manquante." };
 
@@ -274,6 +279,7 @@ async function parseLine(
     priority: "normal",
     cancelled: false,
     note: record.note || undefined,
+    stayMin: stay && stay > 0 ? stay : undefined,
   };
   const patient: Patient = {
     id: patientId,
@@ -298,9 +304,10 @@ async function parseLine(
       windowEnd: retourClock + tolerance,
       seriesId: transport.seriesId,
       note: record.note ? `${record.note} · retour` : "Retour",
+      stayMin: undefined,
     };
   }
-  const summary = `${lastName} ${firstName} · ${record.heure_rdv} · ${depart.location.short} → ${arrivee.location.short} · ${posture} · ${sens === "simple" && !(record.sens ?? "").trim() ? "simple (colonne vide)" : sens}${retour ? ` · retour ${record.heure_retour}` : ""}`;
+  const summary = `${lastName} ${firstName} · ${record.heure_rdv} · ${depart.location.short} → ${arrivee.location.short} · ${posture} · ${sens === "simple" && !(record.sens ?? "").trim() ? "simple (colonne vide)" : sens}${stay ? ` · attente ${stay} min` : ""}${retour ? ` · retour ${record.heure_retour}` : ""}`;
   return {
     row: { line, transport, patient, location: depart.created, retour, summary },
     location: depart.created,
@@ -337,6 +344,15 @@ async function resolvePlace(
     city: "Rouen",
   };
   return { ok: true, location: created, created };
+}
+
+function parseStay(value: string | undefined): number | "bad" | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  if (!/^\d{1,3}$/.test(raw)) return "bad";
+  const minutes = Number(raw);
+  if (minutes > 480) return "bad";
+  return minutes;
 }
 
 function parseClock(value: string): number | null {

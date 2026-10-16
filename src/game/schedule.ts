@@ -56,7 +56,7 @@ export interface Gap {
 
 export type PlacementPreview =
   | { ok: true; departMin: number; leg: Leg; warning?: string }
-  | { ok: false; reason: "incompatible" | "conflict" | "cancelled" | "started"; message: string };
+  | { ok: false; reason: "incompatible" | "conflict" | "cancelled" | "started" | "charge"; message: string };
 
 export function indexLocations(locations: readonly Location[]): Map<string, Location> {
   return indexById(locations);
@@ -385,6 +385,19 @@ function bestLegInGap(
   return best;
 }
 
+function courseCap(crew: Crew, rules: Rules): number {
+  return crew.vehicleType === "ambulance" ? rules.maxAmb : rules.maxVsl;
+}
+
+function assignedExcept(crew: Crew, transport: Transport, transports: readonly Transport[]): number {
+  let count = 0;
+  for (const item of transports) {
+    if (item.cancelled || item.id === transport.id || item.crewId !== crew.id) continue;
+    count += 1;
+  }
+  return count;
+}
+
 export function candidatePlacements(
   crew: Crew,
   transport: Transport,
@@ -396,6 +409,7 @@ export function candidatePlacements(
 ): Leg[] {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return [];
   if (crew.vehicleType === "ambulance" && !crew.dea) return [];
+  if (assignedExcept(crew, transport, transports) >= courseCap(crew, rules)) return [];
   const gaps = freeGaps(
     crew,
     transports.filter((item) => item.id !== transport.id),
@@ -451,6 +465,15 @@ export function previewPlacement(
       ok: false,
       reason: "incompatible",
       message: "Incompatibilité : cette ambulance n'a pas de DEA enregistré.",
+    };
+  }
+  const already = assignedExcept(crew, transport, transports);
+  const cap = courseCap(crew, rules);
+  if (already >= cap) {
+    return {
+      ok: false,
+      reason: "charge",
+      message: `Charge : ${crew.code} a déjà ${already} courses, plafond ${cap}.`,
     };
   }
   const gaps = freeGaps(

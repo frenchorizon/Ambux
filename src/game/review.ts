@@ -120,7 +120,7 @@ export function reviewIssues(input: {
 
   const groups = new Map<string, Transport[]>();
   for (const transport of active) {
-    if (!transport.seriesId || !transport.kind.startsWith("dialyse")) continue;
+    if (!transport.seriesId) continue;
     const list = groups.get(transport.seriesId) ?? [];
     list.push(transport);
     groups.set(transport.seriesId, list);
@@ -128,10 +128,12 @@ export function reviewIssues(input: {
   for (const [seriesId, list] of groups) {
     const aller = list.find((transport) => transport.kind.includes("aller"));
     const retour = list.find((transport) => transport.kind.includes("retour"));
+    if (!aller && !retour) continue;
+    const dialyse = list.some((transport) => transport.kind.startsWith("dialyse"));
     const patient = input.patients.get((aller ?? retour)!.patientId);
-    const label = patient ? `${patient.lastName.toUpperCase()} ${patient.firstName}` : "Dialyse";
+    const label = patient ? `${patient.lastName.toUpperCase()} ${patient.firstName}` : dialyse ? "Dialyse" : "Série";
     const crews = new Set(list.map((transport) => transport.crewId).filter(Boolean));
-    if (crews.size > 1) {
+    if (dialyse && crews.size > 1) {
       issues.push({
         id: `ser-${seriesId}`,
         kind: "serie",
@@ -140,7 +142,7 @@ export function reviewIssues(input: {
         transportId: retour?.id ?? aller?.id,
       });
     }
-    if (aller && !retour) {
+    if (dialyse && aller && !retour) {
       issues.push({
         id: `ser-miss-${seriesId}`,
         kind: "serie",
@@ -153,7 +155,7 @@ export function reviewIssues(input: {
       const allerLeg = legOf(input.schedules, aller.id);
       const retourLeg = legOf(input.schedules, retour.id);
       const expected =
-        retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
+        dialyse && retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
       if (retourLeg && expected != null && Math.abs(retourLeg.arrivePickup - expected) > input.rules.toleranceMin + 0.5) {
         issues.push({
           id: `ser-gap-${seriesId}`,

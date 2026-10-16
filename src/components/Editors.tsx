@@ -272,8 +272,8 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
         })();
       }}
     >
-      <input value={lastName} onChange={(event) => setLastName(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" placeholder="Nom" />
-      <input value={firstName} onChange={(event) => setFirstName(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" placeholder="Prénom" />
+      <input aria-label="Nom" value={lastName} onChange={(event) => setLastName(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" placeholder="Nom" />
+      <input aria-label="Prénom" value={firstName} onChange={(event) => setFirstName(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" placeholder="Prénom" />
       <input value={address} onChange={(event) => setAddress(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm sm:col-span-2" placeholder="Adresse" />
       <select value={mobility} onChange={(event) => setMobility(event.target.value as Posture)} className="h-9 rounded-lg border border-line px-2 text-sm">
         <option value="assis">Assis</option>
@@ -443,8 +443,8 @@ function TransportForm({
         onDone();
       }}
     >
-      <input required value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Nom" className="h-9 rounded-lg border border-line px-2 text-sm" />
-      <input value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Prénom" className="h-9 rounded-lg border border-line px-2 text-sm" />
+      <input required aria-label="Nom" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Nom" className="h-9 rounded-lg border border-line px-2 text-sm" />
+      <input aria-label="Prénom" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Prénom" className="h-9 rounded-lg border border-line px-2 text-sm" />
       <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" />
       <select value={homeId} onChange={(event) => setHomeId(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm">
         {homes.map((home) => <option key={home.id} value={home.id}>{home.short}</option>)}
