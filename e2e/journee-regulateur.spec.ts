@@ -63,7 +63,7 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/Date « 1999-01-01 »/)).toBeVisible();
   await expect(page.getByText(/Heure invalide/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
-  await expect(page.getByText(/transport.*ajouté/)).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajoutés?\./)).toBeVisible();
   await expect(page.getByText("ZORAQA Line").first()).toBeVisible();
   await expect(page.getByText("Aller", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Retour", { exact: true }).first()).toBeVisible();
@@ -96,7 +96,7 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/introuvable pour l'équipage/)).toBeVisible();
   await expect(page.getByText(/GR-100-QA/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner" }).click();
-  await expect(page.getByText(/transport.*ajouté/)).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajoutés?\./)).toBeVisible();
 
   await openMenu(page, "Patients");
   await page.getByRole("button", { name: "Modifier" }).first().click();
@@ -445,7 +445,7 @@ async function mouseReject(page: Page, id: string, crewId: string) {
   await page.mouse.down();
   await page.mouse.move(from.x, box!.y + box!.height / 2, { steps: 12 });
   await page.mouse.up();
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité :|Conflit horaire :/).first()).toBeVisible();
 }
 
 async function touchReject(page: Page, id: string, crewId: string) {
@@ -457,5 +457,5 @@ async function touchReject(page: Page, id: string, crewId: string) {
   await page.waitForTimeout(500);
   await touch(page, "pointermove", from.x, box!.y + box!.height / 2);
   await touch(page, "pointerup", from.x, box!.y + box!.height / 2);
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité :|Conflit horaire :/).first()).toBeVisible();
 }
