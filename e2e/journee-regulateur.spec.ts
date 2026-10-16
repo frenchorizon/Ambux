@@ -5,12 +5,12 @@ import {
   barById,
   bars,
   center,
+  goTimeline,
   mealWindows,
   minutes,
   openMenu,
   openPlanning,
   shiftSpans,
-  showTimeline,
   touch,
 } from "./helpers";
 
@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("règles du jour : repas, amplitude et plafonds", async ({ page }) => {
+test("règles du jour : repas et amplitude", async ({ page }) => {
   await openPlanning(page);
   const meals = await mealWindows(page);
   const tracks = await page.locator("[data-track]").count();
@@ -51,8 +51,8 @@ test("règles du jour : repas, amplitude et plafonds", async ({ page }) => {
   await expect(page.getByLabel("Pause repas (minutes)")).toHaveValue("30");
   await expect(page.getByLabel("Tolérance autour du rendez-vous (minutes)")).toHaveValue("20");
   await expect(page.getByLabel("Amplitude de vacation (heures)")).toHaveValue("11");
-  await expect(page.getByLabel("Charge max ambulance")).toHaveValue("15");
-  await expect(page.getByLabel("Charge max VSL")).toHaveValue("25");
+  await expect(page.getByLabel("Charge max ambulance")).toHaveCount(0);
+  await expect(page.getByLabel("Charge max VSL")).toHaveCount(0);
   await expect(page.getByLabel("Séance de dialyse (heures)")).toHaveValue("4");
 });
 
@@ -69,19 +69,27 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   ].join("\n");
   await page.locator("textarea").fill(csv);
   await page.getByRole("button", { name: "Prévisualiser" }).click();
-  await expect(page.getByText(/ZORAQA Line/)).toBeVisible();
-  await expect(page.getByText(/retour 14:15/)).toBeVisible();
-  await expect(page.getByText(/Date « 1999-01-01 »/)).toBeVisible();
-  await expect(page.getByText(/Heure invalide/)).toBeVisible();
+  const accepted = page.locator("li.bg-paper");
+  const rejected = page.locator("li.bg-rose-50");
+  await expect(accepted.filter({ hasText: "ZORAQA Line" })).toBeVisible();
+  await expect(accepted.filter({ hasText: "retour 14:15" })).toBeVisible();
+  await expect(rejected.filter({ hasText: "1999-01-01" })).toBeVisible();
+  await expect(rejected.filter({ hasText: "Heure invalide" })).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
-  await expect(page.getByText(/\d+ transports? ajoutés?\./)).toBeVisible();
-  const zora = page.locator("div.border-b").filter({ hasText: "ZORAQA Line" });
-  await expect(zora.filter({ hasText: "Aller" }).first()).toBeVisible();
-  await expect(zora.filter({ hasText: "Retour" }).first()).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajouté/)).toBeVisible();
+  const linked = page.locator("div.border-b").filter({ hasText: "ZORAQA Line" });
+  await expect(linked.filter({ hasText: "Aller" })).toBeVisible();
+  await expect(linked.filter({ hasText: "Retour" })).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
-  await page.getByRole("textbox", { name: "Nom", exact: true }).fill("SEANCEQA");
-  await page.getByRole("textbox", { name: "Prénom", exact: true }).fill("Ines");
+  const lastName = page.getByRole("textbox", { name: "Nom", exact: true });
+  const firstName = page.getByRole("textbox", { name: "Prénom", exact: true });
+  await expect(lastName).toHaveCount(1);
+  await expect(firstName).toHaveCount(1);
+  await expect(lastName).toHaveAttribute("aria-label", "Nom");
+  await expect(firstName).toHaveAttribute("aria-label", "Prénom");
+  await lastName.fill("SEANCEQA");
+  await firstName.fill("Ines");
   await page.locator("input[type='time']").first().fill("09:30");
   await page.getByRole("checkbox", { name: "Retour" }).check();
   await page.getByLabel("Attente à l'établissement (min)").fill("45");
@@ -89,8 +97,8 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText("SEANCEQA Ines").first()).toBeVisible();
   await expect(page.getByText("attente 45 min")).toBeVisible();
   const seanceRows = page.locator("div.border-b").filter({ hasText: "SEANCEQA Ines" });
-  await expect(seanceRows.filter({ hasText: "Aller" })).toBeVisible();
-  await expect(seanceRows.filter({ hasText: "Retour" })).toBeVisible();
+  await expect(seanceRows.filter({ hasText: "Aller" })).toContainText("09:30");
+  await expect(seanceRows.filter({ hasText: "Retour" })).toContainText("10:15");
 
   await openMenu(page, "Importer");
   await page.getByLabel("Fichiers Lomaco").setInputFiles({
@@ -105,9 +113,10 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/Heure invalide/)).toBeVisible();
   await expect(page.getByText(/trop courte/)).toBeVisible();
   await expect(page.getByText(/introuvable pour l'équipage/)).toBeVisible();
-  await expect(page.getByText(/GR-100-QA/).first()).toBeVisible();
+  await expect(page.getByText("L3 · GR-100-QA · ambulance · Master QA")).toBeVisible();
+  await expect(page.getByText("L3 · GR-100-QA · MARTIN Paul · DURAND Lea")).toBeVisible();
   await page.getByRole("button", { name: "Fusionner" }).click();
-  await expect(page.getByText(/\d+ transports? ajoutés?\./)).toBeVisible();
+  await expect(page.getByText(/\d+ transports? ajouté/)).toBeVisible();
 
   await openMenu(page, "Patients");
   await page.getByRole("button", { name: "Modifier" }).first().click();
@@ -174,6 +183,7 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
 
 test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
+  await page.addInitScript(() => localStorage.setItem("ambux.routing", "estimate"));
   await openPlanning(page);
   const phone = testInfo.project.name === "phone";
 
@@ -228,7 +238,7 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   const card = page.locator("article").filter({ hasText: patient });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Meilleur créneau" }).click();
-  await showTimeline(page);
+  await goTimeline(page);
   await expect(page.locator(`[data-transport-id="${parked.id}"]`)).toBeVisible();
 });
 
@@ -243,7 +253,7 @@ test("séries, date, reprise du lendemain et brouillon", async ({ page }) => {
   await page.getByRole("button", { name: "Ajouter les séries cochées" }).click();
   await expect(page.getByText("Aucune série nouvelle à ajouter.")).toBeVisible();
 
-  await showTimeline(page);
+  await goTimeline(page);
   await page.getByLabel("Date de mission").fill("2026-10-19");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-19");
   await page.getByRole("button", { name: "Annuler" }).click();
@@ -255,7 +265,7 @@ test("séries, date, reprise du lendemain et brouillon", async ({ page }) => {
   await page.getByRole("button", { name: "Reprendre au jour suivant" }).click();
   await expect(page.getByText(/sans affectation/)).toBeVisible();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-20");
-  await showTimeline(page);
+  await goTimeline(page);
   await expect(page.locator("[data-transport-id]")).toHaveCount(0);
   await page.getByRole("button", { name: "À placer" }).click();
   await expect(page.getByRole("button", { name: "Meilleur créneau" }).first()).toBeVisible();
@@ -408,6 +418,16 @@ test("OSRM muet : bandeau et tracés estimés", async ({ page }) => {
   await expect(page.locator(".leaflet-container")).toBeVisible();
 });
 
+test("les données sont dans Réglages", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "la barre latérale n'existe qu'au bureau");
+  await openPlanning(page);
+  await expect(page.locator("aside").getByRole("button", { name: "Données et export" })).toHaveCount(0);
+  await openMenu(page, "Patients");
+  await expect(page.getByRole("heading", { name: "Patients" })).toBeVisible();
+  await goTimeline(page);
+  await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
+});
+
 test("journée chargée : plus de 80 courses", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/");
@@ -417,21 +437,30 @@ test("journée chargée : plus de 80 courses", async ({ page }) => {
   expect(demand).toBeGreaterThanOrEqual(80);
   await page.getByRole("button", { name: "Préparer ce planning" }).click();
   await expect(page.getByRole("heading", { name: "Demande de demain" })).toBeVisible();
+  const clickStarted = Date.now();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^Générer/ })
+    .click();
+  const clickMs = Date.now() - clickStarted;
   const started = Date.now();
-  await page.getByRole("main").getByRole("button", { name: "Générer le planning" }).click();
   await expect(page.getByRole("button", { name: "Appliquer ce planning" })).toBeVisible({ timeout: 45_000 });
   const elapsed = Date.now() - started;
-  expect(elapsed, `${elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
-  console.log(`QA_PERF_MS ${elapsed} QA_DEMAND ${demand}`);
+  expect(clickMs, `le bouton Générer a attendu ${clickMs} ms`).toBeLessThan(2_000);
+  expect(clickMs + elapsed, `${clickMs + elapsed} ms pour ${demand} courses`).toBeLessThan(20_000);
+  const solver = await page.getByText(/évaluations en/).innerText();
+  console.log(
+    `QA_PERF_MS ${clickMs + elapsed} QA_CLICK_MS ${clickMs} QA_AFTER_CLICK_MS ${elapsed} QA_SOLVER ${solver} QA_DEMAND ${demand}`,
+  );
   await page.getByRole("button", { name: "Appliquer ce planning" }).click();
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
   const placed = await page.locator("[data-transport-id]").count();
   expect(placed).toBeGreaterThan(40);
   console.log(`QA_PLACED ${placed}`);
-  const clickStarted = Date.now();
+  const barStarted = Date.now();
   await page.locator("[data-transport-id]").first().click();
   await expect(page.locator("[data-dpad]")).toBeVisible();
-  expect(Date.now() - clickStarted).toBeLessThan(3_000);
+  expect(Date.now() - barStarted).toBeLessThan(3_000);
 });
 
 function clock(min: number): string {
@@ -474,16 +503,19 @@ function workbook(): Buffer {
 
 async function nudgeFive(page: Page): Promise<{ id: string; before: number; after: number }> {
   const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.depart >= 8 * 60);
+  const seen: string[] = [];
   for (const candidate of candidates.slice(0, 12)) {
     await center(page, candidate.id);
     await page.locator(`[data-transport-id="${candidate.id}"]`).click();
     const before = (await barById(page, candidate.id)).depart;
     await page.getByRole("button", { name: "5 minutes plus tard" }).click();
     const after = (await barById(page, candidate.id)).depart;
-    if (after > before && after % 5 === 0 && after - before <= 15) return { id: candidate.id, before, after };
-    if (after !== before) await page.getByRole("button", { name: "Annuler" }).click();
+    seen.push(`${before}->${after}`);
+    if (after === before) continue;
+    if (after % 5 === 0 && after > before && after - before <= 15) return { id: candidate.id, before, after };
+    await page.getByRole("button", { name: "Annuler" }).click();
   }
-  throw new Error("aucune course n'a accepté +5 minutes");
+  throw new Error(`aucune course n'est restée sur la grille de 5 minutes (${seen.join(", ")})`);
 }
 
 async function changeVehicle(page: Page): Promise<{ id: string; before: string; after: string }> {

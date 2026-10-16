@@ -194,7 +194,7 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
       wide
       onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
       title="Générer le planning"
-      description="Tolérance dure, charge max, pause repas, dialyse liée et DEA. Ce qui ne tient pas reste dans À contrôler."
+      description="Tolérance dure, pause repas, dialyse liée et DEA. Ce qui ne tient pas reste dans À contrôler."
     >
       {!result && !error && <p className="text-sm text-muted">Calcul des tournées…</p>}
       {error && <p className="text-sm text-rose-700">{error}</p>}

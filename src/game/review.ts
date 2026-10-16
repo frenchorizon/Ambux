@@ -41,16 +41,6 @@ export function reviewIssues(input: {
   for (const crew of input.crews) {
     const schedule = input.schedules.get(crew.id);
     const count = schedule?.legs.length ?? 0;
-    const cap = crew.vehicleType === "ambulance" ? input.rules.maxAmb : input.rules.maxVsl;
-    if (count > cap) {
-      issues.push({
-        id: `ch-${crew.id}`,
-        kind: "charge",
-        level: "bloquant",
-        title: `${crew.code} : ${count} courses, plafond ${cap}`,
-        crewId: crew.id,
-      });
-    }
     if (crew.vehicleType === "ambulance" && !crew.dea && count > 0) {
       issues.push({
         id: `dea-${crew.id}`,
@@ -112,7 +102,7 @@ export function reviewIssues(input: {
 
   const groups = new Map<string, Transport[]>();
   for (const transport of active) {
-    if (!transport.seriesId || !transport.kind.startsWith("dialyse")) continue;
+    if (!transport.seriesId) continue;
     const list = groups.get(transport.seriesId) ?? [];
     list.push(transport);
     groups.set(transport.seriesId, list);
@@ -120,10 +110,12 @@ export function reviewIssues(input: {
   for (const [seriesId, list] of groups) {
     const aller = list.find((transport) => transport.kind.includes("aller"));
     const retour = list.find((transport) => transport.kind.includes("retour"));
+    if (!aller && !retour) continue;
+    const dialyse = list.some((transport) => transport.kind.startsWith("dialyse"));
     const patient = input.patients.get((aller ?? retour)!.patientId);
-    const label = patient ? `${patient.lastName.toUpperCase()} ${patient.firstName}` : "Dialyse";
+    const label = patient ? `${patient.lastName.toUpperCase()} ${patient.firstName}` : dialyse ? "Dialyse" : "Série";
     const crews = new Set(list.map((transport) => transport.crewId).filter(Boolean));
-    if (crews.size > 1) {
+    if (dialyse && crews.size > 1) {
       issues.push({
         id: `ser-${seriesId}`,
         kind: "serie",
@@ -132,7 +124,7 @@ export function reviewIssues(input: {
         transportId: retour?.id ?? aller?.id,
       });
     }
-    if (aller && !retour) {
+    if (dialyse && aller && !retour) {
       issues.push({
         id: `ser-miss-${seriesId}`,
         kind: "serie",
@@ -144,7 +136,8 @@ export function reviewIssues(input: {
     if (aller && retour && aller.crewId && retour.crewId) {
       const allerLeg = legOf(input.schedules, aller.id);
       const retourLeg = legOf(input.schedules, retour.id);
-      const expected = retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
+      const expected =
+        dialyse && retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
       if (
         retourLeg &&
         expected != null &&

@@ -130,7 +130,7 @@ export function Landing() {
             <Step
               n="02"
               title="Un planning qui dit non"
-              text="Tolérance, pause repas, amplitude de 11 h, charge max, DEA sur l'ambulance. Ce qui ne passe pas n'est pas maquillé en succès."
+              text="Tolérance, pause repas, amplitude de 11 h, DEA sur l'ambulance. Ce qui ne passe pas n'est pas maquillé en succès."
             />
             <Step
               n="03"

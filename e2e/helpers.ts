@@ -25,6 +25,8 @@ export async function showTimeline(page: Page) {
   await page.getByRole("navigation").getByRole("button", { name: "Timeline", exact: true }).click();
 }
 
+export const goTimeline = showTimeline;
+
 export type Bar = {
   id: string;
   crew: string;

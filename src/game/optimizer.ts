@@ -176,10 +176,6 @@ function cloneSol(sol: Sol): Sol {
   return { routes, unassigned: sol.unassigned.slice() };
 }
 
-function maxCourses(crew: Crew, rules: Rules): number {
-  return crew.vehicleType === "ambulance" ? rules.maxAmb : rules.maxVsl;
-}
-
 function compatible(crew: Crew, transport: Transport): boolean {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return false;
   if (crew.vehicleType === "ambulance" && !crew.dea) return false;
@@ -196,9 +192,6 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     jobs.push(transport);
   }
   const frozen = ctx.frozenCount[crew.id] ?? 0;
-  if (frozen + jobs.length > maxCourses(crew, ctx.rules)) {
-    return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
-  }
   const foreign = ctx.blocks.filter((block) => !(block.crewId === crew.id && block.kind === "repas"));
   const schedule = scheduleCrew(crew, jobs, foreign, ctx.locMap, "chain", ctx.origin[crew.id], ctx.rules);
   if (!suffixOk(schedule, crew) || !seriesOrderOk(jobs, schedule)) {
@@ -238,7 +231,7 @@ function seriesOrderOk(jobs: readonly Transport[], schedule: CrewSchedule): bool
   schedule.legs.forEach((leg, position) => index.set(leg.transportId, position));
   const groups = new Map<string, Transport[]>();
   for (const job of jobs) {
-    if (!job.seriesId || !job.kind.startsWith("dialyse")) continue;
+    if (!job.seriesId) continue;
     const list = groups.get(job.seriesId) ?? [];
     list.push(job);
     groups.set(job.seriesId, list);

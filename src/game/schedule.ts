@@ -431,6 +431,11 @@ export function displayedDepart(min: number): number {
   return Math.abs(snapped - min) <= 0.51 ? snapped : Math.round(min);
 }
 
+/** Prise en charge du retour : arrivée de l'aller + attente, sur la grille de 5 minutes. */
+export function seanceReturnMin(arrivalMin: number, waitMin: number): number {
+  return snap5(arrivalMin + Math.max(0, waitMin));
+}
+
 export function previewPlacement(
   crew: Crew,
   transport: Transport,

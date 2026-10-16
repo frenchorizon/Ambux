@@ -156,28 +156,6 @@ export function ReglagesView() {
             className={input}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Charge max ambulance">
-            <input
-              type="number"
-              min={1}
-              max={40}
-              value={rules.maxAmb}
-              onChange={(event) => set({ maxAmb: Number(event.target.value) })}
-              className={input}
-            />
-          </Field>
-          <Field label="Charge max VSL">
-            <input
-              type="number"
-              min={1}
-              max={40}
-              value={rules.maxVsl}
-              onChange={(event) => set({ maxVsl: Number(event.target.value) })}
-              className={input}
-            />
-          </Field>
-        </div>
         <Field label="Séance de dialyse (heures)">
           <input
             type="number"

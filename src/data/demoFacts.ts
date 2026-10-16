@@ -2,6 +2,6 @@
 export const DEMO_MEASURE = {
   placed: "66 / 67",
   late: "0",
-  naiveEmptyKm: "296",
+  naiveEmptyKm: "293",
   ambuxEmptyKm: "177",
 };

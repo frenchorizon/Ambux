@@ -19,8 +19,8 @@ export function FleetPanel() {
     <div className="rounded-3xl border border-line bg-card p-6 shadow-sm">
       <h2 className="text-xl font-semibold">Ouvrir une démo chiffrée</h2>
       <p className="mt-1 text-sm text-muted">
-        Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h,
-        charge max 15 / 25.
+        Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h.
+        15 ambulance et 25 VSL décrivent une journée chargée.
       </p>
       <Stepper label="Ambulances" value={amb} min={1} max={Math.min(16, MAX_VEHICLES - vsl)} onChange={setAmb} />
       <Stepper label="VSL" value={vsl} min={1} max={Math.min(16, MAX_VEHICLES - amb)} onChange={setVsl} />

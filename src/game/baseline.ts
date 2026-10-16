@@ -21,7 +21,7 @@ export function emptyDriveMin(schedules: ReadonlyMap<string, CrewSchedule>): num
 /**
  * Planning initial : les courses dans l'ordre des rendez-vous,
  * chacune au premier équipage compatible qui peut la prendre.
- * Mêmes règles dures que la génération (tolérance, charge, pause, amplitude).
+ * Mêmes règles dures que la génération (tolérance, pause, amplitude). 15 et 25 ne limitent pas.
  */
 export function naiveBaseline(input: {
   crews: readonly Crew[];
@@ -49,8 +49,6 @@ export function naiveBaseline(input: {
     for (const crew of input.crews) {
       if (!compatible(crew, job)) continue;
       const current = routes.get(crew.id) ?? [];
-      const cap = crew.vehicleType === "ambulance" ? rules.maxAmb : rules.maxVsl;
-      if (current.length >= cap) continue;
       const trial = [...current, job];
       if (!seriesOk(trial)) continue;
       const schedule = scheduleCrew(crew, trial, foreign, input.locMap, "chain", undefined, rules);
