@@ -1,14 +1,29 @@
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useClock, useData } from "../../game/context";
-import { previewPlacement } from "../../game/schedule";
+import { previewOnGrid, snap5 } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import type { DragState } from "./drag";
+import { DPad, type PadDir } from "./DPad";
 import { GanttBoard } from "./GanttBoard";
 import { closeTimelineSheet, setTimelineQuery, useTimelineUi } from "./timelineUi";
+
+const HOLD_MS = 420;
+const SCROLL_SLOP = 18;
+const DRAG_SLOP = 8;
+
+type Hold = {
+  id: string;
+  pointerId: number;
+  x: number;
+  y: number;
+  timer: number;
+  mode: "pending" | "scroll";
+  el: HTMLElement;
+};
 
 export function PlanningWorkspace() {
   const data = useData();
@@ -18,23 +33,84 @@ export function PlanningWorkspace() {
     typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 2.4,
   );
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
+  const [note, setNote] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
-  const pending = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
+  const pending = useRef<Hold | null>(null);
+  const captureRef = useRef<{ el: HTMLElement; pointerId: number } | null>(null);
+  const queued = useRef<{ x: number; y: number } | null>(null);
+  const frame = useRef(0);
   const bag = useRef({ data, clock, pxPerMin });
+  const nudgeRef = useRef<(dir: PadDir, coalesce: boolean) => void>(() => {});
   useEffect(() => {
     bag.current = { data, clock, pxPerMin };
   });
   useEffect(() => () => closeTimelineSheet(), []);
+  useEffect(() => {
+    setNote(null);
+  }, [data.selectedId]);
 
-  const begin = (transportId: string, x: number, y: number) => {
+  const begin = (transportId: string, pointerId: number, x: number, y: number, el: HTMLElement) => {
     const next: DragState = {
       transportId,
+      pointerId,
       x,
       y,
       originX: x,
       originY: y,
+      dx: 0,
+      dy: 0,
       moved: false,
       overUnassigned: false,
+    };
+    dragRef.current = next;
+    captureRef.current = { el, pointerId };
+    setDrag(next);
+    setGesture("drag");
+    try {
+      el.setPointerCapture(pointerId);
+    } catch {
+      /* Les PointerEvent synthétiques n'ont pas de capture. Les écouteurs window restent. */
+    }
+  };
+
+  const applyMove = (x: number, y: number) => {
+    const current = dragRef.current;
+    if (!current) return;
+    const dx = x - current.originX;
+    const dy = y - current.originY;
+    const moved = current.moved || Math.hypot(dx, dy) > DRAG_SLOP;
+    const hover = moved ? readHover(x, y, bag.current.pxPerMin) : { overUnassigned: false as const };
+    let preview = current.preview;
+    if (moved && hover.hoverCrewId) {
+      const crew = bag.current.data.crews.find((item) => item.id === hover.hoverCrewId);
+      const transport = bag.current.data.transportById.get(current.transportId);
+      if (crew && transport) {
+        preview = previewOnGrid(
+          crew,
+          transport,
+          hover.hoverMinute ?? DAY_START,
+          bag.current.data.transports,
+          bag.current.data.blocks,
+          bag.current.data.locMap,
+          bag.current.clock.nowMin,
+          bag.current.data.rules,
+        );
+      }
+    } else if (moved) {
+      preview = undefined;
+    }
+    const next: DragState = {
+      ...current,
+      x,
+      y,
+      dx,
+      dy,
+      moved,
+      hoverCrewId: moved ? hover.hoverCrewId : current.hoverCrewId,
+      hoverMinute: moved ? hover.hoverMinute : current.hoverMinute,
+      overUnassigned: moved ? hover.overUnassigned : current.overUnassigned,
+      preview: moved ? preview : current.preview,
     };
     dragRef.current = next;
     setDrag(next);
@@ -43,68 +119,108 @@ export function PlanningWorkspace() {
   useEffect(() => {
     const move = (event: PointerEvent) => {
       const hold = pending.current;
-      if (hold && Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > 12) {
-        window.clearTimeout(hold.timer);
-        pending.current = null;
-        return;
-      }
-      const current = dragRef.current;
-      if (!current) return;
-      const moved = current.moved || Math.hypot(event.clientX - current.originX, event.clientY - current.originY) > 8;
-      if (!moved) return;
-      const hover = readHover(event.clientX, event.clientY, bag.current.pxPerMin);
-      let preview = undefined;
-      if (hover.hoverCrewId) {
-        const crew = bag.current.data.crews.find((item) => item.id === hover.hoverCrewId);
-        const transport = bag.current.data.transportById.get(current.transportId);
-        if (crew && transport) {
-          preview = previewPlacement(
-            crew,
-            transport,
-            hover.hoverMinute ?? DAY_START,
-            bag.current.data.transports,
-            bag.current.data.blocks,
-            bag.current.data.locMap,
-            bag.current.clock.nowMin,
-            bag.current.data.rules,
-          );
+      if (hold && event.pointerId === hold.pointerId) {
+        if (hold.mode === "pending" && Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > SCROLL_SLOP) {
+          window.clearTimeout(hold.timer);
+          hold.mode = "scroll";
+          setGesture("scroll");
         }
-      }
-      const next: DragState = {
-        ...current,
-        x: event.clientX,
-        y: event.clientY,
-        moved: true,
-        hoverCrewId: hover.hoverCrewId,
-        hoverMinute: hover.hoverMinute,
-        overUnassigned: hover.overUnassigned,
-        preview,
-      };
-      dragRef.current = next;
-      setDrag(next);
-    };
-    const up = () => {
-      const hold = pending.current;
-      if (hold) {
-        window.clearTimeout(hold.timer);
-        pending.current = null;
-        bag.current.data.dispatch({ type: "SELECT", id: hold.id });
         return;
       }
       const current = dragRef.current;
-      if (!current) return;
+      if (!current || event.pointerId !== current.pointerId) return;
+      if (event.cancelable) event.preventDefault();
+      queued.current = { x: event.clientX, y: event.clientY };
+      if (frame.current) return;
+      frame.current = window.requestAnimationFrame(() => {
+        frame.current = 0;
+        const point = queued.current;
+        queued.current = null;
+        if (point) applyMove(point.x, point.y);
+      });
+    };
+    const releaseCapture = () => {
+      const captured = captureRef.current;
+      captureRef.current = null;
+      if (!captured) return;
+      try {
+        if (captured.el.hasPointerCapture?.(captured.pointerId)) captured.el.releasePointerCapture(captured.pointerId);
+      } catch {
+        /* capture absente */
+      }
+    };
+    const flush = () => {
+      if (frame.current) {
+        window.cancelAnimationFrame(frame.current);
+        frame.current = 0;
+      }
+      const point = queued.current;
+      queued.current = null;
+      if (point) applyMove(point.x, point.y);
+    };
+    const up = (event: PointerEvent) => {
+      const hold = pending.current;
+      if (hold && event.pointerId === hold.pointerId) {
+        window.clearTimeout(hold.timer);
+        pending.current = null;
+        setGesture("idle");
+        if (hold.mode === "pending") bag.current.data.dispatch({ type: "SELECT", id: hold.id });
+        return;
+      }
+      const current = dragRef.current;
+      if (!current || event.pointerId !== current.pointerId) return;
+      flush();
+      const latest = dragRef.current ?? current;
       dragRef.current = null;
       setDrag(null);
-      commit(current, bag.current);
+      setGesture("idle");
+      releaseCapture();
+      commit(latest, bag.current);
     };
-    window.addEventListener("pointermove", move);
+    const cancel = (event: PointerEvent) => {
+      const hold = pending.current;
+      const current = dragRef.current;
+      const matchesHold = Boolean(hold && event.pointerId === hold.pointerId);
+      const matchesDrag = Boolean(current && event.pointerId === current.pointerId);
+      if (!matchesHold && !matchesDrag) return;
+      if (hold && matchesHold) window.clearTimeout(hold.timer);
+      pending.current = matchesHold ? null : pending.current;
+      if (frame.current) {
+        window.cancelAnimationFrame(frame.current);
+        frame.current = 0;
+      }
+      queued.current = null;
+      if (matchesDrag) {
+        dragRef.current = null;
+        setDrag(null);
+        releaseCapture();
+      }
+      setGesture("idle");
+    };
+    window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointercancel", cancel);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("pointercancel", cancel);
+      if (pending.current) window.clearTimeout(pending.current.timer);
+      if (frame.current) window.cancelAnimationFrame(frame.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const dir = arrowDir(event.key);
+      if (!dir) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (!bag.current.data.selectedId) return;
+      event.preventDefault();
+      nudgeRef.current(dir, event.repeat);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const start = (transportId: string, event: ReactPointerEvent<HTMLElement>) => {
@@ -116,25 +232,42 @@ export function PlanningWorkspace() {
     }
     if (event.pointerType !== "touch") {
       event.preventDefault();
-      begin(transportId, event.clientX, event.clientY);
+      begin(transportId, event.pointerId, event.clientX, event.clientY, event.currentTarget);
       return;
     }
     const timer = window.setTimeout(() => {
+      const hold = pending.current;
+      if (!hold || hold.timer !== timer || hold.mode !== "pending") return;
       pending.current = null;
-      begin(transportId, event.clientX, event.clientY);
-      navigator.vibrate?.(12);
-    }, 420);
-    pending.current = { id: transportId, x: event.clientX, y: event.clientY, timer };
+      begin(hold.id, hold.pointerId, hold.x, hold.y, hold.el);
+    }, HOLD_MS);
+    pending.current = {
+      id: transportId,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      timer,
+      mode: "pending",
+      el: event.currentTarget,
+    };
+    setGesture("pending");
   };
+
+  nudgeRef.current = (dir, coalesce) => nudgeMission(dir, coalesce, data, clock.nowMin, setNote);
 
   const selected = data.selectedId ? data.transportById.get(data.selectedId) : undefined;
   const selectedPatient = selected ? data.patientById.get(selected.patientId) : undefined;
   const selectedLeg = selected
     ? [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((leg) => leg.transportId === selected.id)
     : undefined;
+  const plannedMin = selected ? (selected.appointmentMin ?? selected.windowStart) : undefined;
+  const draggingSelection = drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
+  const liveDepart = draggingSelection ? draggingSelection.departMin : selectedLeg?.departMin;
+  const dragged = drag?.moved ? data.transportById.get(drag.transportId) : undefined;
+  const draggedPlan = dragged ? (dragged.appointmentMin ?? dragged.windowStart) : undefined;
 
   return (
-    <div className={cn("relative flex h-full min-h-0 flex-col", drag?.moved && "touch-none")}>
+    <div className="relative flex h-full min-h-0 flex-col" data-gesture={gesture}>
       <GanttBoard drag={drag} pxPerMin={pxPerMin} query={ui.query} onStart={start} />
       {selected && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
@@ -147,6 +280,11 @@ export function PlanningWorkspace() {
               <p className="text-[12px] leading-snug text-ink">
                 vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min / dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
                 {selectedLeg.kmEstimated ? " · estimé" : ""}
+              </p>
+            )}
+            {liveDepart != null && plannedMin != null && (
+              <p className="text-[12px] font-semibold text-navy" data-pickup-times>
+                Prise en charge {formatMin(liveDepart)} · prévue {formatMin(plannedMin)}
               </p>
             )}
           </div>
@@ -206,7 +344,7 @@ export function PlanningWorkspace() {
             </Button>
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Au doigt, maintenez une course pour la déplacer. Un tap ouvre les actions. La pastille marine est l'heure prévue.
+            Un tap sélectionne la course et affiche la croix. Maintenez pour la glisser : le planning défile si le doigt part avant. Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
           </p>
         </Sheet>
       )}
@@ -214,8 +352,19 @@ export function PlanningWorkspace() {
       {drag?.moved && (
         <div className="pointer-events-none fixed z-[65] -translate-x-1/2 -translate-y-14 rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white shadow-lg" style={{ left: drag.x, top: drag.y }}>
           {labelFor(drag.transportId, data.transportById, data.patientById)}
+          {drag.preview?.ok ? ` · Prise en charge ${formatMin(drag.preview.departMin)}` : ""}
+          {drag.preview?.ok && draggedPlan != null ? ` · prévue ${formatMin(draggedPlan)}` : ""}
           {drag.preview && !drag.preview.ok ? ` · ${drag.preview.reason === "incompatible" ? "Incompatibilité" : "Conflit horaire"}` : ""}
         </div>
+      )}
+      {selected && liveDepart != null && plannedMin != null && (
+        <DPad
+          selectedId={selected.id}
+          departLabel={formatMin(liveDepart)}
+          plannedLabel={formatMin(plannedMin)}
+          reason={note}
+          onNudge={(dir, coalesce) => nudgeRef.current(dir, coalesce)}
+        />
       )}
     </div>
   );
@@ -284,6 +433,7 @@ function readHover(x: number, y: number, pxPerMin: number): { hoverCrewId?: stri
   const elements = document.elementsFromPoint(x, y);
   for (const element of elements) {
     if (!(element instanceof HTMLElement)) continue;
+    if (element.closest("[data-dpad], .gantt-block")) continue;
     if (element.closest("[data-unassigned]")) return { overUnassigned: true };
     const track = element.closest("[data-track]");
     if (track instanceof HTMLElement && track.dataset.crewId) {
@@ -314,7 +464,7 @@ function commit(
     data.dispatch({ type: "UNASSIGN", transportId: drag.transportId });
     return;
   }
-  if (drag.preview?.ok && drag.hoverCrewId) {
+  if (drag.preview?.ok && drag.hoverCrewId && drag.preview.departMin % 5 === 0) {
     data.dispatch({
       type: "ASSIGN",
       transportId: drag.transportId,
@@ -325,5 +475,72 @@ function commit(
   }
   if (drag.preview && !drag.preview.ok) {
     data.dispatch({ type: "TOAST", message: drag.preview.message, tone: "warn" });
+    return;
   }
+  if (drag.hoverCrewId) {
+    data.dispatch({
+      type: "TOAST",
+      message: "Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.",
+      tone: "warn",
+    });
+  }
+}
+
+function arrowDir(key: string): PadDir | null {
+  if (key === "ArrowUp") return "up";
+  if (key === "ArrowDown") return "down";
+  if (key === "ArrowLeft") return "left";
+  if (key === "ArrowRight") return "right";
+  return null;
+}
+
+function nudgeMission(
+  dir: PadDir,
+  coalesce: boolean,
+  data: ReturnType<typeof useData>,
+  nowMin: number,
+  setNote: (message: string | null) => void,
+) {
+  const id = data.selectedId;
+  if (!id) return;
+  const transport = data.transportById.get(id);
+  if (!transport) return;
+  const crews = data.crews.filter((crew) => !data.crewFilter || crew.id === data.crewFilter);
+  const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === id);
+  const currentDepart = leg?.departMin ?? transport.departMin ?? transport.appointmentMin ?? transport.windowStart;
+  let crewId = transport.crewId;
+  let depart = snap5(currentDepart);
+  if (dir === "left") depart = snap5(currentDepart) - 5;
+  if (dir === "right") depart = snap5(currentDepart) + 5;
+  if (dir === "up" || dir === "down") {
+    const index = crews.findIndex((crew) => crew.id === transport.crewId);
+    const nextIndex = dir === "up" ? index - 1 : index + 1;
+    if (index < 0 || nextIndex < 0 || nextIndex >= crews.length) {
+      setNote("Pas d'autre équipage");
+      return;
+    }
+    crewId = crews[nextIndex]!.id;
+  }
+  if (!crewId) {
+    setNote("La course n'est sur aucun équipage.");
+    return;
+  }
+  const crew = data.crews.find((item) => item.id === crewId);
+  if (!crew) {
+    setNote("Pas d'autre équipage");
+    return;
+  }
+  const preview = previewOnGrid(crew, transport, depart, data.transports, data.blocks, data.locMap, nowMin, data.rules);
+  if (!preview.ok) {
+    setNote(preview.message);
+    return;
+  }
+  setNote(null);
+  data.dispatch({
+    type: "ASSIGN",
+    transportId: id,
+    crewId,
+    departMin: preview.departMin,
+    coalesce,
+  });
 }

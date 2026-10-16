@@ -412,6 +412,11 @@ export function candidatePlacements(
   return legs;
 }
 
+/** Créneaux de prise en charge : toujours un multiple de 5 minutes. */
+export function snap5(min: number): number {
+  return Math.round(min / 5) * 5;
+}
+
 export function previewPlacement(
   crew: Crew,
   transport: Transport,
@@ -486,6 +491,28 @@ export function previewPlacement(
     warning = `Prise en charge en avance : ${leg.deviationMin} min.`;
   }
   return { ok: true, departMin: leg.departMin, leg, warning };
+}
+
+/** Même contrôle que le glisser, mais le départ demandé et retenu est sur la grille de 5 minutes. */
+export function previewOnGrid(
+  crew: Crew,
+  transport: Transport,
+  requestedDepart: number,
+  transports: readonly Transport[],
+  blocks: readonly TimeBlock[],
+  locMap: Map<string, Location>,
+  nowMin: number,
+  rules: Rules = DEFAULT_RULES,
+): PlacementPreview {
+  const first = previewPlacement(crew, transport, snap5(requestedDepart), transports, blocks, locMap, nowMin, rules);
+  if (!first.ok || first.departMin % 5 === 0) return first;
+  const second = previewPlacement(crew, transport, snap5(first.departMin), transports, blocks, locMap, nowMin, rules);
+  if (second.ok && second.departMin % 5 === 0) return second;
+  return {
+    ok: false,
+    reason: "conflict",
+    message: "Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.",
+  };
 }
 
 export function bestSlotFor(

@@ -49,7 +49,7 @@ export type Action =
   | { type: "SELECT"; id?: string }
   | { type: "SET_CREW_FILTER"; crewId?: string }
   | { type: "TOGGLE_FOLLOW" }
-  | { type: "ASSIGN"; transportId: string; crewId: string; departMin: number }
+  | { type: "ASSIGN"; transportId: string; crewId: string; departMin: number; coalesce?: boolean }
   | { type: "UNASSIGN"; transportId: string }
   | { type: "BEST_SLOT"; transportId: string }
   | { type: "COMPACT" }

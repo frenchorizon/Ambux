@@ -34,6 +34,21 @@ export function GanttBoard({
     node.scrollLeft = Math.max(0, left);
   }, [data.followNow, label, nowMin, pxPerMin]);
 
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const blockOnly = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".gantt-block")) event.preventDefault();
+    };
+    node.addEventListener("selectstart", blockOnly);
+    node.addEventListener("contextmenu", blockOnly);
+    return () => {
+      node.removeEventListener("selectstart", blockOnly);
+      node.removeEventListener("contextmenu", blockOnly);
+    };
+  }, []);
+
   const tipTransport = tip ? data.transportById.get(tip.transportId) : undefined;
   const tipLeg = tipTransport
     ? [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((leg) => leg.transportId === tipTransport.id)
@@ -209,6 +224,7 @@ function CrewRow({
           const span = Math.max(1, leg.endMin - leg.departMin);
           const bar = Math.max(5, span * pxPerMin);
           const selected = selectedId === transport.id;
+          const dragging = drag?.transportId === transport.id;
           const off = Math.abs(leg.deviationMin) >= 5;
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
@@ -216,13 +232,25 @@ function CrewRow({
             <span key={leg.transportId} className="contents">
             <button
               type="button"
+              draggable={false}
               className={cn(
-                "absolute overflow-hidden rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
+                "gantt-block absolute rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
+                dragging && "gantt-dragging",
                 leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
               )}
-              style={{ left, width: bar, top: barTop, height: barH, background: "color-mix(in srgb, var(--crew) 16%, transparent)", ["--crew" as string]: crew.color, touchAction: "manipulation" }}
+              style={{
+                left,
+                width: bar,
+                top: barTop,
+                height: barH,
+                background: "color-mix(in srgb, var(--crew) 16%, transparent)",
+                ["--crew" as string]: crew.color,
+                transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
+                zIndex: dragging ? 25 : undefined,
+              }}
               onContextMenu={(event) => event.preventDefault()}
+              onDragStart={(event) => event.preventDefault()}
               data-transport-id={transport.id}
               data-posture={transport.posture}
               data-depart={Math.round(leg.departMin)}
@@ -232,6 +260,7 @@ function CrewRow({
               onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
               onMouseLeave={() => onTip(null)}
             >
+              <span className="gantt-block-clip">
               {parts.map((part) => {
                 const minutes = part.end - part.start;
                 const wide = minutes * pxPerMin > 42;
@@ -265,6 +294,7 @@ function CrewRow({
                   className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-600"
                 />
               )}
+              </span>
             </button>
             {off && (
               <span

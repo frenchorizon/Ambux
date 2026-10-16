@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
-import { scheduleFleet, simulateLeg, visualParts } from "../src/game/schedule.ts";
+import { previewOnGrid, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Transport } from "../src/game/types.ts";
 
 const depot: Location = { id: "g-depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
@@ -125,5 +125,17 @@ describe("segments du Gantt", () => {
     );
     assert.equal(road.kmEstimated, false);
     assert.equal(road.loadedMin, 6);
+  });
+
+  it("aligne un déplacement sur un créneau de 5 minutes", () => {
+    seedRoads();
+    assert.equal(snap5(487), 485);
+    assert.equal(snap5(488), 490);
+    assert.equal(snap5(485), 485);
+    const preview = previewOnGrid(crew(), trip(), 8 * 60 + 7, [trip()], [], locMap, 6 * 60);
+    assert.equal(preview.ok, true);
+    if (!preview.ok) return;
+    assert.equal(preview.departMin % 5, 0);
+    assert.equal(preview.departMin, 8 * 60 + 5);
   });
 });

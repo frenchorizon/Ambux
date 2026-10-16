@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.7.0 — 2026-10-16
+
+Tag `v0.7.0`. Branche `feat/v0.7-tactile`.
+
+- Le doigt sur une course : un tap sélectionne, un appui long puis un glisser déplace, un mouvement franc avant l'appui long laisse défiler le planning. `pointercancel` n'écrit rien.
+- Les blocs ne déclenchent plus la loupe ni le menu copier (sélection coupée sur le bloc seulement, zoom d'accessibilité conservé). La zone touchée fait au moins 44 px, le bloc suit le doigt, un seul enregistrement au relâchement.
+- Croix directionnelle, en bas à droite, quand une course est sélectionnée. Haut et bas changent de véhicule, gauche et droite décalent de 5 minutes. Un créneau refusé affiche la raison et ne s'applique pas. Les flèches du clavier font la même chose.
+- Un maintien ou une répétition clavier forme une seule étape d'annulation. Deux appuis séparés restent deux étapes. Les déplacements et les glissers se calent sur 5 minutes.
+
 ## v0.6.0 — 2026-10-16
 
 Tag `v0.6.0`. Branche `feat/v0.6-gantt-segments`.

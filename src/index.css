@@ -63,6 +63,181 @@ body {
   scrollbar-gutter: stable;
 }
 
+/* Blocs de course seulement : pas de sélection globale, le zoom d'accessibilité reste. */
+.gantt-block,
+.gantt-block * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gantt-block {
+  touch-action: manipulation;
+}
+
+.gantt-block.gantt-dragging {
+  touch-action: none;
+}
+
+.gantt-block::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.gantt-block-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.dpad {
+  position: fixed;
+  right: 10px;
+  z-index: 45;
+  bottom: calc(env(safe-area-inset-bottom) + 7.5rem);
+  display: flex;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 16px));
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 1024px) {
+  .dpad:not(.dpad-placed) {
+    bottom: calc(env(safe-area-inset-bottom) + 12rem);
+  }
+}
+
+.dpad-placed {
+  right: auto;
+  bottom: auto;
+}
+
+.dpad-cross {
+  position: relative;
+  width: 168px;
+  height: 168px;
+}
+
+.dpad-glow {
+  position: absolute;
+  left: 34px;
+  top: 34px;
+  width: 100px;
+  height: 100px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(186, 224, 252, 0.62) 0%, rgba(186, 224, 252, 0.22) 48%, rgba(186, 224, 252, 0) 72%);
+  pointer-events: none;
+}
+
+.dpad-btn {
+  position: absolute;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  color: white;
+  opacity: 0.9;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0 7%, rgba(255, 255, 255, 0.38) 18%, transparent 40%),
+    radial-gradient(circle at 50% 62%, #8ad8f8 0%, #3ec6f3 40%, #1aa3e0 72%, #0c86c8 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.85),
+    inset 0 -8px 12px rgba(6, 90, 140, 0.38),
+    0 8px 16px rgba(14, 120, 180, 0.28);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.dpad-btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.dpad-up {
+  left: 56px;
+  top: 0;
+}
+
+.dpad-down {
+  left: 56px;
+  top: 112px;
+}
+
+.dpad-left {
+  left: 0;
+  top: 56px;
+}
+
+.dpad-right {
+  left: 112px;
+  top: 56px;
+}
+
+.dpad-handle {
+  position: absolute;
+  left: 62px;
+  top: 62px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dpad-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #0c2e4d;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(12, 46, 77, 0.18);
+}
+
+.dpad-times,
+.dpad-reason {
+  margin: 0;
+  max-width: 220px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 6px 8px;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(12, 46, 77, 0.12);
+}
+
+.dpad-times {
+  color: #0c2e4d;
+  font-weight: 650;
+}
+
+.dpad-reason {
+  color: #9f1239;
+  font-weight: 650;
+}
+
 .leaflet-container {
   height: 100%;
   width: 100%;

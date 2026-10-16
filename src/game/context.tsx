@@ -93,7 +93,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const dispatch = useCallback((action: Action) => {
     const current = stateRef.current;
-    if (isTracked(action.type)) {
+    const burst = action.type === "ASSIGN" && action.coalesce === true;
+    if (isTracked(action.type) && !burst) {
       const recorded = recordHistory(pastRef.current, futureRef.current, current, action.type);
       pastRef.current = recorded.past;
       futureRef.current = recorded.future;
