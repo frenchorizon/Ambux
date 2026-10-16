@@ -28,6 +28,52 @@ test("gestes, exports, brouillon et demande vide", async ({ page }, testInfo) =>
   }
 });
 
+test("la carte charge des rues sans clé", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "vérifié sur téléphone");
+  const tiles: string[] = [];
+  page.on("request", (request) => {
+    const url = request.url();
+    if (/openstreetmap|cartocdn|basemaps\.carto|\/\d+\/\d+\/\d+\.png/.test(url)) tiles.push(url);
+  });
+  await openPlanning(page);
+  await page.getByRole("button", { name: "Carte" }).click();
+  await expect
+    .poll(() => tiles.filter((url) => url.includes("tile.openstreetmap.org")).length, { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  expect(tiles.join("\n")).not.toMatch(/apikey|cartocdn|basemaps\.carto/i);
+  expect(tiles.some((url) => /openstreetmap\.org\/(?:1[4-9]|[2-9]\d)\//.test(url))).toBeTruthy();
+  const tile = page.locator("img.leaflet-tile-loaded").first();
+  await expect(tile).toBeVisible();
+  const src = (await tile.getAttribute("src")) ?? "";
+  expect(src).toContain("openstreetmap");
+  expect(src).not.toMatch(/apikey/i);
+  await page.screenshot({ path: "/opt/cursor/artifacts/phone-carte-rues.png" });
+
+  await page.getByRole("button", { name: "Autres actions" }).click();
+  await page.getByRole("button", { name: "Mode sombre" }).click();
+  await expect(page.locator(".leaflet-container.basemap-dark")).toBeVisible();
+  const darkSrc = (await page.locator("img.leaflet-tile").first().getAttribute("src")) ?? "";
+  expect(darkSrc).not.toMatch(/apikey|cartocdn/i);
+  await page.screenshot({ path: "/opt/cursor/artifacts/phone-carte-sombre.png" });
+});
+
+test("une tuile en erreur bascule vers un autre fond", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "vérifié sur bureau");
+  const seen: string[] = [];
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.abort());
+  page.on("request", (request) => {
+    if (/openstreetmap/.test(request.url())) seen.push(request.url());
+  });
+  await openPlanning(page);
+  await page.getByRole("button", { name: "Carte" }).click();
+  await expect
+    .poll(() => seen.some((url) => url.includes("openstreetmap.de") || url.includes("openstreetmap.fr")))
+    .toBeTruthy();
+  expect(seen.join("\n")).not.toMatch(/apikey|cartocdn/i);
+  const src = (await page.locator("img.leaflet-tile").first().getAttribute("src")) ?? "";
+  expect(src).not.toMatch(/apikey|tile\.openstreetmap\.org/i);
+});
+
 test("OSRM coupé : tracé estimé et bandeau", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "vérifié sur bureau");
   test.setTimeout(90_000);

@@ -12,6 +12,7 @@ Tag `v0.4.1`. Les trous du parcours quotidien sont rejoués par `npm test`.
 - Export CSV vérifié. Feuille imprimable par équipage (page HTML).
 - OSRM forcé en panne : bandeau rouge et tracés estimés.
 - Import CSV des véhicules et des équipages, avec modèle à télécharger et lignes rejetées.
+- Fond de carte sans clé : tuiles OpenStreetMap (repli automatique), mode sombre par inversion des tuiles. Les tuiles CARTO à filigrane ne sont plus utilisées.
 
 ## v0.4.0 — 2026-10-16
 

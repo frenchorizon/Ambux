@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, Polyline, TileLayer } from "react-leaflet";
+import { MapContainer, Polyline } from "react-leaflet";
+import { Basemap } from "../planning/Basemap";
 import { useData } from "../../game/context";
 import { optimizePlan, type PlanResult } from "../../game/optimizer";
 import { scheduleFleet } from "../../game/schedule";
@@ -69,7 +70,7 @@ export function Cinema({ onClose }: { onClose: () => void }) {
       </div>
       <div className="relative min-h-0 flex-1">
         <MapContainer center={[49.443, 1.09]} zoom={12} zoomControl={false} className="h-full w-full" attributionControl>
-          <TileLayer attribution="&copy; OpenStreetMap &copy; CARTO" url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+          <Basemap />
           {plan && <Reveal plan={plan} shown={visible} version={version} />}
         </MapContainer>
         <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, ZoomControl, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Polyline, Tooltip, ZoomControl, useMap } from "react-leaflet";
+import { Basemap } from "./Basemap";
 import { useClock, useData } from "../../game/context";
 import type { CrewSchedule, Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Location, type Transport } from "../../game/types";
@@ -20,18 +21,15 @@ export function MapPanel() {
     <div className="relative h-full min-h-[220px]">
       <MapContainer
         key={seed}
-        center={[49.443, 1.09]}
-        zoom={12}
+        center={[49.443, 1.099]}
+        zoom={14}
         minZoom={10}
-        maxZoom={16}
+        maxZoom={18}
         zoomControl={false}
         className="h-full w-full"
       >
         <ZoomControl zoomInTitle="Zoom avant" zoomOutTitle="Zoom arrière" />
-        <TileLayer
-          attribution='&copy; OpenStreetMap &copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
+        <Basemap />
         <ResizeMap />
         <Sites />
         {crews.map((crew) =>

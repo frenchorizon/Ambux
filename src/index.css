@@ -74,6 +74,16 @@ body {
 
 .leaflet-control-attribution {
   font-size: 10px;
+  max-width: 70%;
+}
+
+/* Noms de rues lisibles : tuiles OSM claires, ou les mêmes inversées en mode sombre. */
+.leaflet-container.basemap-dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(0.2);
+}
+
+.leaflet-container.basemap-dark {
+  background: #1c2836;
 }
 
 .font-display {
