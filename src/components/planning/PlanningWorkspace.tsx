@@ -1,7 +1,7 @@
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useClock, useData } from "../../game/context";
-import { previewOnGrid, snap5 } from "../../game/schedule";
+import { displayedDepart, previewOnGrid, snap5 } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -324,6 +324,7 @@ export function PlanningWorkspace() {
   const draggingSelection =
     drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
   const liveDepart = draggingSelection ? draggingSelection.departMin : selectedLeg?.departMin;
+  const shownDepart = liveDepart == null ? undefined : displayedDepart(liveDepart);
   const dragged = drag?.moved ? data.transportById.get(drag.transportId) : undefined;
   const draggedPlan = dragged ? (dragged.appointmentMin ?? dragged.windowStart) : undefined;
 
@@ -342,15 +343,18 @@ export function PlanningWorkspace() {
             {selectedLeg && (
               <p className="text-[12px] leading-snug text-ink">
                 vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min /
-                dépose {selectedLeg.dropoffMin} min
-                {(selected.stayMin ?? 0) > 0 ? ` / attente ${selected.stayMin} min` : ""} ·{" "}
-                {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
+                dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
                 {selectedLeg.kmEstimated ? " · estimé" : ""}
               </p>
             )}
-            {liveDepart != null && plannedMin != null && (
+            {(selected.stayMin ?? 0) > 0 && (
+              <p className="text-[12px] font-semibold text-ink" data-stay={selected.stayMin}>
+                Attente à l'établissement : {selected.stayMin} min
+              </p>
+            )}
+            {shownDepart != null && plannedMin != null && (
               <p className="text-[12px] font-semibold text-navy" data-pickup-times>
-                Prise en charge {formatMin(liveDepart)} · prévue {formatMin(plannedMin)}
+                Prise en charge {formatMin(shownDepart)} · prévue {formatMin(plannedMin)}
               </p>
             )}
           </div>
@@ -463,10 +467,10 @@ export function PlanningWorkspace() {
           {drag.preview && !drag.preview.ok && <div data-drag-reason>{drag.preview.message}</div>}
         </div>
       )}
-      {selected && liveDepart != null && plannedMin != null && (
+      {selected && shownDepart != null && plannedMin != null && (
         <DPad
           selectedId={selected.id}
-          departLabel={formatMin(liveDepart)}
+          departLabel={formatMin(shownDepart)}
           plannedLabel={formatMin(plannedMin)}
           reason={note}
           onNudge={(dir, coalesce) => nudgeRef.current(dir, coalesce)}

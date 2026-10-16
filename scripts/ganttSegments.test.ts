@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
 import { ganttEdgeDelta, previewCacheKey, sameAssignment } from "../src/components/planning/drag.ts";
-import { previewOnGrid, scheduleCrew, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
+import {
+  displayedDepart,
+  previewOnGrid,
+  scheduleCrew,
+  scheduleFleet,
+  simulateLeg,
+  snap5,
+  visualParts,
+} from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Transport } from "../src/game/types.ts";
 
 const depot: Location = {
@@ -180,6 +188,73 @@ describe("segments du Gantt", () => {
     const depart = schedule.legs[0]?.departMin ?? 0;
     assert.equal(depart % 5, 0);
     assert.ok(depart >= 8 * 60 + 7);
+    assert.equal(displayedDepart(depart) % 5, 0);
+  });
+
+  it("cale à 08:05 une ancre poussée de 4 minutes, même après un arrondi", () => {
+    seedRoads();
+    const pause = (end: number) => ({
+      id: "pause",
+      crewId: "c1",
+      startMin: 8 * 60,
+      endMin: end,
+      kind: "pause" as const,
+      label: "Pause",
+    });
+    const pushed = scheduleCrew(
+      crew(),
+      [trip({ departMin: 8 * 60, crewId: "c1" })],
+      [pause(8 * 60 + 4)],
+      locMap,
+      "anchored",
+    );
+    assert.equal(pushed.legs[0]?.departMin, 8 * 60 + 5);
+    const drifted = scheduleCrew(
+      crew(),
+      [trip({ departMin: 8 * 60 + 1e-8, crewId: "c1" })],
+      [pause(8 * 60 + 4)],
+      locMap,
+      "anchored",
+    );
+    assert.equal(drifted.legs[0]?.departMin, 8 * 60 + 5);
+    assert.equal(displayedDepart(8 * 60 + 4), 8 * 60 + 4);
+    const again = scheduleCrew(
+      crew(),
+      [trip({ departMin: pushed.legs[0]?.departMin, crewId: "c1" })],
+      [pause(8 * 60 + 9)],
+      locMap,
+      "anchored",
+    );
+    assert.equal(again.legs[0]?.departMin, 8 * 60 + 10);
+  });
+
+  it("repousse la course suivante sur la grille quand la précédente finit à la minute 4", () => {
+    rememberTravel(depot.id, home.id, { km: 8, min: 20, source: "osrm" });
+    rememberTravel(home.id, chu.id, { km: 9, min: 26, source: "osrm" });
+    const first = trip({
+      id: "a",
+      departMin: 7 * 60,
+      crewId: "c1",
+      appointmentMin: 7 * 60 + 20,
+      windowStart: 7 * 60,
+      windowEnd: 8 * 60,
+    });
+    const second = trip({
+      id: "b",
+      dossier: "DOS-2",
+      departMin: 8 * 60,
+      crewId: "c1",
+      appointmentMin: 8 * 60,
+      windowStart: 8 * 60 - 20,
+      windowEnd: 8 * 60 + 40,
+    });
+    const schedule = scheduleCrew(crew(), [first, second], [], locMap, "anchored");
+    assert.equal(schedule.legs[0]?.endMin, 8 * 60 + 4);
+    assert.equal(schedule.legs[1]?.departMin, 8 * 60 + 5);
+    const undone = scheduleCrew(crew(), [first, { ...second, departMin: 8 * 60 + 1e-8 }], [], locMap, "anchored");
+    assert.equal(undone.legs[1]?.departMin % 5, 0);
+    assert.equal(undone.legs[1]?.departMin, 8 * 60 + 5);
+    seedRoads();
   });
 
   it("décale le planning seulement près du bord visible", () => {

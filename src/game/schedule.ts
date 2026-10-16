@@ -222,7 +222,9 @@ export function scheduleCrew(
 
   for (const transport of jobs) {
     cursor = jumpBreaks(blocks, crew.id, cursor);
-    const keepGrid = mode === "anchored" && transport.departMin != null && transport.departMin % 5 === 0;
+    const anchoredDepart = transport.departMin;
+    const keepGrid =
+      mode === "anchored" && anchoredDepart != null && Math.abs(anchoredDepart - snap5(anchoredDepart)) < 0.05;
     const onGrid = (time: number) => (keepGrid ? ceil5(time) : time);
     let depart =
       mode === "chain"

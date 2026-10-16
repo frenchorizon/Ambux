@@ -230,7 +230,8 @@ function CrewRow({
           const transport = transports.find((item) => item.id === leg.transportId);
           if (!transport) return null;
           const patient = patientById.get(transport.patientId);
-          const left = (leg.departMin - DAY_START) * pxPerMin;
+          const shownDepart = displayedDepart(leg.departMin);
+          const left = (shownDepart - DAY_START) * pxPerMin;
           const span = Math.max(1, leg.endMin - leg.departMin);
           const bar = Math.max(5, span * pxPerMin);
           const selected = selectedId === transport.id;
@@ -270,7 +271,7 @@ function CrewRow({
                 onDragStart={(event) => event.preventDefault()}
                 data-transport-id={transport.id}
                 data-posture={transport.posture}
-                data-depart={displayedDepart(leg.departMin)}
+                data-depart={shownDepart}
                 data-end={Math.round(leg.endMin)}
                 data-appointment={Math.round(transport.appointmentMin ?? transport.windowStart)}
                 onPointerDown={(event) => onStart(transport.id, event)}
@@ -324,6 +325,15 @@ function CrewRow({
                   style={{ left: left + Math.max(0, bar - 42), top: 2 }}
                 >
                   {deviationLabel(leg.deviationMin)}
+                </span>
+              )}
+              {(transport.stayMin ?? 0) > 0 && (
+                <span
+                  className="gantt-stay pointer-events-none absolute z-10 max-w-24 truncate text-[10px] font-semibold leading-none text-navy"
+                  style={{ left, top: barTop + barH + 1 }}
+                  data-stay={transport.stayMin}
+                >
+                  attente {transport.stayMin} min
                 </span>
               )}
             </span>
