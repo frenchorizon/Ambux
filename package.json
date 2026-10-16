@@ -6,13 +6,15 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5280 --strictPort",
     "build": "tsc -b && vite build",
-    "check": "tsc -b && npm run lint && prettier --check .",
+    "typecheck": "tsc -b",
+    "check": "npm run typecheck && npm run lint && prettier --check .",
     "lint": "oxlint && eslint .",
     "format": "prettier --write .",
+    "test:unit": "tsx --test scripts/*.test.ts",
     "e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0 --port 5280 --strictPort",
     "sim": "tsx scripts/simcheck.ts",
-    "test": "tsx --test scripts/rules.test.ts scripts/schedulerRules.test.ts scripts/lomaco.test.ts scripts/lomacoSheet.test.ts scripts/ganttSegments.test.ts scripts/imprevus.test.ts scripts/demoDay.test.ts && playwright test"
+    "test": "npm run test:unit && playwright test"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.3.1",

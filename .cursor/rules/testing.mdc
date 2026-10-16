@@ -4,8 +4,8 @@ globs: "{e2e,scripts}/**/*.{ts,tsx}"
 alwaysApply: false
 ---
 
-- `npm test` enchaîne les unitaires puis Playwright. `npm run e2e` lance seulement le navigateur.
-- Deux projets : téléphone 390×844 et bureau. Un test qui ne vise qu'un des deux se saute sur l'autre.
+- `npm run test:unit` lance `scripts/*.test.ts`. `npm test` enchaîne les unitaires puis Playwright. `npm run e2e` lance seulement le navigateur.
+- Deux projets : téléphone 390×844 et bureau 1440×900. Un test qui ne vise qu'un des deux se saute sur l'autre.
 - Chrome via Playwright n'est pas un iPhone. Ne pas conclure que la loupe iOS a disparu.
-- Les libellés de menu utilisés par les tests (« Exporter le CSV ») ne se renomment pas sans mettre le test à jour.
-- Viser le bouton visible (bannière, navigation), pas un doublon hors écran.
+- Un libellé visé par un test ne se renomme pas sans mettre le test à jour. Viser le bouton visible (bannière, navigation), pas un doublon hors écran.
+- La CI relance typecheck, lint, unitaires, build et Playwright sur chaque PR. Ne pas écrire qu'elle est verte sans l'avoir vue passer.

@@ -8,3 +8,4 @@ alwaysApply: false
 - Pas de deuxième geste de glisser sur la carte ni dans À placer.
 - Texte réel, en français, court. Pas de lorem.
 - Prévoir l'état vide, l'attente et l'erreur quand l'écran charge des données.
+- Pas de bibliothèque d'interface supplémentaire. Les primitives du dépôt suffisent.

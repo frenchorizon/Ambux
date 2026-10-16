@@ -4,7 +4,7 @@ globs: src/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
-- TypeScript strict. Pas de `any` nouveau. Préférer les types déjà dans `src/game/types.ts`.
+- TypeScript strict (`strict`, `noUnusedLocals`, `noUnusedParameters`). Pas de `any`. Préférer les types de `src/game/types.ts`.
 - Composants fonctionnels. L'état de planning passe par `dispatch`, pas par un second magasin.
 - Les gestes du Gantt restent dans `PlanningWorkspace`, `GanttBoard`, `drag.ts` et le CSS des blocs. Ne pas les réécrire depuis une autre branche.
-- Tailwind pour le style. Pas de nouvelle bibliothèque de composants.
+- Tailwind et les primitives déjà dans `src/components/ui/`. Pas de nouvelle bibliothèque de composants.

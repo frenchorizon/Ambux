@@ -5,9 +5,9 @@ alwaysApply: true
 
 Ambux est une démo de régulation sanitaire, tout dans le navigateur, données fictives de Rouen.
 
-- Ne jamais pousser `stable` ni déplacer un tag existant.
+- Ne jamais pousser `stable` ni créer, déplacer ou supprimer un tag.
 - Pas de donnée patient réelle. Pas de nouvelle dépendance lourde si le dépôt sait déjà faire.
 - Interface mobile d'abord, courte, sans texte de remplissage.
-- Ne pas déclarer un test réussi sans l'avoir exécuté.
+- Ne pas déclarer un test réussi sans l'avoir exécuté. Dire sur quoi il a tourné.
 - Les comptes rendus sont en français.
-- Les PR vers `main` passent l'intégration continue avant fusion.
+- Les PR de tous les agents vers `main` passent l'intégration continue avant fusion.
