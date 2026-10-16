@@ -76,8 +76,23 @@ body {
   touch-action: manipulation;
 }
 
+.gantt-block.gantt-pending {
+  animation: gantt-arm 420ms linear forwards;
+}
+
 .gantt-block.gantt-dragging {
   touch-action: none;
+  will-change: transform;
+  box-shadow: 0 0 0 3px rgba(26, 163, 224, 0.95);
+}
+
+@keyframes gantt-arm {
+  from {
+    box-shadow: 0 0 0 0 rgba(26, 163, 224, 0);
+  }
+  to {
+    box-shadow: 0 0 0 3px rgba(26, 163, 224, 0.95);
+  }
 }
 
 .gantt-block::before,

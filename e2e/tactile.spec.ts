@@ -130,7 +130,20 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       await center(page, candidate.id);
       const from = await barById(page, candidate.id);
       await touch(page, "pointerdown", from.x, from.y, 11);
+      await expect(page.locator(`[data-transport-id="${from.id}"]`)).toHaveClass(/gantt-pending/);
       await page.waitForTimeout(480);
+      const armed = await page.locator(`[data-transport-id="${from.id}"]`).evaluate((node) => ({
+        armed: node.getAttribute("data-armed"),
+        pending: node.classList.contains("gantt-pending"),
+        transform: (node as HTMLElement).style.transform,
+        will: getComputedStyle(node).willChange,
+        touch: getComputedStyle(node).touchAction,
+      }));
+      expect(armed.armed).toBe("1");
+      expect(armed.pending).toBe(false);
+      expect(armed.transform).toContain("scale");
+      expect(armed.will).toContain("transform");
+      expect(armed.touch).toBe("none");
       await touch(page, "pointermove", from.x + 30, from.y, 11);
       await frame(page);
       const mid = await page.locator(`[data-transport-id="${from.id}"]`).evaluate((node) => ({
@@ -167,9 +180,15 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await touch(page, "pointerdown", from.x, from.y, 12);
     await page.waitForTimeout(480);
     await touch(page, "pointermove", from.x, box!.y + box!.height / 2, 12);
+    await frame(page);
+    const refused = page.locator("[data-preview='invalid']");
+    await expect(refused).toBeVisible();
+    await expect(page.locator("[data-drag-reason]")).toContainText(/Incompatibilité :|Conflit horaire :/);
+    await page.screenshot({ path: "/opt/cursor/artifacts/v080-gantt-phone.png" });
     await touch(page, "pointerup", from.x, box!.y + box!.height / 2, 12);
     await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
     expect((await barById(page, from.id)).depart).toBe(from.depart);
+    expect((await barById(page, from.id)).crew).toBe(from.crew);
   });
 
   await test.step("la croix décale de 5 minutes, refuse, et groupe le maintien", async () => {
@@ -284,6 +303,47 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await expect(page.locator("[data-dpad]")).toBeVisible();
   });
 
+  await test.step("reposer au même créneau n'ajoute pas d'annulation", async () => {
+    const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
+    let proved = false;
+    for (const candidate of candidates.slice(0, 6)) {
+      await center(page, candidate.id);
+      await page.locator(`[data-transport-id="${candidate.id}"]`).click();
+      const before = await barById(page, candidate.id);
+      await page.getByRole("button", { name: "5 minutes plus tard" }).click();
+      if ((await page.locator(".dpad-reason").count()) > 0) continue;
+      const shifted = await barById(page, candidate.id);
+      if (shifted.depart === before.depart) continue;
+      const blocks = await page.locator(".gantt-block").count();
+      const point = await page.locator(`[data-transport-id="${candidate.id}"]`).evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const depart = Number(node.getAttribute("data-depart"));
+        const end = Number(node.getAttribute("data-end"));
+        const px = box.width / Math.max(1, end - depart);
+        const snapped = Math.round(depart / 5) * 5;
+        return { x: box.x + (snapped - depart) * px + 1, y: box.y + box.height / 2 };
+      });
+      await touch(page, "pointerdown", point.x, point.y, 21);
+      await page.waitForTimeout(480);
+      await touch(page, "pointermove", point.x, point.y + 14, 21);
+      await frame(page);
+      await touch(page, "pointerup", point.x, point.y + 14, 21);
+      const dropped = await barById(page, candidate.id);
+      if (dropped.depart !== shifted.depart || dropped.crew !== shifted.crew) {
+        await page.getByRole("button", { name: "Annuler" }).click();
+        await page.getByRole("button", { name: "Annuler" }).click();
+        continue;
+      }
+      await page.getByRole("button", { name: "Annuler" }).click();
+      const undone = await barById(page, candidate.id);
+      expect(undone.depart).toBe(before.depart);
+      expect(await page.locator(".gantt-block").count()).toBe(blocks);
+      proved = true;
+      break;
+    }
+    expect(proved).toBe(true);
+  });
+
   await test.step("la carte et À placer n'ouvrent pas un second glisser", async () => {
     await page.getByRole("button", { name: "Carte" }).click();
     await expect(page.locator(".gantt-block")).toHaveCount(0);
@@ -333,6 +393,14 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
   const origin = await barById(page, movedId);
   await center(page, origin.id);
   const from = await barById(page, origin.id);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 36, from.y, { steps: 4 });
+  await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "idle");
+  expect((await barById(page, from.id)).depart).toBe(from.depart);
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   await page.mouse.move(from.x + 160, from.y, { steps: 8 });

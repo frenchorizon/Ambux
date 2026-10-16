@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
-import { visualParts, type Leg } from "../../game/schedule";
+import { snap5, visualParts, type Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
 import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
 import { mealIssue } from "../../game/breaks";
@@ -10,11 +10,13 @@ import type { DragState } from "./drag";
 
 export function GanttBoard({
   drag,
+  pendingId,
   pxPerMin,
   query,
   onStart,
 }: {
   drag: DragState | null;
+  pendingId: string | null;
   pxPerMin: number;
   query: string;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
@@ -88,6 +90,7 @@ export function GanttBoard({
               pxPerMin={pxPerMin}
               query={query}
               drag={drag}
+              pendingId={pendingId}
               onStart={onStart}
               onTip={(next) => setTip(next)}
             />
@@ -123,6 +126,7 @@ function CrewRow({
   pxPerMin,
   query,
   drag,
+  pendingId,
   onStart,
   onTip,
 }: {
@@ -132,6 +136,7 @@ function CrewRow({
   pxPerMin: number;
   query: string;
   drag: DragState | null;
+  pendingId: string | null;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
   onTip: (tip: { x: number; y: number; transportId: string } | null) => void;
 }) {
@@ -150,7 +155,7 @@ function CrewRow({
   });
   if (needle && legs.length === 0) return null;
   const hot = drag?.hoverCrewId === crew.id;
-  const bad = hot && drag.preview && !drag.preview.ok && drag.preview.reason === "incompatible";
+  const bad = hot && drag.preview && !drag.preview.ok;
   const rowH = label < 120 ? 76 : 64;
   const barH = label < 120 ? 44 : 34;
   const barTop = Math.round((rowH - barH) / 2);
@@ -225,6 +230,7 @@ function CrewRow({
           const bar = Math.max(5, span * pxPerMin);
           const selected = selectedId === transport.id;
           const dragging = drag?.transportId === transport.id;
+          const pending = pendingId === transport.id && !dragging;
           const off = Math.abs(leg.deviationMin) >= 5;
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
@@ -235,6 +241,7 @@ function CrewRow({
               draggable={false}
               className={cn(
                 "gantt-block absolute rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
+                pending && "gantt-pending",
                 dragging && "gantt-dragging",
                 leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
@@ -246,9 +253,10 @@ function CrewRow({
                 height: barH,
                 background: "color-mix(in srgb, var(--crew) 16%, transparent)",
                 ["--crew" as string]: crew.color,
-                transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
+                transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px) scale(1.045)` : undefined,
                 zIndex: dragging ? 25 : undefined,
               }}
+              data-armed={dragging && !drag.moved ? "1" : undefined}
               onContextMenu={(event) => event.preventDefault()}
               onDragStart={(event) => event.preventDefault()}
               data-transport-id={transport.id}
@@ -326,6 +334,7 @@ function CrewRow({
         })}
         {drag?.moved && drag.hoverCrewId === crew.id && drag.preview?.ok && (
           <div
+            data-preview="ok"
             className="pointer-events-none absolute rounded-md border-2 border-white/80 opacity-80"
             style={{
               top: barTop,
@@ -333,6 +342,20 @@ function CrewRow({
               left: (drag.preview.departMin - DAY_START) * pxPerMin,
               width: Math.max(8, (drag.preview.leg.endMin - drag.preview.departMin) * pxPerMin),
               background: crew.color,
+            }}
+          />
+        )}
+        {drag?.moved && drag.hoverCrewId === crew.id && drag.preview && !drag.preview.ok && (
+          <div
+            data-preview="invalid"
+            data-reason={drag.preview.message}
+            title={drag.preview.message}
+            className="pointer-events-none absolute rounded-md border-2 border-rose-700 bg-rose-400/80"
+            style={{
+              top: barTop,
+              height: barH,
+              left: (snap5(drag.hoverMinute ?? DAY_START) - DAY_START) * pxPerMin,
+              width: Math.max(8, ghostSpan(schedules, drag.transportId) * pxPerMin),
             }}
           />
         )}
@@ -375,6 +398,17 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
       {transport.note && <div className="mt-1 text-muted">{transport.note}</div>}
     </div>
   );
+}
+
+function ghostSpan(
+  schedules: { values(): Iterable<{ legs: { transportId: string; departMin: number; endMin: number }[] }> },
+  transportId: string,
+): number {
+  for (const schedule of schedules.values()) {
+    const leg = schedule.legs.find((item) => item.transportId === transportId);
+    if (leg) return Math.max(8, leg.endMin - leg.departMin);
+  }
+  return 40;
 }
 
 function hours(): number[] {

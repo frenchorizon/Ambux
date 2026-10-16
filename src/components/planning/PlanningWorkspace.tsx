@@ -6,7 +6,7 @@ import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
-import type { DragState } from "./drag";
+import { ganttEdgeDelta, previewCacheKey, sameAssignment, scrollGanttEdge, type DragState } from "./drag";
 import { DPad, type PadDir } from "./DPad";
 import { GanttBoard } from "./GanttBoard";
 import { closeTimelineSheet, setTimelineQuery, useTimelineUi } from "./timelineUi";
@@ -33,6 +33,7 @@ export function PlanningWorkspace() {
     typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 2.4,
   );
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
   const [note, setNote] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -40,6 +41,8 @@ export function PlanningWorkspace() {
   const captureRef = useRef<{ el: HTMLElement; pointerId: number } | null>(null);
   const queued = useRef<{ x: number; y: number } | null>(null);
   const frame = useRef(0);
+  const edgeLoop = useRef(0);
+  const abortRef = useRef<() => void>(() => {});
   const bag = useRef({ data, clock, pxPerMin });
   const nudgeRef = useRef<(dir: PadDir, coalesce: boolean) => void>(() => {});
   useEffect(() => {
@@ -65,6 +68,7 @@ export function PlanningWorkspace() {
     };
     dragRef.current = next;
     captureRef.current = { el, pointerId };
+    setPendingId(null);
     setDrag(next);
     setGesture("drag");
     try {
@@ -82,23 +86,29 @@ export function PlanningWorkspace() {
     const moved = current.moved || Math.hypot(dx, dy) > DRAG_SLOP;
     const hover = moved ? readHover(x, y, bag.current.pxPerMin) : { overUnassigned: false as const };
     let preview = current.preview;
-    if (moved && hover.hoverCrewId) {
-      const crew = bag.current.data.crews.find((item) => item.id === hover.hoverCrewId);
-      const transport = bag.current.data.transportById.get(current.transportId);
-      if (crew && transport) {
-        preview = previewOnGrid(
-          crew,
-          transport,
-          hover.hoverMinute ?? DAY_START,
-          bag.current.data.transports,
-          bag.current.data.blocks,
-          bag.current.data.locMap,
-          bag.current.clock.nowMin,
-          bag.current.data.rules,
-        );
+    let previewKey = current.previewKey;
+    if (moved && hover.hoverCrewId != null && hover.hoverMinute != null) {
+      const key = previewCacheKey(hover.hoverCrewId, hover.hoverMinute);
+      if (key !== current.previewKey) {
+        const crew = bag.current.data.crews.find((item) => item.id === hover.hoverCrewId);
+        const transport = bag.current.data.transportById.get(current.transportId);
+        if (crew && transport) {
+          preview = previewOnGrid(
+            crew,
+            transport,
+            hover.hoverMinute,
+            bag.current.data.transports,
+            bag.current.data.blocks,
+            bag.current.data.locMap,
+            bag.current.clock.nowMin,
+            bag.current.data.rules,
+          );
+          previewKey = key;
+        }
       }
     } else if (moved) {
       preview = undefined;
+      previewKey = undefined;
     }
     const next: DragState = {
       ...current,
@@ -111,9 +121,35 @@ export function PlanningWorkspace() {
       hoverMinute: moved ? hover.hoverMinute : current.hoverMinute,
       overUnassigned: moved ? hover.overUnassigned : current.overUnassigned,
       preview: moved ? preview : current.preview,
+      previewKey: moved ? previewKey : current.previewKey,
     };
     dragRef.current = next;
     setDrag(next);
+    if (moved) kickEdge();
+  };
+
+  const kickEdge = () => {
+    if (edgeLoop.current) return;
+    const current = dragRef.current;
+    if (!current?.moved) return;
+    const scroller = document.querySelector(".gantt-scroll");
+    if (!(scroller instanceof HTMLElement)) return;
+    const { dx, dy } = ganttEdgeDelta(current.x, current.y, scroller.getBoundingClientRect());
+    if (!dx && !dy) return;
+    const step = () => {
+      edgeLoop.current = 0;
+      const latest = dragRef.current;
+      if (!latest?.moved) return;
+      if (!scrollGanttEdge(latest.x, latest.y)) return;
+      applyMove(latest.x, latest.y);
+    };
+    edgeLoop.current = window.requestAnimationFrame(step);
+  };
+
+  const stopEdge = () => {
+    if (!edgeLoop.current) return;
+    window.cancelAnimationFrame(edgeLoop.current);
+    edgeLoop.current = 0;
   };
 
   useEffect(() => {
@@ -123,6 +159,7 @@ export function PlanningWorkspace() {
         if (hold.mode === "pending" && Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > SCROLL_SLOP) {
           window.clearTimeout(hold.timer);
           hold.mode = "scroll";
+          setPendingId(null);
           setGesture("scroll");
         }
         return;
@@ -150,6 +187,7 @@ export function PlanningWorkspace() {
       }
     };
     const flush = () => {
+      stopEdge();
       if (frame.current) {
         window.cancelAnimationFrame(frame.current);
         frame.current = 0;
@@ -163,6 +201,7 @@ export function PlanningWorkspace() {
       if (hold && event.pointerId === hold.pointerId) {
         window.clearTimeout(hold.timer);
         pending.current = null;
+        setPendingId(null);
         setGesture("idle");
         if (hold.mode === "pending") bag.current.data.dispatch({ type: "SELECT", id: hold.id });
         return;
@@ -173,29 +212,37 @@ export function PlanningWorkspace() {
       const latest = dragRef.current ?? current;
       dragRef.current = null;
       setDrag(null);
+      setPendingId(null);
       setGesture("idle");
       releaseCapture();
       commit(latest, bag.current);
     };
+    const abort = () => {
+      const hold = pending.current;
+      if (hold) window.clearTimeout(hold.timer);
+      pending.current = null;
+      stopEdge();
+      if (frame.current) {
+        window.cancelAnimationFrame(frame.current);
+        frame.current = 0;
+      }
+      queued.current = null;
+      if (dragRef.current) {
+        dragRef.current = null;
+        setDrag(null);
+        releaseCapture();
+      }
+      setPendingId(null);
+      setGesture("idle");
+    };
+    abortRef.current = abort;
     const cancel = (event: PointerEvent) => {
       const hold = pending.current;
       const current = dragRef.current;
       const matchesHold = Boolean(hold && event.pointerId === hold.pointerId);
       const matchesDrag = Boolean(current && event.pointerId === current.pointerId);
       if (!matchesHold && !matchesDrag) return;
-      if (hold && matchesHold) window.clearTimeout(hold.timer);
-      pending.current = matchesHold ? null : pending.current;
-      if (frame.current) {
-        window.cancelAnimationFrame(frame.current);
-        frame.current = 0;
-      }
-      queued.current = null;
-      if (matchesDrag) {
-        dragRef.current = null;
-        setDrag(null);
-        releaseCapture();
-      }
-      setGesture("idle");
+      abort();
     };
     window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
@@ -206,11 +253,19 @@ export function PlanningWorkspace() {
       window.removeEventListener("pointercancel", cancel);
       if (pending.current) window.clearTimeout(pending.current.timer);
       if (frame.current) window.cancelAnimationFrame(frame.current);
+      stopEdge();
+      abortRef.current = () => {};
     };
   }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        const field = event.target;
+        if (field instanceof HTMLElement && field.closest("input, textarea, select, [contenteditable='true']")) return;
+        abortRef.current();
+        return;
+      }
       const dir = arrowDir(event.key);
       if (!dir) return;
       const target = event.target;
@@ -250,6 +305,7 @@ export function PlanningWorkspace() {
       mode: "pending",
       el: event.currentTarget,
     };
+    setPendingId(transportId);
     setGesture("pending");
   };
 
@@ -268,7 +324,7 @@ export function PlanningWorkspace() {
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" data-gesture={gesture}>
-      <GanttBoard drag={drag} pxPerMin={pxPerMin} query={ui.query} onStart={start} />
+      <GanttBoard drag={drag} pendingId={pendingId} pxPerMin={pxPerMin} query={ui.query} onStart={start} />
       {selected && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
           <div className="min-w-0 flex-1">
@@ -344,17 +400,25 @@ export function PlanningWorkspace() {
             </Button>
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Un tap sélectionne la course et affiche la croix. Maintenez pour la glisser : le planning défile si le doigt part avant. Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
+            Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le planning défile si le doigt part avant, et au bord pendant le glisser. Un créneau refusé reste en rose avec la raison. Reposer au même endroit n'est pas une modification. Échap annule. Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
           </p>
         </Sheet>
       )}
       {ui.sheet === "review" && <ReviewSheet onClose={closeTimelineSheet} />}
       {drag?.moved && (
-        <div className="pointer-events-none fixed z-[65] -translate-x-1/2 -translate-y-14 rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white shadow-lg" style={{ left: drag.x, top: drag.y }}>
-          {labelFor(drag.transportId, data.transportById, data.patientById)}
-          {drag.preview?.ok ? ` · Prise en charge ${formatMin(drag.preview.departMin)}` : ""}
-          {drag.preview?.ok && draggedPlan != null ? ` · prévue ${formatMin(draggedPlan)}` : ""}
-          {drag.preview && !drag.preview.ok ? ` · ${drag.preview.reason === "incompatible" ? "Incompatibilité" : "Conflit horaire"}` : ""}
+        <div
+          data-drag-label
+          className="pointer-events-none fixed z-[65] max-w-[240px] -translate-x-1/2 -translate-y-full rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white shadow-lg"
+          style={{ left: drag.x, top: Math.max(8, drag.y - 12) }}
+        >
+          <div>{labelFor(drag.transportId, data.transportById, data.patientById)}</div>
+          {drag.preview?.ok && (
+            <div>
+              Prise en charge {formatMin(drag.preview.departMin)}
+              {draggedPlan != null ? ` · prévue ${formatMin(draggedPlan)}` : ""}
+            </div>
+          )}
+          {drag.preview && !drag.preview.ok && <div data-drag-reason>{drag.preview.message}</div>}
         </div>
       )}
       {selected && liveDepart != null && plannedMin != null && (
@@ -465,6 +529,12 @@ function commit(
     return;
   }
   if (drag.preview?.ok && drag.hoverCrewId && drag.preview.departMin % 5 === 0) {
+    const transport = data.transportById.get(drag.transportId);
+    const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === drag.transportId);
+    if (sameAssignment(transport?.crewId, leg?.departMin ?? transport?.departMin, drag.hoverCrewId, drag.preview.departMin)) {
+      data.dispatch({ type: "SELECT", id: drag.transportId });
+      return;
+    }
     data.dispatch({
       type: "ASSIGN",
       transportId: drag.transportId,
@@ -533,6 +603,12 @@ function nudgeMission(
   const preview = previewOnGrid(crew, transport, depart, data.transports, data.blocks, data.locMap, nowMin, data.rules);
   if (!preview.ok) {
     setNote(preview.message);
+    return;
+  }
+  if (sameAssignment(transport.crewId, currentDepart, crew.id, preview.departMin)) {
+    if (dir === "left" || dir === "right") {
+      setNote("Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.");
+    }
     return;
   }
   setNote(null);

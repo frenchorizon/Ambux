@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
+import { ganttEdgeDelta, previewCacheKey, sameAssignment } from "../src/components/planning/drag.ts";
 import { previewOnGrid, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Transport } from "../src/game/types.ts";
 
@@ -137,5 +138,23 @@ describe("segments du Gantt", () => {
     if (!preview.ok) return;
     assert.equal(preview.departMin % 5, 0);
     assert.equal(preview.departMin, 8 * 60 + 5);
+  });
+
+  it("ne recalcule le créneau que si l'équipage ou la minute calée change", () => {
+    assert.equal(previewCacheKey("amb-1", 487), previewCacheKey("amb-1", 485));
+    assert.notEqual(previewCacheKey("amb-1", 487), previewCacheKey("amb-1", 488));
+    assert.notEqual(previewCacheKey("amb-1", 485), previewCacheKey("vsl-1", 485));
+    assert.equal(sameAssignment("amb-1", 487, "amb-1", 485), true);
+    assert.equal(sameAssignment("amb-1", 487, "amb-1", 490), false);
+    assert.equal(sameAssignment("amb-1", 485, "vsl-1", 485), false);
+    assert.equal(sameAssignment(undefined, 485, "amb-1", 485), false);
+  });
+
+  it("décale le planning seulement près du bord visible", () => {
+    const rect = { left: 0, top: 100, right: 400, bottom: 700 };
+    assert.deepEqual(ganttEdgeDelta(10, 400, rect), { dx: -12, dy: 0 });
+    assert.deepEqual(ganttEdgeDelta(390, 680, rect), { dx: 12, dy: 12 });
+    assert.deepEqual(ganttEdgeDelta(200, 400, rect), { dx: 0, dy: 0 });
+    assert.deepEqual(ganttEdgeDelta(-4, 400, rect), { dx: 0, dy: 0 });
   });
 });
