@@ -85,6 +85,9 @@ export type Action =
   | { type: "SET_MISSION"; iso: string }
   | { type: "ROLL_DAY" }
   | { type: "IMPORT_SERIES" }
+  | { type: "CLEAR_DEMAND" }
+  | { type: "IMPORT_VEHICLES"; rows: { plate: string; vehicleType: VehicleType; name: string }[] }
+  | { type: "IMPORT_CREWS"; rows: { plate: string; driver: string; mate?: string; dea: boolean }[] }
   | { type: "HYDRATE"; state: GameState; label: string }
   | { type: "TOAST"; message: string; tone: Toast["tone"] }
   | { type: "DISMISS_TOAST" }
@@ -300,6 +303,12 @@ export function reducer(state: GameState, action: Action): GameState {
       return rollDay(state);
     case "IMPORT_SERIES":
       return importSeries(state);
+    case "CLEAR_DEMAND":
+      return clearDemand(state);
+    case "IMPORT_VEHICLES":
+      return importVehicles(state, action.rows);
+    case "IMPORT_CREWS":
+      return importCrews(state, action.rows);
     case "HYDRATE":
       return hydrate(state, action.state, action.label);
     case "SET_TOMORROW_STOPS":
@@ -775,7 +784,17 @@ function snapBack(state: GameState, transportId: string): GameState {
   }
   const travel = travelLoc(fromId, transport.pickupId, locMap);
   const depart = Math.max(earliest, appointment - travel.min);
-  return assign(state, transport.id, crew.id, depart);
+  const preview = previewPlacement(crew, transport, depart, state.transports, state.blocks, locMap, horizon(state));
+  if (!preview.ok) return withToast(state, preview.message, "warn");
+  const current = scheduleFleet([crew], state.transports, state.blocks, locMap)
+    .get(crew.id)
+    ?.legs.find((leg) => leg.transportId === transport.id);
+  const nextGap = Math.abs(preview.leg.deviationMin);
+  const currentGap = current ? Math.abs(current.deviationMin) : nextGap;
+  if (nextGap > currentGap + 1) {
+    return withToast(state, "L'heure prévue est occupée : la course reste où elle est.", "warn");
+  }
+  return assign(state, transport.id, crew.id, preview.departMin);
 }
 
 function applyRules(state: GameState, rules: Rules): GameState {
@@ -991,6 +1010,78 @@ function addTransport(state: GameState, transport: Transport, patient?: Patient,
     "Transport ajouté à la demande de demain.",
     "ok",
   );
+}
+
+function clearDemand(state: GameState): GameState {
+  return withToast(
+    {
+      ...state,
+      transports: [],
+      blocks: state.blocks.filter((block) => block.kind !== "repas"),
+      selectedId: undefined,
+    },
+    "Demande vidée. Importez ou saisissez les courses.",
+    "info",
+  );
+}
+
+function importVehicles(
+  state: GameState,
+  rows: { plate: string; vehicleType: VehicleType; name: string }[],
+): GameState {
+  let next = state;
+  let added = 0;
+  for (const row of rows) {
+    const before = next.vehicles.length;
+    next = addVehicle(next, row.plate, row.vehicleType, row.name);
+    if (next.vehicles.length > before) added += 1;
+  }
+  if (!added) return withToast(state, "Aucun véhicule ajouté.", "warn");
+  return withToast(next, `${added} véhicule${added > 1 ? "s" : ""} ajouté${added > 1 ? "s" : ""}.`, "ok");
+}
+
+function importCrews(
+  state: GameState,
+  rows: { plate: string; driver: string; mate?: string; dea: boolean }[],
+): GameState {
+  let next = state;
+  let updated = 0;
+  for (const row of rows) {
+    const plate = row.plate.replace(/\s+/g, "").toUpperCase();
+    const crew = next.crews.find((item) => item.plate.replace(/\s+/g, "").toUpperCase() === plate);
+    if (!crew) continue;
+    const driver = ensureStaff(next, row.driver, "conducteur", false);
+    next = driver.state;
+    const mate = row.mate ? ensureStaff(next, row.mate, "auxiliaire", row.dea) : undefined;
+    if (mate) next = mate.state;
+    const applied = setCrewStaff(next, crew.id, driver.id, mate?.id);
+    if (applied !== next || applied.crews.find((item) => item.id === crew.id)?.driver === row.driver) {
+      next = applied;
+      updated += 1;
+    }
+  }
+  if (!updated) return withToast(state, "Aucun équipage mis à jour.", "warn");
+  return withToast(next, `${updated} équipage${updated > 1 ? "s" : ""} mis à jour.`, "ok");
+}
+
+function ensureStaff(
+  state: GameState,
+  name: string,
+  role: StaffMember["role"],
+  dea: boolean,
+): { state: GameState; id: string } {
+  const found = state.staff.find((member) => member.role === role && member.name.localeCompare(name, "fr", { sensitivity: "accent" }) === 0);
+  if (found) {
+    if (dea && !found.dea) {
+      return {
+        id: found.id,
+        state: { ...state, staff: state.staff.map((member) => (member.id === found.id ? { ...member, dea: true } : member)) },
+      };
+    }
+    return { state, id: found.id };
+  }
+  const id = `st-${role}-${state.staff.length + 1}-${name.toLowerCase().replace(/[^a-z0-9]+/gi, "").slice(0, 12)}`;
+  return { state: { ...state, staff: [...state.staff, { id, name, role, dea }] }, id };
 }
 
 function setMission(state: GameState, iso: string): GameState {

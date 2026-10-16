@@ -27,6 +27,9 @@ const TRACKED = new Set<Action["type"]>([
   "SET_MISSION",
   "ROLL_DAY",
   "IMPORT_SERIES",
+  "CLEAR_DEMAND",
+  "IMPORT_VEHICLES",
+  "IMPORT_CREWS",
   "REPLAY",
 ]);
 

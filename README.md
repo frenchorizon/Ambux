@@ -25,7 +25,7 @@ npm run sim
 
 1. Sur l'accueil, **Planning de demain en 1 clic** lance la journée type mesurée (3 ambulances, 3 VSL) et dessine les tournées. **Préparer ce planning** choisit une autre flotte. **Demander une démo** enregistre le formulaire dans ce navigateur, sans envoi. Un brouillon déjà enregistré se reprend depuis le même écran.
 2. La visite guidée (Échap pour passer) puis **Feuille équipage** montrent le planning au conducteur. Le mode sombre se mémorise dans ce navigateur.
-3. Dans **Demande de demain**, importez un CSV (fichier ou collage). L'aperçu liste les lignes acceptées et le motif de chaque rejet. Colonnes : `dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour`.
+3. Dans **Demande de demain**, importez un CSV (fichier ou collage). L'aperçu liste les lignes acceptées et le motif de chaque rejet. Colonnes : `dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour`. **Véhicules** et **Équipages** ont leur propre modèle CSV.
 4. **Générer le planning** respecte la tolérance, la charge max (15 ambulance / 25 VSL), l'amplitude (11 h, prises de poste décalées), la pause repas et le DEA. Ce qui ne tient pas va dans **À contrôler**.
 5. Sur la timeline, cherchez un patient, filtrez un équipage, zoomez. La carte est à côté du planning. L'écart horaire est un badge orange.
 6. **Feuilles de route** imprime une page par équipage, ou une seule feuille depuis **Feuille équipage**. La mention DEA n'apparaît que si un DEA est enregistré. **Exporter le CSV** télécharge le planning retenu. Annuler et rétablir sont dans la barre (aussi Ctrl+Z).

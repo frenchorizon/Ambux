@@ -95,8 +95,21 @@ export function pointAlong(line: readonly LatLng[], t: number): LatLng {
   return line[line.length - 1]!;
 }
 
+export function routingForcedEstimate(): boolean {
+  try {
+    return localStorage.getItem("ambux.routing") === "estimate";
+  } catch {
+    return false;
+  }
+}
+
 export async function warmMatrix(locations: readonly { id: string; lat: number; lng: number }[]): Promise<boolean> {
   if (locations.length < 2) return false;
+  if (routingForcedEstimate()) {
+    matrixState = "estimate";
+    bump();
+    return false;
+  }
   matrixState = "loading";
   bump();
   const usable = locations.slice(0, 90);
@@ -161,6 +174,12 @@ async function pump(): Promise<void> {
 
 async function fetchPath(from: LatLng, to: LatLng): Promise<void> {
   const key = coordKey(from, to);
+  if (routingForcedEstimate()) {
+    pathByCoord.set(key, { line: estimatePath(from, to), source: "estimate" });
+    bump();
+    pending.delete(key);
+    return;
+  }
   try {
     const response = await fetchRouting(
       `${OSRM}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`,

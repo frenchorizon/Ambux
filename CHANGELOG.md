@@ -2,6 +2,17 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.4.1 — 2026-10-16
+
+Tag `v0.4.1`. Les trous du parcours quotidien sont rejoués par `npm test`.
+
+- Glisser à la souris et au doigt (appui long) sans chevaucher une autre course. L'allongé ne passe pas sur un VSL.
+- « Heure prévue » reste visible. Le bouton ne décale plus la course si le créneau d'origine est pris.
+- Brouillon repris après rechargement. Demande vidée : écran vide explicite.
+- Export CSV vérifié. Feuille imprimable par équipage (page HTML).
+- OSRM forcé en panne : bandeau rouge et tracés estimés.
+- Import CSV des véhicules et des équipages, avec modèle à télécharger et lignes rejetées.
+
 ## v0.4.0 — 2026-10-16
 
 Tag `v0.4.0`. Usage quotidien du régulateur, avant tout hébergement public.

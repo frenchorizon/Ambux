@@ -5,7 +5,7 @@ import { Modal } from "./ui/dialog";
 
 export function printSheets(data: DataValue, crewId?: string): void {
   const html = sheetHtml(data, crewId);
-  const popup = window.open("", "_blank", "noopener,noreferrer");
+  const popup = window.open("", "_blank");
   if (!popup) {
     data.dispatch({ type: "TOAST", message: "Autorisez les fenêtres pour imprimer les feuilles.", tone: "warn" });
     return;

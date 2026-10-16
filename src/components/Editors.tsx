@@ -4,6 +4,7 @@ import { DAY_END, DAY_START, type Posture, type Transport, type VehicleType } fr
 import { formatKm, formatMin, kindLabel, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { geocodeAddress } from "../lib/routing";
 import { CsvImport } from "./CsvImport";
+import { CrewCsvImport, VehicleCsvImport } from "./FleetCsv";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
@@ -40,6 +41,7 @@ export function CrewsView() {
         </label>
         <Button type="submit" size="sm">Ajouter</Button>
       </form>
+      <CrewCsvImport />
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data.crews.map((crew) => {
           const schedule = data.schedules.get(crew.id);
@@ -132,6 +134,7 @@ export function VehiclesView() {
         </label>
         <Button type="submit" size="sm">Ajouter</Button>
       </form>
+      <VehicleCsvImport />
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <table className="w-full text-sm">
           <thead className="bg-paper text-left text-xs uppercase tracking-wide text-muted">
@@ -305,6 +308,7 @@ export function TomorrowView() {
         </Button>
         <Button variant="secondary" onClick={() => setOpenForm((value) => !value)}>Ajouter un transport</Button>
         <Button variant="secondary" onClick={() => data.dispatch({ type: "PLACE_MEALS" })}>Placer les repas</Button>
+        <Button variant="secondary" onClick={() => data.dispatch({ type: "CLEAR_DEMAND" })}>Vider la demande</Button>
       </div>
       {openForm && <TransportForm sites={sites} homes={homes} onDone={() => setOpenForm(false)} />}
       <CsvImport />

@@ -157,6 +157,7 @@ function CrewRow({
       <div
         data-track
         data-crew-id={crew.id}
+        data-vehicle={crew.vehicleType}
         className={cn("relative", hot && !bad && "bg-emerald-50/70", bad && "bg-rose-50")}
         style={{ width, height: rowH }}
       >
@@ -221,6 +222,11 @@ function CrewRow({
               )}
               style={{ left, width: bar, top: barTop, height: barH, background: crew.color, touchAction: "manipulation" }}
               onContextMenu={(event) => event.preventDefault()}
+              data-transport-id={transport.id}
+              data-posture={transport.posture}
+              data-depart={Math.round(leg.departMin)}
+              data-end={Math.round(leg.endMin)}
+              data-appointment={Math.round(transport.appointmentMin ?? transport.windowStart)}
               onPointerDown={(event) => onStart(transport.id, event)}
               onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
               onMouseLeave={() => onTip(null)}

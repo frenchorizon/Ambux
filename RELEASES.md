@@ -2,7 +2,7 @@
 
 `stable` désigne la dernière version qu'on accepte de montrer. On ne commit pas dessus. On ne la fait avancer qu'en fast-forward vers un tag déjà posé sur `main`.
 
-La version courante livrée est `v0.4.0`. Le tag `v0.3.0-mvp-epure` reste la timeline épurée d'avant la fiabilité.
+La version courante livrée est `v0.4.1`. Les tags `v0.4.0` et `v0.3.0-mvp-epure` restent en place.
 
 Le tunnel public n'est pas une version. Il sert le dossier `dist` de la machine du moment et peut s'arrêter. Le fichier `ambux-vX.Y.Z.html` et le tag git restent.
 
