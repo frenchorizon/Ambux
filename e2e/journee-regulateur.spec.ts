@@ -220,9 +220,12 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   expect(refused.crew).toBe(refused.before);
   await expect(page.locator(".dpad-reason")).toContainText(/Incompatibilité|Conflit horaire|Pas d'autre équipage/);
 
+  const beforeDrag = await barById(page, allonge!.id);
   if (phone) await touchReject(page, allonge!.id, vsl!.crew);
   else await mouseReject(page, allonge!.id, vsl!.crew);
-  expect((await barById(page, allonge!.id)).depart).toBe(allonge!.depart);
+  const afterDrag = await barById(page, allonge!.id);
+  expect(afterDrag.depart).toBe(beforeDrag.depart);
+  expect(afterDrag.crew).toBe(beforeDrag.crew);
 
   const parked = (await bars(page)).find((item) => item.posture === "assis")!;
   await center(page, parked.id);
