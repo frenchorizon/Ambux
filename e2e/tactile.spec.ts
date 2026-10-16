@@ -315,14 +315,27 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       const shifted = await barById(page, candidate.id);
       if (shifted.depart === before.depart) continue;
       const blocks = await page.locator(".gantt-block").count();
+      await center(page, candidate.id);
       const point = await page.locator(`[data-transport-id="${candidate.id}"]`).evaluate((node) => {
         const box = node.getBoundingClientRect();
         const depart = Number(node.getAttribute("data-depart"));
         const end = Number(node.getAttribute("data-end"));
         const px = box.width / Math.max(1, end - depart);
         const snapped = Math.round(depart / 5) * 5;
-        return { x: box.x + (snapped - depart) * px + 1, y: box.y + box.height / 2 };
+        const raw = box.x + (snapped - depart) * px + 2;
+        const left = Math.max(box.left + 2, 110);
+        const right = Math.min(box.right - 2, window.innerWidth - 8);
+        const y = box.y + box.height / 2;
+        if (right - left < 4 || y < 90 || y > window.innerHeight - 90) return null;
+        const x = Math.min(right, Math.max(left, raw));
+        const hit = document.elementFromPoint(x, y);
+        if (!(hit instanceof Element) || hit.closest(".gantt-block") !== node) return null;
+        return { x, y };
       });
+      if (!point) {
+        await page.getByRole("button", { name: "Annuler" }).click();
+        continue;
+      }
       await touch(page, "pointerdown", point.x, point.y, 21);
       await page.waitForTimeout(480);
       await touch(page, "pointermove", point.x, point.y + 14, 21);
