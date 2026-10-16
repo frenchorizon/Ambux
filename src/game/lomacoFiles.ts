@@ -3,13 +3,15 @@ import type { RawSheet } from "./lomaco";
 export async function tablesFromBuffer(data: ArrayBuffer, filename: string): Promise<RawSheet[]> {
   const XLSX = await import("xlsx");
   const isCsv = /\.csv$/i.test(filename);
-  let FS = ",";
+  let book;
   if (isCsv) {
-    const head = new TextDecoder().decode(data.slice(0, 4000));
-    const line = head.split(/\r?\n/).find((row) => row.trim()) ?? "";
-    if ((line.match(/;/g) ?? []).length > (line.match(/,/g) ?? []).length) FS = ";";
+    const text = decodeCsv(data);
+    const line = text.split(/\r?\n/).find((row) => row.trim()) ?? "";
+    const FS = (line.match(/;/g) ?? []).length > (line.match(/,/g) ?? []).length ? ";" : ",";
+    book = XLSX.read(text, { type: "string", FS, raw: false });
+  } else {
+    book = XLSX.read(data, { type: "array", raw: false });
   }
-  const book = XLSX.read(data, isCsv ? { type: "array", FS, raw: false } : { type: "array", raw: false });
   return book.SheetNames.flatMap((sheet) => {
     const grid = XLSX.utils.sheet_to_json<(string | number | null)[]>(book.Sheets[sheet]!, {
       header: 1,
@@ -38,6 +40,15 @@ export async function sheetsToXlsx(sheets: { name: string; rows: string[][] }[])
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(sheet.rows), name);
   }
   return asBytes(XLSX.write(book, { type: "array", bookType: "xlsx" }));
+}
+
+function decodeCsv(data: ArrayBuffer): string {
+  const bytes = new Uint8Array(data);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, "");
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
 }
 
 function asBytes(value: unknown): Uint8Array {

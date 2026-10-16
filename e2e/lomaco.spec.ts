@@ -45,7 +45,7 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
 
   await page.getByRole("button", { name: "Autres actions" }).click();
   await page.getByRole("button", { name: "Exporter le CSV" }).click();
-  await expect(page.getByLabel("Profil d'export")).toContainText("Lomaco (à confirmer)");
+  await expect(page.getByLabel("Profil d'export", { exact: true })).toContainText("Lomaco (à confirmer)");
   await expect(page.getByText("Heure RDV")).toBeVisible();
   if (testInfo.project.name === "desktop") {
     await page.screenshot({ path: "/opt/cursor/artifacts/v05-export.png" });

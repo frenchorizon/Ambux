@@ -65,6 +65,15 @@ describe("import Lomaco", () => {
     assert.match(preview.rejected.map((row) => row.reason).join(" "), /inconnu/);
   });
 
+  it("garde les accents d'un csv utf-8", async () => {
+    const csv = "Prénom;Heure RDV;Adresse départ;Adresse arrivée\nLuc;10:30;CHU;Clinique\n";
+    const bytes = new TextEncoder().encode(csv);
+    const tables = await tablesFromBuffer(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), "accents.csv");
+    assert.deepEqual(tables[0]!.headers, ["Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée"]);
+    const fields = tables[0]!.headers.map((header) => detectField(header, LOMACO_IMPORT_PROFILE));
+    assert.deepEqual(fields, ["prenom", "heure_rdv", "adresse_depart", "adresse_arrivee"]);
+  });
+
   it("lit un classeur xlsx à plusieurs feuilles", async () => {
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
