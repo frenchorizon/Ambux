@@ -7,14 +7,20 @@ import { formatMin } from "../lib/format";
 export const CSV_COLUMNS =
   "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour";
 
-export const CSV_SPEC = [
-  "Séparateur point-virgule. Première ligne = en-têtes.",
-  "Obligatoire : nom, heure_rdv (HH:MM), adresse_depart, adresse_arrivee, mobilite (assis, allongé ou fauteuil).",
-  `date : ${MISSION_ISO}, 16/10/2026, ou vide. Toute autre date est rejetée.`,
-  "sens : aller, retour, simple (vide = simple, indiqué dans l'aperçu), ou ar.",
-  "ar exige heure_retour. Aucune adresse inconnue n'est remplacée par le CHU.",
-  "Un libellé reconnu est affiché dans l'aperçu avant fusion. Une adresse ambiguë est rejetée.",
-].join(" ");
+export function csvSpec(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  const slash = year && month && day ? `${day}/${month}/${year}` : iso;
+  return [
+    "Séparateur point-virgule. Première ligne = en-têtes.",
+    "Obligatoire : nom, heure_rdv (HH:MM), adresse_depart, adresse_arrivee, mobilite (assis, allongé ou fauteuil).",
+    `date : ${iso}, ${slash}, ou vide. Toute autre date est rejetée.`,
+    "sens : aller, retour, simple (vide = simple, indiqué dans l'aperçu), ou ar.",
+    "ar exige heure_retour. Aucune adresse inconnue n'est remplacée par le CHU.",
+    "Un libellé reconnu est affiché dans l'aperçu avant fusion. Une adresse ambiguë est rejetée.",
+  ].join(" ");
+}
+
+export const CSV_SPEC = csvSpec(MISSION_ISO);
 
 export interface CsvRow {
   line: number;
@@ -35,6 +41,7 @@ export async function previewCsv(
   raw: string,
   locations: readonly Location[],
   rules: Rules,
+  missionIso: string = MISSION_ISO,
 ): Promise<{ accepted: CsvRow[]; rejected: CsvReject[] }> {
   const lines = raw.split(/\r?\n/);
   const accepted: CsvRow[] = [];
@@ -51,7 +58,7 @@ export async function previewCsv(
       continue;
     }
     header = false;
-    const parsed = await parseLine(index + 1, rawLine, cells, known, rules);
+    const parsed = await parseLine(index + 1, rawLine, cells, known, rules, missionIso);
     if ("reason" in parsed) {
       rejected.push(parsed);
       continue;
@@ -70,6 +77,7 @@ export function planningToCsv(input: {
   locations: ReadonlyMap<string, Location>;
   schedules: Map<string, CrewSchedule>;
   blocks: readonly { crewId: string; kind: string; startMin: number; endMin: number }[];
+  missionIso?: string;
 }): string {
   const header = [
     "dossier",
@@ -113,7 +121,7 @@ export function planningToCsv(input: {
     rows.push(
       [
         transport.dossier,
-        MISSION_ISO,
+        input.missionIso || MISSION_ISO,
         transport.crewId ? "affecte" : "a_traiter",
         crew?.code ?? "",
         crew ? (crew.vehicleType === "ambulance" ? "ambulance" : "vsl") : "",
@@ -204,6 +212,7 @@ async function parseLine(
   cells: string[],
   locations: Location[],
   rules: Rules,
+  missionIso: string,
 ): Promise<{ row: CsvRow; location?: Location; retourLocation?: Location } | CsvReject> {
   const header = CSV_COLUMNS.split(";");
   const record: Record<string, string> = {};
@@ -220,8 +229,8 @@ async function parseLine(
   const clock = parseClock(record.heure_rdv ?? "");
   if (clock == null) return { line, raw, reason: `Heure invalide « ${record.heure_rdv || "vide"} ». Format HH:MM.` };
   const date = record.date ?? "";
-  if (date && !dateMatches(date)) {
-    return { line, raw, reason: `Date « ${date} » différente de la mission ${MISSION_ISO}.` };
+  if (date && !dateMatches(date, missionIso)) {
+    return { line, raw, reason: `Date « ${date} » différente de la mission ${missionIso}.` };
   }
   const posture = parseMobility(record.mobilite ?? "");
   if (!posture) return { line, raw, reason: `Mobilité « ${record.mobilite || "vide"} » refusée. Valeurs : assis, allongé, fauteuil.` };
@@ -337,11 +346,26 @@ function parseClock(value: string): number | null {
   return hours * 60 + minutes;
 }
 
-function dateMatches(value: string): boolean {
-  const v = norm(value).replace(/\s+/g, "");
-  if (v === "2026-10-16" || v === "16/10/2026" || v === "16-10-2026") return true;
-  const words = norm(value);
-  return words.includes("16") && words.includes("octobre") && words.includes("2026");
+function dateMatches(value: string, iso: string): boolean {
+  const compact = norm(value).replace(/\s+/g, "");
+  if (!compact) return true;
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return false;
+  const dayNum = String(Number(day));
+  const monthNum = String(Number(month));
+  const forms = new Set([
+    iso,
+    `${day}/${month}/${year}`,
+    `${dayNum}/${monthNum}/${year}`,
+    `${day}-${month}-${year}`,
+    `${dayNum}-${monthNum}-${year}`,
+    `${day}.${month}.${year}`,
+  ]);
+  if (forms.has(compact)) return true;
+  const months = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+  const monthName = months[Number(month) - 1] ?? "";
+  const tokens = norm(value).split(" ").filter(Boolean);
+  return tokens.includes(dayNum) && tokens.includes(year) && tokens.some((token) => monthName.startsWith(token) || token.startsWith(monthName.slice(0, 4)));
 }
 
 function parseMobility(value: string): Posture | null {

@@ -114,7 +114,9 @@ export function simulateLeg(
   const arrivePickup = rawArrive + waitMin;
   const loadedStart = arrivePickup + pec1;
   const dropoffArrive = loadedStart + loaded.min;
-  const endMin = dropoffArrive + pec2;
+  const stayMin = Math.max(0, transport.stayMin ?? 0);
+  const serviceEnd = dropoffArrive + pec2;
+  const endMin = serviceEnd + stayMin;
   const segments: Segment[] = [];
   const push = (kind: Segment["kind"], start: number, end: number) => {
     if (end - start >= 0.4) segments.push({ kind, start, end });
@@ -123,7 +125,8 @@ export function simulateLeg(
   push("wait", rawArrive, arrivePickup);
   push("pec", arrivePickup, loadedStart);
   push("loaded", loadedStart, dropoffArrive);
-  push("pec", dropoffArrive, endMin);
+  push("pec", dropoffArrive, serviceEnd);
+  push("wait", serviceEnd, endMin);
   const planned = plannedPickup(transport);
   const tolerance = toleranceOf(transport);
 
@@ -299,7 +302,7 @@ function placeInGap(
 ): Leg | null {
   const travel = travelLoc(gap.fromId, transport.pickupId, locMap);
   const loaded = travelLoc(transport.pickupId, transport.dropoffId, locMap);
-  const minSpan = travel.min + loaded.min + transport.serviceMin;
+  const minSpan = travel.min + loaded.min + transport.serviceMin + Math.max(0, transport.stayMin ?? 0);
   if (gap.end - gap.start < minSpan - 1) return null;
   let depart = requested;
   if (depart < gap.start) depart = gap.start;

@@ -1,30 +1,30 @@
-import { useData } from "../game/context";
-import { MISSION_DATE } from "../game/types";
+import { useData, type DataValue } from "../game/context";
 import { formatKm, formatMin, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
 
+export function printSheets(data: DataValue, crewId?: string): void {
+  const html = sheetHtml(data, crewId);
+  const popup = window.open("", "_blank", "noopener,noreferrer");
+  if (!popup) {
+    data.dispatch({ type: "TOAST", message: "Autorisez les fenêtres pour imprimer les feuilles.", tone: "warn" });
+    return;
+  }
+  popup.document.write(html);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+}
+
 export function RouteSheetsDialog({ open }: { open: boolean }) {
   const data = useData();
-  const print = () => {
-    const html = sheetHtml(data);
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-    if (!popup) {
-      data.dispatch({ type: "TOAST", message: "Autorisez les fenêtres pour imprimer les feuilles.", tone: "warn" });
-      return;
-    }
-    popup.document.write(html);
-    popup.document.close();
-    popup.focus();
-    popup.print();
-  };
   return (
     <Modal
       open={open}
       wide
       onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
       title="Feuilles de route"
-      description={`${MISSION_DATE} · une feuille par équipage, trajets à vide compris.`}
+      description={`${data.missionLabel} · une feuille par équipage, trajets à vide compris.`}
     >
       <div className="max-h-[50vh] space-y-3 overflow-auto">
         {data.crews.map((crew) => {
@@ -43,6 +43,9 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
                 {meal ? ` · repas ${formatMin(meal.startMin)}–${formatMin(meal.endMin)}` : " · repas non posé"}
               </p>
               <p className="mt-1 text-xs text-muted">{legs.length} courses · retour dépôt {formatKm(schedule?.returnKm ?? 0, 1)}</p>
+              <Button variant="secondary" size="sm" className="mt-2" onClick={() => printSheets(data, crew.id)}>
+                Imprimer {crew.code}
+              </Button>
             </article>
           );
         })}
@@ -51,14 +54,15 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
         <Button variant="secondary" onClick={() => data.dispatch({ type: "CLOSE_MODAL" })}>
           Fermer
         </Button>
-        <Button onClick={print}>Imprimer / PDF</Button>
+        <Button onClick={() => printSheets(data)}>Imprimer tout / PDF</Button>
       </div>
     </Modal>
   );
 }
 
-function sheetHtml(data: ReturnType<typeof useData>): string {
-  const sections = data.crews
+function sheetHtml(data: DataValue, crewId?: string): string {
+  const crews = crewId ? data.crews.filter((crew) => crew.id === crewId) : data.crews;
+  const sections = crews
     .map((crew) => {
       const schedule = data.schedules.get(crew.id);
       const meal = data.blocks.find((block) => block.crewId === crew.id && block.kind === "repas");
@@ -71,10 +75,10 @@ function sheetHtml(data: ReturnType<typeof useData>): string {
           return `<tr>
             <td>${formatMin(leg.departMin)}</td>
             <td>${formatMin(leg.arrivePickup)}${leg.deviationMin ? ` (${leg.deviationMin > 0 ? "+" : ""}${leg.deviationMin} min)` : ""}</td>
-            <td>${patient ? personName(patient) : ""}</td>
+            <td>${patient ? esc(personName(patient)) : ""}</td>
             <td>${transport ? postureLabel(transport.posture) : ""}</td>
             <td>${from ? `${from.name}, ${from.city}` : ""}</td>
-            <td>${to ? `${to.name}, ${to.city}` : ""}</td>
+            <td>${to ? esc(`${to.name}, ${to.city}`) : ""}${transport?.stayMin ? ` · attente ${transport.stayMin} min` : ""}</td>
             <td>${formatKm(leg.deadheadKm, 1)} à vide${leg.kmEstimated ? " · km estimé" : ""}</td>
             <td>${formatKm(leg.loadedKm, 1)}${leg.kmEstimated ? " · km estimé" : ""}</td>
           </tr>`;
@@ -100,10 +104,15 @@ function sheetHtml(data: ReturnType<typeof useData>): string {
       table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 28px; }
       th, td { border: 1px solid #d5e2ee; padding: 4px 6px; text-align: left; }
       th { background: #e7f1fb; }
-      section { break-inside: avoid; }
+      section { break-after: page; }
+      section:last-child { break-after: auto; }
     </style></head><body>
-    <h1>Ambux — feuilles de route du ${MISSION_DATE}</h1>
+    <h1>Ambux — feuille de route du ${esc(data.missionLabel)}</h1>
     <p>Dépôt Sud, Le Petit-Quevilly. La mention DEA n'apparaît que si un DEA est enregistré sur l'équipage. « km estimé » = itinéraire non routier, non opposable.</p>
     ${sections}
     </body></html>`;
+}
+
+function esc(value: string): string {
+  return value.replace(/[&<>]/g, (char) => (char === "&" ? "&amp;" : char === "<" ? "&lt;" : "&gt;"));
 }

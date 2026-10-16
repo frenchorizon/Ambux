@@ -32,7 +32,8 @@ import type {
 } from "./types";
 import { loadRules } from "../lib/rulesStore";
 import { shiftForIndex } from "./shifts";
-import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE } from "./types";
+import { addIsoDays, labelForIso } from "../lib/format";
+import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE, MISSION_ISO } from "./types";
 import type { DraftSnapshot } from "./persist";
 
 export type Choice = "accept" | "refuse" | "expire";
@@ -81,6 +82,10 @@ export type Action =
   | { type: "SHOW_REPORT" }
   | { type: "TOGGLE_TOMORROW"; id: string }
   | { type: "SET_TOMORROW_STOPS"; stops: PlanStop[] }
+  | { type: "SET_MISSION"; iso: string }
+  | { type: "ROLL_DAY" }
+  | { type: "IMPORT_SERIES" }
+  | { type: "HYDRATE"; state: GameState; label: string }
   | { type: "TOAST"; message: string; tone: Toast["tone"] }
   | { type: "DISMISS_TOAST" }
   | { type: "REPLAY" };
@@ -128,6 +133,8 @@ export const initialState: GameState = {
   rules: DEFAULT_RULES,
   vehicles: [],
   staff: [],
+  missionIso: MISSION_ISO,
+  missionLabel: MISSION_DATE,
 };
 
 export function msPerGameMinute(speed: Speed): number {
@@ -238,7 +245,7 @@ export function reducer(state: GameState, action: Action): GameState {
             {
               id: `export-${state.toastSeq}`,
               atMin: state.nowMin,
-              message: `Export CSV du planning du ${MISSION_DATE}.`,
+              message: `Export CSV du planning du ${state.missionLabel}.`,
               ok: true,
             },
           ],
@@ -287,6 +294,14 @@ export function reducer(state: GameState, action: Action): GameState {
       return { ...state, phase: "report", paused: true, modal: null };
     case "TOGGLE_TOMORROW":
       return toggleTomorrow(state, action.id);
+    case "SET_MISSION":
+      return setMission(state, action.iso);
+    case "ROLL_DAY":
+      return rollDay(state);
+    case "IMPORT_SERIES":
+      return importSeries(state);
+    case "HYDRATE":
+      return hydrate(state, action.state, action.label);
     case "SET_TOMORROW_STOPS":
       return { ...state, tomorrowStops: action.stops, toast: toast(state, "Brouillon de demain calculé.", "ok") };
     case "TOAST":
@@ -815,6 +830,8 @@ function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
       followNow: false,
       toastSeq: state.toastSeq + 1,
       selectedId: undefined,
+      missionIso: snapshot.missionIso || MISSION_ISO,
+      missionLabel: snapshot.missionDate || labelForIso(snapshot.missionIso || MISSION_ISO),
     },
     `Brouillon v${snapshot.version} repris · ${snapshot.missionDate}.`,
     "ok",
@@ -974,6 +991,65 @@ function addTransport(state: GameState, transport: Transport, patient?: Patient,
     "Transport ajouté à la demande de demain.",
     "ok",
   );
+}
+
+function setMission(state: GameState, iso: string): GameState {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return state;
+  const parsed = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return state;
+  if (iso === state.missionIso) return state;
+  return { ...state, missionIso: iso, missionLabel: labelForIso(iso) };
+}
+
+function rollDay(state: GameState): GameState {
+  const missionIso = addIsoDays(state.missionIso, 1);
+  const missionLabel = labelForIso(missionIso);
+  return withToast(
+    {
+      ...state,
+      missionIso,
+      missionLabel,
+      blocks: state.blocks.filter((block) => block.kind !== "repas"),
+      transports: state.transports
+        .filter((transport) => !transport.cancelled)
+        .map((transport) => ({ ...transport, crewId: undefined, departMin: undefined })),
+    },
+    `Courses reprises pour le ${missionLabel}, sans affectation.`,
+    "ok",
+  );
+}
+
+function importSeries(state: GameState): GameState {
+  const dossiers = new Set(state.transports.map((transport) => transport.dossier));
+  const ids = new Set(state.transports.map((transport) => transport.id));
+  const added = state.tomorrowTransports
+    .filter((transport) => !transport.cancelled && !ids.has(transport.id) && !dossiers.has(transport.dossier))
+    .map((transport) => ({ ...transport, crewId: undefined, departMin: undefined, cancelled: false }));
+  if (!added.length) return withToast(state, "Aucune série nouvelle à ajouter.", "info");
+  return withToast(
+    { ...state, transports: [...state.transports, ...added] },
+    `${added.length} course${added.length > 1 ? "s" : ""} de série ajoutée${added.length > 1 ? "s" : ""} au planning.`,
+    "ok",
+  );
+}
+
+function hydrate(state: GameState, snapshot: GameState, label: string): GameState {
+  const backToBriefing = snapshot.phase === "briefing";
+  return {
+    ...snapshot,
+    phase: backToBriefing ? "briefing" : state.phase,
+    view: backToBriefing ? snapshot.view : state.view,
+    modal: backToBriefing ? null : state.modal,
+    nowMin: state.live ? state.nowMin : snapshot.nowMin,
+    paused: state.paused,
+    speed: state.speed,
+    regulationMs: state.regulationMs,
+    followNow: state.followNow,
+    live: state.live,
+    selectedId: backToBriefing ? undefined : state.selectedId,
+    toastSeq: state.toastSeq + 1,
+    toast: { id: state.toastSeq + 1, message: label, tone: "info" },
+  };
 }
 
 function toggleTomorrow(state: GameState, id: string): GameState {

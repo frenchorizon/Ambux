@@ -314,6 +314,7 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
       </div>
       <div className="mt-1 text-muted">
         Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±{transport.toleranceMin ?? 20} min · PEC {transport.serviceMin} min
+        {(transport.stayMin ?? 0) > 0 ? ` · attente établissement ${transport.stayMin} min` : ""}
       </div>
       {leg && (
         <div className="mt-1 text-muted">

@@ -332,8 +332,17 @@ export function TomorrowView() {
           );
         })}
       </div>
-      <h3 className="mb-2 mt-6 text-sm font-semibold">Séries habituelles</h3>
+      <div className="mb-2 mt-6 flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-semibold">Séries habituelles</h3>
+        <Button variant="secondary" size="sm" onClick={() => data.dispatch({ type: "IMPORT_SERIES" })}>
+          Ajouter les séries cochées
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => data.dispatch({ type: "ROLL_DAY" })}>
+          Reprendre au jour suivant
+        </Button>
+      </div>
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
+        {data.tomorrowItems.length === 0 && <p className="p-4 text-sm text-muted">Aucune série habituelle (dialyse, aller-retour) sur cette journée.</p>}
         {data.tomorrowItems.map((item) => (
           <label key={item.id} className="flex items-start gap-3 border-b border-line px-4 py-2 text-sm last:border-b-0">
             <input type="checkbox" className="mt-1" checked={item.include} onChange={() => data.dispatch({ type: "TOGGLE_TOMORROW", id: item.id })} />
@@ -363,6 +372,7 @@ function TransportForm({
   const [posture, setPosture] = useState<Posture>("assis");
   const [retour, setRetour] = useState(false);
   const [returnTime, setReturnTime] = useState("13:00");
+  const [stay, setStay] = useState("0");
   const [note, setNote] = useState("");
   return (
     <form
@@ -387,9 +397,11 @@ function TransportForm({
           posture,
           serviceMin: posture === "allonge" ? 16 : 10,
           kind: retour ? "aller" : "simple",
+          seriesId: retour ? id : undefined,
           priority: "normal",
           cancelled: false,
           note,
+          stayMin: Math.max(0, Number(stay) || 0) || undefined,
         };
         data.dispatch({
           type: "ADD_TRANSPORT",
@@ -420,6 +432,7 @@ function TransportForm({
               windowStart: back - tolerance,
               windowEnd: back + tolerance,
               seriesId: id,
+              stayMin: undefined,
             },
           });
         }
@@ -461,6 +474,17 @@ function TransportForm({
       {retour && (
         <input type="time" value={returnTime} onChange={(event) => setReturnTime(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" aria-label="Heure du retour" />
       )}
+      <input
+        type="number"
+        min={0}
+        max={480}
+        value={stay}
+        onChange={(event) => setStay(event.target.value)}
+        className="h-9 rounded-lg border border-line px-2 text-sm"
+        aria-label="Attente à l'établissement (min)"
+        placeholder="Attente min"
+        title="Attente à l'établissement, en minutes"
+      />
       <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note" className="h-9 rounded-lg border border-line px-2 text-sm sm:col-span-2" />
       <Button type="submit" size="sm">Enregistrer</Button>
     </form>

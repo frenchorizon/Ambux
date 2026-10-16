@@ -48,6 +48,43 @@ export function deviationLabel(minutes: number): string {
   return minutes > 0 ? `+${minutes} min` : `${minutes} min`;
 }
 
+const WEEKDAYS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const MONTHS = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+const SHORT_MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+export function labelForIso(iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year || 2026, (month || 1) - 1, day || 1));
+  const weekday = WEEKDAYS[date.getUTCDay()] ?? "jour";
+  const monthName = MONTHS[(month || 1) - 1] ?? "";
+  const text = `${weekday} ${day} ${monthName} ${year}`;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function shortDate(iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  return `${day} ${SHORT_MONTHS[(month || 1) - 1] ?? ""} ${year}`;
+}
+
+export function addIsoDays(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year || 2026, (month || 1) - 1, (day || 1) + days));
+  return date.toISOString().slice(0, 10);
+}
+
 export function kindLabel(kind: TransportKind): string {
   switch (kind) {
     case "simple":

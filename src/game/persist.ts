@@ -1,4 +1,4 @@
-import { MISSION_DATE } from "./types";
+import { MISSION_DATE, MISSION_ISO } from "./types";
 import type { GameState } from "./types";
 
 const KEY = "ambux-drafts-v1";
@@ -9,6 +9,7 @@ export interface DraftSnapshot {
   version: number;
   savedAt: string;
   missionDate: string;
+  missionIso?: string;
   seed: number;
   density: GameState["density"];
   ambCount: number;
@@ -47,7 +48,9 @@ function fingerprint(state: GameState): string {
       transport.dropoffId,
       transport.posture,
       transport.centerArriveMin ?? "",
+      transport.stayMin ?? "",
     ]),
+    d: state.missionIso,
     c: state.crews.map((crew) => [crew.id, crew.shiftStart, crew.shiftEnd, crew.dea, crew.plate, crew.driverId ?? "", crew.mateId ?? ""]),
     b: state.blocks.map((block) => [block.id, block.startMin, block.endMin, block.crewId]),
     r: state.rules,
@@ -99,7 +102,8 @@ export function saveDraft(state: GameState): number | null {
     schema: 1,
     version,
     savedAt: new Date().toISOString(),
-    missionDate: MISSION_DATE,
+    missionDate: state.missionLabel || MISSION_DATE,
+    missionIso: state.missionIso || MISSION_ISO,
     seed: state.seed,
     density: state.density,
     ambCount: state.ambCount,

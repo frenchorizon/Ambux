@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useData } from "../game/context";
-import { CSV_COLUMNS, CSV_SPEC, previewCsv, type CsvReject, type CsvRow } from "../game/csv";
+import { CSV_COLUMNS, csvSpec, previewCsv, type CsvReject, type CsvRow } from "../game/csv";
 import { Button } from "./ui/button";
 
 export function CsvImport() {
@@ -15,7 +15,7 @@ export function CsvImport() {
     setBusy(true);
     setError(null);
     try {
-      const preview = await previewCsv(raw, data.locations, data.rules);
+      const preview = await previewCsv(raw, data.locations, data.rules, data.missionIso);
       setAccepted(preview.accepted);
       setRejected(preview.rejected);
       if (!preview.accepted.length && !preview.rejected.length) setError("Fichier vide.");
@@ -29,7 +29,7 @@ export function CsvImport() {
   return (
     <section className="mb-4 rounded-2xl border border-line bg-white p-3">
       <h3 className="text-sm font-semibold">Import CSV</h3>
-      <p className="mt-1 text-xs leading-relaxed text-muted">{CSV_SPEC}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">{csvSpec(data.missionIso)}</p>
       <p className="mt-1 font-mono text-[11px] text-navy">{CSV_COLUMNS}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <label className="text-xs font-semibold text-brand">

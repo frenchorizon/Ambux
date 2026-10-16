@@ -2,6 +2,17 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.4.0 — 2026-10-16
+
+Tag `v0.4.0`. Usage quotidien du régulateur, avant tout hébergement public.
+
+- Annuler / rétablir (boutons et Ctrl+Z), sans enregistrer l'horloge.
+- Date de mission modifiable. Les courses peuvent être reprises au jour suivant, sans affectation.
+- Séries habituelles (dialyse, aller-retour) ajoutées au planning. L'aller et le retour partagent la même série.
+- Attente à l'établissement (séance, consultation) comptée dans la course.
+- Feuille de route imprimable par équipage, et pour toute la flotte.
+- `npm test` : règles du solveur et parcours navigateur (390 px et bureau).
+
 ## v0.3.0-mvp-epure — 2026-10-16
 
 Tag `v0.3.0-mvp-epure`. Branche `stable` alignée dessus.

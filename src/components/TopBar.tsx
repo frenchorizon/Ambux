@@ -1,9 +1,9 @@
-import { CircleHelp, Ellipsis, FileText, Moon, Pause, Play, Search, Send, Sparkles, Sun } from "lucide-react";
+import { CircleHelp, Ellipsis, FileText, Moon, Pause, Play, Redo2, Search, Send, Sparkles, Sun, Undo2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
-import { DAY_END, DAY_START, MISSION_DATE, type Speed, type ViewId } from "../game/types";
-import { formatMin } from "../lib/format";
+import { DAY_END, DAY_START, type Speed, type ViewId } from "../game/types";
+import { formatMin, shortDate } from "../lib/format";
 import { toggleTheme, useDark } from "../lib/theme";
 import { useNarrow } from "../lib/useMedia";
 import { cn } from "../lib/utils";
@@ -14,7 +14,7 @@ const SPEEDS: Speed[] = [1, 2, 4];
 
 export function TopBar() {
   const clock = useClock();
-  const { view, dispatch, phase, issues, live } = useData();
+  const { view, dispatch, phase, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = useData();
   const dark = useDark();
   const narrow = useNarrow();
   const [menu, setMenu] = useState(false);
@@ -40,8 +40,26 @@ export function TopBar() {
   return (
     <header className="relative z-30 border-b border-line bg-card">
       <div className="flex h-14 items-center gap-1.5 px-2">
-        <div className="min-w-0 flex-1 px-1">
-          <div className="truncate text-sm font-semibold">{dateLine(narrow)}</div>
+        <div className="flex min-w-0 flex-1 items-center gap-1 px-1">
+          <label className="relative inline-flex h-11 min-w-0 shrink items-center rounded-lg px-1">
+            <span className="truncate text-xs font-semibold sm:text-sm">{narrow ? shortDate(missionIso) : missionLabel}</span>
+            <input
+              type="date"
+              aria-label="Date de mission"
+              value={missionIso}
+              onChange={(event) => {
+                if (event.target.value) dispatch({ type: "SET_MISSION", iso: event.target.value });
+              }}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+          {!narrow && <DraftVersion />}
+          <button type="button" className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30" aria-label="Annuler" disabled={!canUndo} onClick={undo}>
+            <Undo2 size={16} />
+          </button>
+          <button type="button" className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30" aria-label="Rétablir" disabled={!canRedo} onClick={redo}>
+            <Redo2 size={16} />
+          </button>
         </div>
         {live && (
           <button
@@ -107,6 +125,8 @@ export function TopBar() {
       )}
       {menu && (
         <div className="absolute right-2 top-14 z-50 w-64 rounded-2xl border border-line bg-card p-1 shadow-xl">
+          <MenuButton icon={<Undo2 size={16} />} label="Annuler" onClick={() => { setMenu(false); undo(); }} />
+          <MenuButton icon={<Redo2 size={16} />} label="Rétablir" onClick={() => { setMenu(false); redo(); }} />
           <MenuButton icon={<FileText size={16} />} label="Feuilles de route" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "sheets" }); }} />
           <MenuButton icon={<Send size={16} />} label="Exporter le CSV" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "lomaco" }); }} />
           <MenuButton label="Feuille équipage" onClick={() => go(dispatch, setMenu, "feuille")} />
@@ -154,8 +174,8 @@ function go(dispatch: ReturnType<typeof useData>["dispatch"], setMenu: (value: b
   dispatch({ type: "SET_VIEW", view });
 }
 
-function dateLine(narrow: boolean): string {
+function DraftVersion() {
   const latest = listDrafts()[0];
-  const date = narrow ? "16 oct. 2026" : MISSION_DATE;
-  return latest ? `${date} · v${latest.version}` : date;
+  if (!latest) return null;
+  return <span className="text-xs font-semibold text-muted">v{latest.version}</span>;
 }

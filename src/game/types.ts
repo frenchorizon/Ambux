@@ -131,6 +131,8 @@ export interface Transport {
   crewId?: string;
   departMin?: number;
   note?: string;
+  /** Minutes d'attente du véhicule à l'établissement (séance, consultation). */
+  stayMin?: number;
 }
 
 export interface TimeBlock {
@@ -245,4 +247,6 @@ export interface GameState {
   rules: Rules;
   vehicles: Vehicle[];
   staff: StaffMember[];
+  missionIso: string;
+  missionLabel: string;
 }

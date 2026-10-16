@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useClock, useData } from "../../game/context";
 import type { Leg } from "../../game/schedule";
-import { MISSION_DATE, type TimeBlock, type Transport } from "../../game/types";
+import type { TimeBlock, Transport } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel, vehicleLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
+import { printSheets } from "../RouteSheets";
 import { useNarrow } from "../../lib/useMedia";
 
 export function CrewSheet() {
@@ -31,7 +32,10 @@ export function CrewSheet() {
           {vehicleLabel(crew.vehicleType)} {crew.plate} · {crew.driver}
           {crew.mate ? ` · ${crew.mate}` : ""}
         </p>
-        <p className="mt-1 text-xs text-muted">{MISSION_DATE} · {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)}</p>
+        <p className="mt-1 text-xs text-muted">{data.missionLabel} · {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)}</p>
+        <button type="button" className="mt-2 text-sm font-semibold text-brand" onClick={() => printSheets(data, crew.id)}>
+          Imprimer cette feuille
+        </button>
         <div className="mt-3 flex flex-wrap gap-2">
           {crew.dea && <Chip>DEA à bord</Chip>}
           {meal ? <Chip>Repas {formatMin(meal.startMin)}–{formatMin(meal.endMin)}</Chip> : <Chip>Repas non posé</Chip>}

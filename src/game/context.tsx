@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react";
 import { indexById } from "../lib/collections";
 import { useRoutingVersion, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
@@ -7,6 +7,7 @@ import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
 import { saveDraft } from "./persist";
 import { saveRules } from "../lib/rulesStore";
 import { reviewIssues, type Issue } from "./review";
+import { isTracked, recordHistory } from "./history";
 import { initialState, reducer, type Action } from "./reducer";
 import type {
   Call,
@@ -65,6 +66,12 @@ export interface DataValue {
   rules: Rules;
   vehicles: Vehicle[];
   staff: StaffMember[];
+  missionIso: string;
+  missionLabel: string;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
   dispatch: Dispatch<Action>;
   metrics: Metrics;
   schedules: Map<string, CrewSchedule>;
@@ -78,7 +85,41 @@ const ClockContext = createContext<ClockValue | null>(null);
 const DataContext = createContext<DataValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  const pastRef = useRef<GameState[]>([]);
+  const futureRef = useRef<GameState[]>([]);
+  const [historyTick, setHistoryTick] = useState(0);
+
+  const dispatch = useCallback((action: Action) => {
+    const current = stateRef.current;
+    if (isTracked(action.type)) {
+      const recorded = recordHistory(pastRef.current, futureRef.current, current, action.type);
+      pastRef.current = recorded.past;
+      futureRef.current = recorded.future;
+      setHistoryTick((tick) => tick + 1);
+    }
+    stateRef.current = reducer(current, action);
+    rawDispatch(action);
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = pastRef.current.pop();
+    if (!prev) return;
+    futureRef.current.push(stateRef.current);
+    stateRef.current = reducer(stateRef.current, { type: "HYDRATE", state: prev, label: "Modification annulée." });
+    rawDispatch({ type: "HYDRATE", state: prev, label: "Modification annulée." });
+    setHistoryTick((tick) => tick + 1);
+  }, []);
+
+  const redo = useCallback(() => {
+    const next = futureRef.current.pop();
+    if (!next) return;
+    pastRef.current.push(stateRef.current);
+    stateRef.current = reducer(stateRef.current, { type: "HYDRATE", state: next, label: "Modification rétablie." });
+    rawDispatch({ type: "HYDRATE", state: next, label: "Modification rétablie." });
+    setHistoryTick((tick) => tick + 1);
+  }, []);
 
   const routeVersion = useRoutingVersion();
 
@@ -115,7 +156,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "TICK", dt });
     }, 200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [dispatch]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return;
+      event.preventDefault();
+      if (key === "y" || event.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [redo, undo]);
 
   const clock = useMemo<ClockValue>(
     () => ({
@@ -179,6 +235,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       rules: state.rules,
       vehicles: state.vehicles,
       staff: state.staff,
+      missionIso: state.missionIso,
+      missionLabel: state.missionLabel,
+      canUndo: pastRef.current.length > 0,
+      canRedo: futureRef.current.length > 0,
+      undo,
+      redo,
       dispatch,
       metrics,
       schedules,
@@ -214,6 +276,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       state.rules,
       state.vehicles,
       state.staff,
+      state.missionIso,
+      state.missionLabel,
+      historyTick,
+      undo,
+      redo,
+      dispatch,
       metrics,
       schedules,
       locMap,

@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview --host 0.0.0.0 --port 5280 --strictPort",
-    "sim": "tsx scripts/simcheck.ts"
+    "sim": "tsx scripts/simcheck.ts",
+    "test": "tsx --test scripts/rules.test.ts && playwright test"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.3.1",
@@ -26,6 +27,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",

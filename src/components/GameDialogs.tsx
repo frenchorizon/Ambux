@@ -4,7 +4,6 @@ import { downloadCsv, planningToCsv } from "../game/csv";
 import { optimizePlan, type PlanResult } from "../game/optimizer";
 import { reviewIssues } from "../game/review";
 import { scheduleFleet } from "../game/schedule";
-import { MISSION_ISO } from "../game/types";
 import { formatKm } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
@@ -46,7 +45,7 @@ export function GameDialogs() {
           <Button
             onClick={() => {
               downloadCsv(
-                `ambux-planning-${MISSION_ISO}.csv`,
+                `ambux-planning-${data.missionIso}.csv`,
                 planningToCsv({
                   crews: data.crews,
                   transports: data.transports,
@@ -54,6 +53,7 @@ export function GameDialogs() {
                   locations: data.locMap,
                   schedules: data.schedules,
                   blocks: data.blocks,
+                  missionIso: data.missionIso,
                 }),
               );
               data.dispatch({ type: "NOTE_EXPORT" });
