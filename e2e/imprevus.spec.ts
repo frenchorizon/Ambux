@@ -13,6 +13,7 @@ test("absence, épingle, régénération et appel tardif", async ({ page }, test
   await openPlanning(page);
 
   await page.getByRole("button", { name: "Autres actions" }).click();
+  await page.getByRole("banner").getByRole("button", { name: "Aide", exact: true }).click();
   await page.getByRole("button", { name: "Feuille équipage" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await pickCrewWithCourse(page);

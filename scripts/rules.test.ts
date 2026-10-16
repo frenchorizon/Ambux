@@ -122,6 +122,8 @@ describe("règles de planning", () => {
     const meal = pickMealSlot(schedule, crew(), DEFAULT_RULES);
     assert.ok(meal);
     assert.ok(meal.startMin >= 11 * 60);
+    assert.equal(meal.startMin % 5, 0);
+    assert.equal(meal.endMin % 5, 0);
     assert.ok(meal.endMin <= 14 * 60 + 30);
     assert.equal(meal.endMin - meal.startMin, DEFAULT_RULES.mealMin);
   });

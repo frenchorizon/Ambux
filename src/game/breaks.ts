@@ -15,7 +15,7 @@ export function pickMealSlot(schedule: CrewSchedule, crew: Crew, rules: Rules): 
   if (crew.shiftEnd > cursor + 1) gaps.push({ start: cursor, end: crew.shiftEnd });
 
   const target = (rules.mealFrom + rules.mealTo) / 2;
-  let best: { start: number; score: number } | null = null;
+  let best: { start: number; earliest: number; latest: number; score: number } | null = null;
   for (const gap of gaps) {
     const start = Math.max(gap.start, rules.mealFrom);
     const end = Math.min(gap.end, rules.mealTo);
@@ -25,10 +25,10 @@ export function pickMealSlot(schedule: CrewSchedule, crew: Crew, rules: Rules): 
     let at = target - rules.mealMin / 2;
     at = Math.max(earliest, Math.min(at, latest));
     const score = Math.abs(at + rules.mealMin / 2 - target);
-    if (!best || score < best.score) best = { start: at, score };
+    if (!best || score < best.score) best = { start: at, earliest, latest, score };
   }
   if (!best) return null;
-  const startMin = Math.round(best.start);
+  const startMin = snapMealStart(best.start, best.earliest, best.latest, rules.mealMin);
   return {
     id: `repas-${crew.id}`,
     crewId: crew.id,
@@ -37,6 +37,21 @@ export function pickMealSlot(schedule: CrewSchedule, crew: Crew, rules: Rules): 
     kind: "repas",
     label: "Repas",
   };
+}
+
+/** Départ de repas sur la grille de 5 min, pour que la fin (reprise) le soit aussi. */
+function snapMealStart(at: number, earliest: number, latest: number, mealMin: number): number {
+  const phase = (5 - (Math.round(mealMin) % 5)) % 5;
+  const base = Math.round(at);
+  let chosen: number | null = null;
+  for (let delta = -10; delta <= 10; delta++) {
+    const value = base + delta;
+    if (value < earliest - 0.05 || value > latest + 0.05) continue;
+    if (((value % 5) + 5) % 5 !== phase) continue;
+    if (chosen == null || Math.abs(value - at) < Math.abs(chosen - at)) chosen = value;
+  }
+  if (chosen != null) return chosen;
+  return Math.round(Math.max(earliest, Math.min(at, latest)));
 }
 
 export function mealIssue(block: TimeBlock | undefined, rules: Rules): string | null {

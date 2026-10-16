@@ -8,9 +8,17 @@ export async function openPlanning(page: Page) {
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
 }
 
+const DATA_VIEWS = new Set(["Équipages", "Véhicules", "Patients", "Demande de demain"]);
+
 export async function openMenu(page: Page, label: string) {
+  if (DATA_VIEWS.has(label)) {
+    await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
+    await page.getByRole("button", { name: label, exact: true }).click();
+    return;
+  }
+  const shown = label === "Exporter le CSV" ? "Exporter" : label;
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: label, exact: true }).click();
+  await page.getByRole("banner").getByRole("button", { name: shown, exact: true }).click();
 }
 
 export async function showTimeline(page: Page) {

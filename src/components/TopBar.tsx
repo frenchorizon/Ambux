@@ -1,23 +1,9 @@
-import {
-  CircleHelp,
-  Ellipsis,
-  FileText,
-  Moon,
-  Pause,
-  Play,
-  Redo2,
-  Search,
-  Send,
-  Sparkles,
-  Sun,
-  Undo2,
-} from "lucide-react";
+import { CircleHelp, Ellipsis, FileText, Pause, Play, Redo2, Search, Send, Sparkles, Undo2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
-import { DAY_END, DAY_START, type Speed, type ViewId } from "../game/types";
+import { DAY_END, DAY_START, type Speed } from "../game/types";
 import { formatMin, shortDate } from "../lib/format";
-import { toggleTheme, useDark } from "../lib/theme";
 import { useNarrow } from "../lib/useMedia";
 import { cn } from "../lib/utils";
 import { setTimelineSheet } from "./planning/timelineUi";
@@ -27,8 +13,7 @@ const SPEEDS: Speed[] = [1, 2, 4];
 
 export function TopBar() {
   const clock = useClock();
-  const { view, dispatch, phase, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = useData();
-  const dark = useDark();
+  const { view, dispatch, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = useData();
   const narrow = useNarrow();
   const [menu, setMenu] = useState(false);
   const reviewCount = issues.filter((issue) => issue.kind !== "km_estime").length;
@@ -56,7 +41,7 @@ export function TopBar() {
   }, [dispatch, live]);
 
   return (
-    <header className="relative z-30 border-b border-line bg-card">
+    <header className={cn("relative border-b border-line bg-card", menu ? "z-[80]" : "z-30")}>
       <div className="flex h-14 items-center gap-1.5 px-2">
         <div className="flex min-w-0 flex-1 items-center gap-1 px-1">
           <label className="relative inline-flex h-11 min-w-0 shrink items-center rounded-lg px-1">
@@ -94,15 +79,28 @@ export function TopBar() {
           </button>
         </div>
         {live && (
-          <button
-            type="button"
-            className="inline-flex h-11 items-center gap-1 rounded-xl bg-ice px-2 text-sm font-semibold tabular-nums text-navy"
-            onClick={() => dispatch({ type: "PAUSE" })}
-            aria-label={clock.paused ? "Reprendre" : "Mettre en pause"}
-          >
-            {clock.paused ? <Play size={16} /> : <Pause size={16} />}
-            {formatMin(clock.nowMin, "floor")}
-          </button>
+          <>
+            <button
+              type="button"
+              className="inline-flex h-11 items-center gap-1 rounded-xl bg-ice px-2 text-sm font-semibold tabular-nums text-navy"
+              onClick={() => dispatch({ type: "PAUSE" })}
+              aria-label={clock.paused ? "Reprendre" : "Mettre en pause"}
+            >
+              {clock.paused ? <Play size={16} /> : <Pause size={16} />}
+              {formatMin(clock.nowMin, "floor")}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold hover:bg-ice"
+              aria-label={`Vitesse ×${clock.speed}`}
+              onClick={() => {
+                const next = SPEEDS[(SPEEDS.indexOf(clock.speed) + 1) % SPEEDS.length] ?? 1;
+                dispatch({ type: "SET_SPEED", speed: next });
+              }}
+            >
+              ×{clock.speed}
+            </button>
+          </>
         )}
         {view === "gantt" && (
           <>
@@ -161,23 +159,11 @@ export function TopBar() {
         </div>
       )}
       {menu && (
-        <div className="absolute right-2 top-14 z-50 w-64 rounded-2xl border border-line bg-card p-1 shadow-xl">
-          <MenuButton
-            icon={<Undo2 size={16} />}
-            label="Annuler"
-            onClick={() => {
-              setMenu(false);
-              undo();
-            }}
-          />
-          <MenuButton
-            icon={<Redo2 size={16} />}
-            label="Rétablir"
-            onClick={() => {
-              setMenu(false);
-              redo();
-            }}
-          />
+        <div
+          role="group"
+          aria-label="Autres actions"
+          className="absolute right-2 top-14 z-50 w-56 rounded-2xl border border-line bg-card p-1 shadow-xl"
+        >
           <MenuButton
             icon={<FileText size={16} />}
             label="Importer"
@@ -196,66 +182,10 @@ export function TopBar() {
           />
           <MenuButton
             icon={<Send size={16} />}
-            label="Exporter le CSV"
+            label="Exporter"
             onClick={() => {
               setMenu(false);
               dispatch({ type: "OPEN_MODAL", modal: "lomaco" });
-            }}
-          />
-          <MenuButton label="Feuille équipage" onClick={() => go(dispatch, setMenu, "feuille")} />
-          <MenuButton label="Demande de demain" onClick={() => go(dispatch, setMenu, "tomorrow")} />
-          <MenuButton label="Équipages" onClick={() => go(dispatch, setMenu, "crews")} />
-          <MenuButton label="Véhicules" onClick={() => go(dispatch, setMenu, "vehicles")} />
-          <MenuButton label="Patients" onClick={() => go(dispatch, setMenu, "patients")} />
-          {live ? (
-            <>
-              <div className="flex gap-1 px-2 py-1">
-                {SPEEDS.map((speed) => (
-                  <button
-                    key={speed}
-                    type="button"
-                    className={cn(
-                      "h-10 flex-1 rounded-lg text-sm font-semibold",
-                      clock.speed === speed ? "bg-navy text-white" : "bg-ice",
-                    )}
-                    onClick={() => dispatch({ type: "SET_SPEED", speed })}
-                  >
-                    ×{speed}
-                  </button>
-                ))}
-              </div>
-              {phase === "playing" && (
-                <MenuButton
-                  label="Clôturer la journée"
-                  onClick={() => {
-                    setMenu(false);
-                    dispatch({ type: "OPEN_MODAL", modal: "closeDay" });
-                  }}
-                />
-              )}
-              <MenuButton
-                label="Quitter la simulation"
-                onClick={() => {
-                  setMenu(false);
-                  dispatch({ type: "SET_LIVE", live: false });
-                }}
-              />
-            </>
-          ) : (
-            <MenuButton
-              label="Simuler la journée"
-              onClick={() => {
-                setMenu(false);
-                dispatch({ type: "SET_LIVE", live: true });
-              }}
-            />
-          )}
-          <MenuButton
-            icon={dark ? <Sun size={16} /> : <Moon size={16} />}
-            label={dark ? "Mode clair" : "Mode sombre"}
-            onClick={() => {
-              setMenu(false);
-              toggleTheme();
             }}
           />
           <MenuButton
@@ -264,13 +194,6 @@ export function TopBar() {
             onClick={() => {
               setMenu(false);
               dispatch({ type: "OPEN_MODAL", modal: "help" });
-            }}
-          />
-          <MenuButton
-            label="Retour à l'accueil"
-            onClick={() => {
-              setMenu(false);
-              dispatch({ type: "REPLAY" });
             }}
           />
         </div>
@@ -290,11 +213,6 @@ function MenuButton({ label, onClick, icon }: { label: string; onClick: () => vo
       {label}
     </button>
   );
-}
-
-function go(dispatch: ReturnType<typeof useData>["dispatch"], setMenu: (value: boolean) => void, view: ViewId) {
-  setMenu(false);
-  dispatch({ type: "SET_VIEW", view });
 }
 
 function DraftVersion() {

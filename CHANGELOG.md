@@ -4,7 +4,7 @@ Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas �
 
 ## v0.8.0 — 2026-10-16
 
-Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`. Le tag attend la branche menu `ux/donnees-menu`.
+Tag `v0.8.0`. Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`, `ux/donnees-menu`.
 
 - Le bloc suit le doigt à chaque image. Le contrôle de créneau ne se relance que si l'équipage ou la minute calée sur 5 minutes change. Près du bord, le planning défile pendant le glisser.
 - L'appui long se voit (anneau bleu) avant le déplacement. Le défilement, le seuil de 18 px et le zoom restent.
@@ -16,6 +16,11 @@ Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`. Le
 - Un déplacement à la main épingle la course. Rien ne déplace une course épinglée sans un geste explicite.
 - Poser un créneau indique quelles courses suivantes sont décalées. Une suivante épinglée bloque le geste.
 - Une course déjà calée sur 5 minutes le reste à l'écran si la simulation ancrée ou l'annulation la pousse. L'attente d'une séance se lit sur la timeline, y compris sur téléphone. Un refus de glisser efface la raison précédente de la croix.
+- Le menu ⋯ ne garde qu'Importer, Feuilles de route, Exporter et Aide. Annuler et rétablir restent dans la barre.
+- Équipages, véhicules, patients et demande de demain sont dans Réglages, rubrique Données. Le mode sombre aussi. La simulation est sous Aide, rubrique Démo.
+- Mention explicite : les données restent dans ce navigateur.
+- Journée type de Rouen : adresses et établissements plausibles (CHU Charles-Nicolle, Becquerel, cliniques, dialyse, kinés), environ 67 courses pour 3 ambulances et 3 VSL, kilomètres à vide autour de 27 %.
+- La synthèse retire le temps de régulation à 00:00 et compare le planning affiché au planning initial : kilomètres à vide, temps de trajet à vide, courses placées.
 
 ## v0.7.0 — 2026-10-16
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
+import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
 import { MISSION_DATE } from "../../game/types";
 import { toggleTheme, useDark } from "../../lib/theme";
@@ -106,15 +107,15 @@ export function Landing() {
               Jeu fictif 3 ambulances + 3 VSL
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Stat k="Courses posées" v="66 / 67" />
-              <Stat k="Hors créneau" v="0" />
-              <Stat k="Km à vide, naïf" v="361" />
-              <Stat k="Km à vide, Ambux" v="292" />
+              <Stat k="Courses posées" v={DEMO_MEASURE.placed} />
+              <Stat k="Hors créneau" v={DEMO_MEASURE.late} />
+              <Stat k="Km à vide, naïf" v={DEMO_MEASURE.naiveEmptyKm} />
+              <Stat k="Km à vide, Ambux" v={DEMO_MEASURE.ambuxEmptyKm} />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              Dispatch naïf : premier équipage compatible, mêmes règles dures. Calcul hors ligne en 0,6 s, distances
-              estimées, pas le réseau routier. Avec OSRM les kilomètres bougent. Une journée plus pleine peut ne presque
-              rien gagner en kilomètres : les courses qui ne tiennent pas restent dans « À contrôler ».
+              Planning initial : premier équipage compatible, dans l'ordre des rendez-vous, mêmes règles dures.{" "}
+              {DEMO_MEASURE.naiveEmptyKm} km à vide, {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées :
+              avec le routier public, les kilomètres bougent. Une course qui ne tient pas reste dans « À contrôler ».
             </p>
           </aside>
         </section>

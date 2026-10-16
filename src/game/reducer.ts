@@ -179,8 +179,6 @@ export function reducer(state: GameState, action: Action): GameState {
         live: false,
         transports: world.transports.map((transport) => ({
           ...transport,
-          crewId: undefined,
-          departMin: undefined,
           appointmentMin: transport.appointmentMin ?? transport.windowStart,
           toleranceMin: rules.toleranceMin,
         })),

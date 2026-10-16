@@ -374,7 +374,9 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
   expect(src).toMatch(/openstreetmap/i);
   expect(src).not.toMatch(/apikey/i);
 
-  await openMenu(page, "Mode sombre");
+  await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
+  await page.getByRole("button", { name: "Mode sombre" }).click();
+  await page.getByRole("navigation").getByRole("button", { name: "Carte", exact: true }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
   await expect(page.locator(".leaflet-container.basemap-dark")).toBeVisible();
   const darkSrc = (await page.locator("img.leaflet-tile").first().getAttribute("src")) ?? "";

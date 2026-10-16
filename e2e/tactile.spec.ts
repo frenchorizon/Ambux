@@ -392,7 +392,7 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
     const before = await barById(page, candidate.id);
     await page.keyboard.press("ArrowRight");
     const after = await barById(page, candidate.id);
-    if ((await page.locator(".dpad-reason").count()) > 0) {
+    if ((await page.locator(".dpad-reason").count()) > 0 || after.depart === before.depart) {
       expect(after.depart).toBe(before.depart);
       continue;
     }

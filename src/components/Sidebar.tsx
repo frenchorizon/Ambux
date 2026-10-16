@@ -1,19 +1,5 @@
-import {
-  Building,
-  Cable,
-  CalendarClock,
-  ChartNoAxesGantt,
-  ChevronDown,
-  ClipboardList,
-  Inbox,
-  LayoutDashboard,
-  Map,
-  SlidersHorizontal,
-  Stethoscope,
-  Truck,
-  Users,
-} from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { ChartNoAxesGantt, Inbox, LayoutDashboard, Map, SlidersHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { useData } from "../game/context";
 import type { ViewId } from "../game/types";
 import { cn } from "../lib/utils";
@@ -25,16 +11,6 @@ const PRIMARY: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: "file", label: "À placer", icon: <Inbox size={18} /> },
   { id: "synthese", label: "Synthèse", icon: <LayoutDashboard size={18} /> },
   { id: "reglages", label: "Réglages", icon: <SlidersHorizontal size={18} /> },
-];
-
-const MORE: { id: ViewId; label: string; icon: ReactNode }[] = [
-  { id: "tomorrow", label: "Demande de demain", icon: <CalendarClock size={18} /> },
-  { id: "feuille", label: "Feuille équipage", icon: <ClipboardList size={18} /> },
-  { id: "crews", label: "Équipages", icon: <Users size={18} /> },
-  { id: "vehicles", label: "Véhicules", icon: <Truck size={18} /> },
-  { id: "patients", label: "Patients", icon: <Stethoscope size={18} /> },
-  { id: "companies", label: "Sociétés", icon: <Building size={18} /> },
-  { id: "lomaco", label: "Export CSV", icon: <Cable size={18} /> },
 ];
 
 export function Logo({ light = false }: { light?: boolean }) {
@@ -62,7 +38,6 @@ export function Logo({ light = false }: { light?: boolean }) {
 
 export function NavList({ onPick }: { onPick?: () => void }) {
   const { view, dispatch, calls } = useData();
-  const [more, setMore] = useState(MORE.some((item) => item.id === view));
   const pending = calls.filter((call) => call.spawned && !call.resolved).length;
   return (
     <nav className="flex flex-col gap-1">
@@ -76,26 +51,6 @@ export function NavList({ onPick }: { onPick?: () => void }) {
           dispatch={dispatch}
         />
       ))}
-      <button
-        type="button"
-        className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-sky-100/70 hover:text-white"
-        onClick={() => setMore((value) => !value)}
-        aria-expanded={more}
-      >
-        <ChevronDown size={14} className={cn("transition-transform", more && "rotate-180")} />
-        Données et export
-      </button>
-      {more &&
-        MORE.map((item) => (
-          <NavButton
-            key={item.id}
-            item={item}
-            active={view === item.id}
-            pending={0}
-            onPick={onPick}
-            dispatch={dispatch}
-          />
-        ))}
     </nav>
   );
 }
@@ -120,7 +75,7 @@ function NavButton({
         dispatch({ type: "SET_VIEW", view: item.id });
         onPick?.();
       }}
-      data-tour={item.id === "feuille" ? "feuille" : item.id === "carte" ? "carte" : undefined}
+      data-tour={item.id === "carte" ? "carte" : undefined}
       className={cn(
         "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors",
         active ? "bg-white/15 text-white" : "text-sky-100/80 hover:bg-white/10 hover:text-white",

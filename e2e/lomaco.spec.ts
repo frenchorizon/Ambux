@@ -21,7 +21,7 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: "Importer" }).click();
+  await page.getByRole("group", { name: "Autres actions" }).getByRole("button", { name: "Importer" }).click();
   await page.getByLabel("Fichiers Lomaco").setInputFiles({
     name: "lomaco.csv",
     mimeType: "text/csv",
@@ -49,7 +49,10 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
   await expect(page.getByText(/transport ajouté/)).toBeVisible();
 
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: "Exporter le CSV" }).click();
+  await page
+    .getByRole("group", { name: "Autres actions" })
+    .getByRole("button", { name: "Exporter", exact: true })
+    .click();
   await expect(page.getByLabel("Profil d'export", { exact: true })).toContainText("Lomaco (à confirmer)");
   await expect(page.getByText("Heure RDV")).toBeVisible();
   if (testInfo.project.name === "desktop") {

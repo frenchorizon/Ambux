@@ -34,7 +34,8 @@ test("le régulateur ouvre le planning de demain", async ({ page }, testInfo) =>
   await page.getByRole("button", { name: "À placer" }).click();
   await expect(page.getByRole("heading", { name: "À placer" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: /Mode sombre/ }).click();
+  await page.getByRole("button", { name: "Réglages" }).click();
+  await page.getByRole("button", { name: "Mode sombre" }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.getByText("Données stockées uniquement dans ce navigateur")).toBeVisible();
 });

@@ -1,14 +1,13 @@
-import { Clock3, Gauge, Route, ClipboardList } from "lucide-react";
+import { Gauge, Route, ClipboardList } from "lucide-react";
 import type { ReactNode } from "react";
-import { useClock, useData } from "../game/context";
-import { formatKm, formatPct, formatRegulation } from "../lib/format";
+import { useData } from "../game/context";
+import { formatKm, formatPct } from "../lib/format";
 import { Hint } from "./ui/tooltip";
 
 export function KpiBar() {
   const { metrics } = useData();
-  const { regulationMs } = useClock();
   return (
-    <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+    <section className="grid grid-cols-2 gap-2 lg:grid-cols-3">
       <Kpi
         icon={<Route size={16} />}
         label="Km à vide"
@@ -26,13 +25,6 @@ export function KpiBar() {
             ? `${metrics.unassigned} non affecté${metrics.unassigned > 1 ? "s" : ""}`
             : "Tout est affecté"
         }
-      />
-      <Kpi
-        icon={<Clock3 size={16} />}
-        label="Temps de régulation"
-        value={formatRegulation(regulationMs)}
-        hint="Temps réel passé au poste, pauses comprises. L'horloge du jeu, elle, est accélérée."
-        detail="horloge réelle"
       />
       <Kpi
         icon={<Gauge size={16} />}
