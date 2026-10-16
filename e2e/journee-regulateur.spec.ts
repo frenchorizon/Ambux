@@ -498,14 +498,12 @@ async function changeVehicle(page: Page): Promise<{ id: string; before: string; 
 }
 
 async function pushAllongeTowardVsl(page: Page, id: string): Promise<{ before: string; crew: string }> {
-  const tracks = await page
-    .locator("[data-track]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        id: node.getAttribute("data-crew-id") ?? "",
-        vehicle: node.getAttribute("data-vehicle") ?? "",
-      })),
-    );
+  const tracks = await page.locator("[data-track]").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      id: node.getAttribute("data-crew-id") ?? "",
+      vehicle: node.getAttribute("data-vehicle") ?? "",
+    })),
+  );
   const boundary = tracks.findIndex(
     (track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl",
   );
