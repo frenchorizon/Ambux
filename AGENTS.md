@@ -5,7 +5,7 @@ Ambux est une démo dans le navigateur pour préparer le planning du lendemain d
 ## Carte
 
 - `src/main.tsx`, `src/App.tsx` : entrée, accueil, navigation.
-- `src/game/types.ts` : types et règles par défaut (amplitude, repas, charges, tolérance).
+- `src/game/types.ts` : types et règles par défaut (amplitude, repas, tolérance). `maxAmb` 15 et `maxVsl` 25 décrivent une journée chargée, pas un plafond.
 - `src/game/schedule.ts` : créneaux, `snap5`, `ceil5`, simulation ancrée. Les invariants sont dans `.cursor/rules/scheduler.mdc`.
 - `src/game/reducer.ts` : seul magasin. Les vues passent par `dispatch`.
 - `src/game/optimizer.ts`, `generate.ts`, `baseline.ts` : génération, planning initial, gain.
@@ -33,3 +33,10 @@ Elles s'ouvrent vers `main`. L'intégrateur fusionne. Une PR rouge ne se fusionn
 - Ne jamais écrire qu'un test est passé s'il n'a pas été lancé. Chrome via Playwright n'est pas un iPhone.
 - Comptes rendus en français : problèmes, causes, fichiers, choix, tests réellement lancés, régressions, limites, étape suivante.
 - Toute PR vers `main` (QA, UX, métier, Gantt) doit passer l'intégration continue : typecheck, lint, Prettier, unitaires, build, Playwright.
+
+## Corrections produit (toute fusion)
+
+À appliquer sur chaque branche fusionnée dans `main`. Ne pas réintroduire l'ancien comportement.
+
+- **15 ambulance et 25 VSL ne sont pas des plafonds.** C'est l'exemple d'une journée chargée. Le solveur, la revue, le geste, le placement manuel et les réglages n'opposent aucun refus de charge. `maxAmb` et `maxVsl` ne servent pas de limite.
+- **L'attente de séance est saisie par le régulateur** pour créer le transport retour du patient. Exemples : kiné 45 min, dialyse 4 h, consultation 30 min. Sur le Gantt, le retour est une course à part. Pas besoin d'afficher l'attente dans le bloc de l'aller. Le bug 3 (attente invisible sur la timeline étroite) est en priorité basse.

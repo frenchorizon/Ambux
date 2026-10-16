@@ -7,6 +7,7 @@ alwaysApply: false
 - Un déplacement utilisateur (glisser, croix, flèches) se cale sur 5 minutes (`snap5`). Une course déjà calée, poussée par la simulation ancrée ou par l'annulation, reste sur un multiple de 5 minutes à l'écran (`ceil5`, `displayedDepart`).
 - Amplitude 11 h, prises de poste décalées, bornées dans la journée.
 - Repas 30 min entre 11:00 et 14:30. Une course ne se pose pas sur la pause.
-- Charge max 15 courses ambulance et 25 VSL. Tolérance 20 min autour du rendez-vous. DEA obligatoire en ambulance.
+- 15 courses ambulance et 25 VSL sont l'exemple d'une journée chargée, pas un plafond. Ne jamais refuser une course pour dépassement de charge. Tolérance 20 min autour du rendez-vous. DEA obligatoire en ambulance.
+- L'attente de séance (kiné 45 min, dialyse 4 h, consultation 30 min) est saisie à la main et crée le retour du patient. Sur le Gantt, ce retour est une course à part. Ne pas afficher l'attente dans le bloc de l'aller.
 - Un allongé ne va pas en VSL. Une course épinglée ne bouge pas sans un geste explicite.
 - `npm run check` et `npm run test:unit` doivent rester verts.
