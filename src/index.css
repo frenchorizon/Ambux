@@ -80,7 +80,8 @@ body {
   touch-action: none;
 }
 
-.gantt-block::before {
+.gantt-block::before,
+.gantt-hit {
   content: "";
   position: absolute;
   left: 50%;
@@ -88,6 +89,7 @@ body {
   width: 44px;
   height: 44px;
   transform: translate(-50%, -50%);
+  background: transparent;
 }
 
 .gantt-block-clip {

@@ -260,6 +260,7 @@ function CrewRow({
               onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
               onMouseLeave={() => onTip(null)}
             >
+              <span className="gantt-hit" aria-hidden />
               <span className="gantt-block-clip">
               {parts.map((part) => {
                 const minutes = part.end - part.start;

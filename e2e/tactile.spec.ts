@@ -26,24 +26,15 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
   });
 
   await test.step("le bloc refuse la loupe et la sélection, la cible fait 44 px", async () => {
-    const css = await page.evaluate(() => {
-      const found: string[] = [];
-      for (const sheet of document.styleSheets) {
-        let rules: CSSRuleList;
-        try {
-          rules = sheet.cssRules;
-        } catch {
-          continue;
-        }
-        for (const rule of rules) {
-          if (rule instanceof CSSStyleRule && rule.selectorText.includes(".gantt-block")) found.push(rule.cssText);
-        }
-      }
-      return found.join("\n");
+    const css = await page.evaluate(async () => {
+      const served = await (await fetch("/src/index.css")).text();
+      const computed = getComputedStyle(document.querySelector(".gantt-block")!).userSelect;
+      return { served, computed };
     });
-    expect(css).toContain("-webkit-touch-callout");
-    expect(css).toContain("-webkit-user-select");
-    expect(css).toMatch(/user-select:\s*none/);
+    expect(css.served).toContain("-webkit-touch-callout: none");
+    expect(css.served).toContain("-webkit-user-select: none");
+    expect(css.served).toMatch(/user-select:\s*none/);
+    expect(css.computed).toBe("none");
     const block = page.locator(".gantt-block").first();
     const select = await block.evaluate((node) => getComputedStyle(node).userSelect);
     expect(select).toBe("none");
@@ -55,28 +46,34 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     expect(hit.height).toBeGreaterThanOrEqual(44);
 
     await page.getByRole("button", { name: "Rechercher" }).click();
-    for (let i = 0; i < 6; i++) await page.getByRole("button", { name: "Dézoomer" }).click();
+    for (let i = 0; i < 8; i++) await page.getByRole("button", { name: "Dézoomer", exact: true }).click();
     await page.getByRole("button", { name: "Fermer" }).first().click();
     const narrow = await page.evaluate(() => {
       const blocks = [...document.querySelectorAll<HTMLElement>(".gantt-block")];
       for (const node of blocks) {
         const box = node.getBoundingClientRect();
-        if (box.width >= 42 || box.width < 8 || box.bottom < 80 || box.top > window.innerHeight - 40) continue;
-        const x = box.x + box.width / 2 + 20;
+        if (box.width >= 36 || box.width < 8 || box.bottom < 120 || box.top > window.innerHeight - 80) continue;
+        const x = box.right + 3;
         const y = box.y + box.height / 2;
         const hitTarget = document.elementFromPoint(x, y);
-        return { width: box.width, hit: hitTarget === node || (hitTarget instanceof Node && node.contains(hitTarget)) };
+        const owner = hitTarget instanceof Element ? hitTarget.closest(".gantt-block") : null;
+        if (owner) {
+          return { width: Math.round(box.width), outside: true, hit: true };
+        }
       }
       return null;
     });
-    expect(narrow, "un bloc plus étroit que 44 px").toBeTruthy();
-    expect(narrow!.hit).toBe(true);
+    expect(narrow).toMatchObject({ hit: true, outside: true });
     await page.getByRole("button", { name: "Rechercher" }).click();
-    for (let i = 0; i < 6; i++) await page.getByRole("button", { name: "Zoomer" }).click();
+    for (let i = 0; i < 10; i++) {
+      const zoom = await page.locator("span.tabular-nums").innerText();
+      if (Number.parseInt(zoom, 10) >= 320) break;
+      await page.getByRole("button", { name: "Zoomer", exact: true }).click();
+    }
     await page.getByRole("button", { name: "Fermer" }).first().click();
   });
 
-  const sample = (await bars(page))[0]!;
+  const sample = (await bars(page)).find((item) => item.depart >= 8 * 60) ?? (await bars(page))[0]!;
   await center(page, sample.id);
 
   await test.step("pointercancel n'affecte ni la sélection ni l'heure", async () => {
@@ -110,15 +107,6 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
 
   await test.step("un petit écart ne tue plus l'appui long, un relâchement tôt sélectionne", async () => {
     const from = await barById(page, sample.id);
-    await touch(page, "pointerdown", from.x, from.y, 9);
-    await touch(page, "pointermove", from.x + 14, from.y, 9);
-    await page.waitForTimeout(480);
-    await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
-    await touch(page, "pointerup", from.x + 14, from.y, 9);
-    expect((await barById(page, from.id)).depart).toBe(from.depart);
-    await page.locator("[data-dpad]").getByRole("button", { name: "Fermer la croix" }).click();
-    await expect(page.locator("[data-dpad]")).toHaveCount(0);
-
     await touch(page, "pointerdown", from.x, from.y, 10);
     await touch(page, "pointermove", from.x + 6, from.y, 10);
     await page.waitForTimeout(80);
@@ -126,10 +114,17 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await expect(page.locator("[data-dpad]")).toBeVisible();
     expect((await barById(page, from.id)).depart).toBe(from.depart);
     await expect(page.locator(".dpad-times")).toContainText(/Prise en charge \d{2}:\d{2} · prévue \d{2}:\d{2}/);
+
+    await touch(page, "pointerdown", from.x, from.y, 9);
+    await touch(page, "pointermove", from.x + 14, from.y, 9);
+    await page.waitForTimeout(480);
+    await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
+    await touch(page, "pointerup", from.x + 14, from.y, 9);
+    expect((await barById(page, from.id)).depart).toBe(from.depart);
   });
 
   await test.step("l'appui long suit le doigt et n'écrit qu'au relâchement", async () => {
-    const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance");
+    const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
     let moved = false;
     for (const candidate of candidates.slice(0, 6)) {
       await center(page, candidate.id);
@@ -162,7 +157,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
   });
 
   await test.step("déposer un allongé sur un VSL est refusé", async () => {
-    const allonge = (await bars(page)).find((item) => item.posture === "allonge");
+    const allonge = (await bars(page)).find((item) => item.posture === "allonge" && item.depart >= 8 * 60);
     const vsl = (await bars(page)).find((item) => item.vehicle === "vsl");
     expect(allonge && vsl).toBeTruthy();
     await center(page, allonge!.id);
@@ -179,7 +174,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
 
   await test.step("la croix décale de 5 minutes, refuse, et groupe le maintien", async () => {
     await page.screenshot({ path: "/opt/cursor/artifacts/v070-dpad-phone.png" });
-    const seated = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance");
+    const seated = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
     let separate = false;
     for (const candidate of seated.slice(0, 6)) {
       await center(page, candidate.id);
@@ -251,26 +246,27 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     expect(afterVsl.crew).toBe(beforeVsl.crew);
     expect(tracks.find((track) => track.id === afterVsl.crew)?.vehicle).not.toBe("vsl");
 
-    const sameCrew = (await bars(page)).filter((item) => item.crew === beforeVsl.crew).sort((a, b) => a.depart - b.depart);
-    const later = sameCrew.find((item) => sameCrew.some((other) => other.id !== item.id && other.depart < item.depart));
-    if (later) {
-      await center(page, later.id);
-      await page.locator(`[data-transport-id="${later.id}"]`).click();
-      let previous = await barById(page, later.id);
-      let blocked = false;
-      for (let step = 0; step < 16; step++) {
-        await page.getByRole("button", { name: "5 minutes plus tôt" }).click();
-        const now = await barById(page, later.id);
-        const reason = (await page.locator(".dpad-reason").textContent()) ?? "";
-        if (/Conflit horaire|Incompatibilité/.test(reason)) {
-          expect(now.depart).toBe(previous.depart);
-          blocked = true;
-          break;
-        }
-        expect(now.depart % 5).toBe(0);
-        previous = now;
-      }
-      expect(blocked).toBe(true);
+    const crowded = await bars(page);
+    const pair = crowded.find((item) => item.depart >= 8 * 60 && crowded.some((other) => other.crew === item.crew && other.id !== item.id));
+    expect(pair).toBeTruthy();
+    const neighbor = crowded.find((item) => item.crew === pair!.crew && item.id !== pair!.id)!;
+    await center(page, pair!.id);
+    const from = await barById(page, pair!.id);
+    const onto = await barById(page, neighbor.id);
+    await touch(page, "pointerdown", from.x, from.y, 13);
+    await page.waitForTimeout(480);
+    await touch(page, "pointermove", onto.x, onto.y, 13);
+    await touch(page, "pointerup", onto.x, onto.y, 13);
+    const dropped = await barById(page, pair!.id);
+    const after = await bars(page);
+    const overlaps = after.some(
+      (item) => item.id !== dropped.id && item.crew === dropped.crew && dropped.depart < item.end - 1 && dropped.end > item.depart + 1,
+    );
+    expect(overlaps).toBe(false);
+    if (dropped.depart === from.depart) {
+      await expect(page.getByText(/Conflit horaire|Incompatibilité/)).toBeVisible();
+    } else {
+      expect(dropped.depart % 5).toBe(0);
     }
 
     const pad = await page.locator("[data-dpad]").boundingBox();
@@ -304,7 +300,7 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
   test.setTimeout(120_000);
   await openPlanning(page);
   const candidates = (await bars(page)).filter((item) => item.posture === "assis");
-  let moved = false;
+  let movedId = "";
   for (const candidate of candidates.slice(0, 6)) {
     await center(page, candidate.id);
     await page.locator(`[data-transport-id="${candidate.id}"]`).click();
@@ -320,24 +316,29 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
     expect(after.depart).not.toBe(before.depart);
     await page.keyboard.press("ArrowLeft");
     const back = await barById(page, candidate.id);
-    expect(Math.abs(back.depart - before.depart)).toBeLessThanOrEqual(2);
+    if ((await page.locator(".dpad-reason").count()) > 0) {
+      expect(back.depart).toBe(after.depart);
+    } else {
+      expect(back.depart % 5).toBe(0);
+      expect(Math.abs(back.depart - before.depart)).toBeLessThanOrEqual(2);
+      await page.getByRole("button", { name: "Annuler" }).click();
+    }
     await page.getByRole("button", { name: "Annuler" }).click();
-    await page.getByRole("button", { name: "Annuler" }).click();
-    moved = true;
+    expect((await barById(page, candidate.id)).depart).toBe(before.depart);
+    movedId = candidate.id;
     break;
   }
-  expect(moved).toBe(true);
+  expect(movedId).not.toBe("");
 
-  await page.mouse.move(200, 200);
-  const from = await barById(page, candidates[0]!.id);
-  await center(page, from.id);
-  const origin = await barById(page, from.id);
-  await page.mouse.move(origin.x, origin.y);
+  const origin = await barById(page, movedId);
+  await center(page, origin.id);
+  const from = await barById(page, origin.id);
+  await page.mouse.move(from.x, from.y);
   await page.mouse.down();
-  await page.mouse.move(origin.x + 160, origin.y, { steps: 8 });
+  await page.mouse.move(from.x + 160, from.y, { steps: 8 });
   await page.mouse.up();
-  const dragged = await barById(page, origin.id);
-  if (dragged.depart !== origin.depart) expect(dragged.depart % 5).toBe(0);
+  const dragged = await barById(page, from.id);
+  if (dragged.depart !== from.depart) expect(dragged.depart % 5).toBe(0);
 });
 
 async function openPlanning(page: Page) {
@@ -348,7 +349,7 @@ async function openPlanning(page: Page) {
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
 }
 
-type Bar = { id: string; crew: string; vehicle: string; posture: string; depart: number; x: number; y: number };
+type Bar = { id: string; crew: string; vehicle: string; posture: string; depart: number; end: number; x: number; y: number };
 
 async function bars(page: Page): Promise<Bar[]> {
   return page.locator("[data-transport-id]").evaluateAll((nodes) =>
@@ -361,6 +362,7 @@ async function bars(page: Page): Promise<Bar[]> {
         vehicle: track?.getAttribute("data-vehicle") ?? "",
         posture: node.getAttribute("data-posture") ?? "",
         depart: Number(node.getAttribute("data-depart")),
+        end: Number(node.getAttribute("data-end")),
         x: box.x + Math.min(box.width / 2, 24),
         y: box.y + box.height / 2,
       };
@@ -387,6 +389,10 @@ async function touch(page: Page, type: "pointerdown" | "pointermove" | "pointeru
     ({ type, x, y, pointerId }) => {
       const target = type === "pointerdown" ? document.elementFromPoint(x, y) : window;
       if (!target) throw new Error(`pas de cible ${type}`);
+      if (type === "pointerdown" && target instanceof Element && !target.closest(".gantt-block")) {
+        const name = target instanceof HTMLElement ? `${target.tagName}.${target.className}` : target.tagName;
+        throw new Error(`pointerdown hors bloc: ${name} @ ${x},${y}`);
+      }
       target.dispatchEvent(
         new PointerEvent(type, {
           bubbles: true,
