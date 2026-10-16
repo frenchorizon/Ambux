@@ -83,7 +83,8 @@ async function refuseTowardVsl(page: Page, id: string): Promise<boolean> {
   const boundary = tracks.findIndex(
     (track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl",
   );
-  const start = tracks.findIndex((track) => track.id === (await barById(page, id)).crew);
+  const crewId = (await barById(page, id)).crew;
+  const start = tracks.findIndex((track) => track.id === crewId);
   const direction = start <= boundary ? "Véhicule suivant" : "Véhicule précédent";
   for (let step = 0; step < 8; step++) {
     const before = await barById(page, id);
