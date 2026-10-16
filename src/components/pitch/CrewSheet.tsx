@@ -6,12 +6,14 @@ import { formatKm, formatMin, personName, postureLabel, vehicleLabel } from "../
 import { cn } from "../../lib/utils";
 import { printSheets } from "../RouteSheets";
 import { useNarrow } from "../../lib/useMedia";
+import { CourseSheet, ReoptButton, UnavailabilityControls } from "../imprevus/Imprevus";
 
 export function CrewSheet() {
   const data = useData();
   const clock = useClock();
   const narrow = useNarrow();
   const [crewId, setCrewId] = useState(data.crews[0]?.id ?? "");
+  const [courseId, setCourseId] = useState<string | null>(null);
   const crew = data.crews.find((item) => item.id === crewId) ?? data.crews[0];
 
   const schedule = crew ? data.schedules.get(crew.id) : undefined;
@@ -54,6 +56,8 @@ export function CrewSheet() {
             ))}
           </select>
         </label>
+        <ReoptButton />
+        <UnavailabilityControls crewId={crew.id} />
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
         {focus?.kind === "leg" ? <Hero leg={focus.leg} transport={data.transportById.get(focus.leg.transportId)} data={data} live={data.live} /> : (
@@ -67,7 +71,13 @@ export function CrewSheet() {
                 <span className="text-muted"> · Repas jusqu'à {formatMin(row.block.endMin)}</span>
               </li>
             ) : (
-              <LegRow key={row.leg.transportId} leg={row.leg} data={data} active={focus?.kind === "leg" && focus.leg.transportId === row.leg.transportId} />
+              <LegRow
+                key={row.leg.transportId}
+                leg={row.leg}
+                data={data}
+                active={focus?.kind === "leg" && focus.leg.transportId === row.leg.transportId}
+                onOpen={() => setCourseId(row.leg.transportId)}
+              />
             ),
           )}
         </ol>
@@ -79,6 +89,7 @@ export function CrewSheet() {
       <footer className="border-t border-line px-4 py-3 text-[11px] leading-relaxed text-muted">
         Aide à la lecture pour l'équipage. Ce n'est pas un bon de transport, ni une pièce à présenter à un organisme. Patients inventés.
       </footer>
+      {courseId && <CourseSheet transportId={courseId} onClose={() => setCourseId(null)} />}
     </article>
   );
 
@@ -120,7 +131,17 @@ function Hero({
   );
 }
 
-function LegRow({ leg, data, active }: { leg: Leg; data: ReturnType<typeof useData>; active: boolean }) {
+function LegRow({
+  leg,
+  data,
+  active,
+  onOpen,
+}: {
+  leg: Leg;
+  data: ReturnType<typeof useData>;
+  active: boolean;
+  onOpen: () => void;
+}) {
   const transport = data.transportById.get(leg.transportId);
   const patient = transport ? data.patientById.get(transport.patientId) : undefined;
   const to = transport ? data.locMap.get(transport.dropoffId) : undefined;
@@ -132,6 +153,9 @@ function LegRow({ leg, data, active }: { leg: Leg; data: ReturnType<typeof useDa
       </div>
       <div>{patient ? personName(patient) : "Course"}</div>
       <div className="text-xs text-muted">{to ? `${to.short}, ${to.city}` : ""}</div>
+      <button type="button" className="mt-1 min-h-11 text-sm font-semibold text-brand" onClick={onOpen}>
+        {transport?.pinned ? "Épinglée · Détail" : "Détail"}
+      </button>
     </li>
   );
 }

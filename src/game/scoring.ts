@@ -46,7 +46,7 @@ export function metricsFromSchedules(
   for (const crew of crews) {
     const schedule = schedules.get(crew.id);
     const panne = blocks
-      .filter((block) => block.crewId === crew.id && block.kind === "panne")
+      .filter((block) => block.crewId === crew.id && (block.kind === "panne" || block.kind === "absence"))
       .reduce((sum, block) => sum + (block.endMin - block.startMin), 0);
     availableMin += Math.max(0, crew.shiftEnd - crew.shiftStart - panne);
     if (!schedule) continue;

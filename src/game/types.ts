@@ -157,6 +157,8 @@ export interface Transport {
   motif?: "DIAL" | "KINE" | "CONS" | "ORTHO" | "RADI";
   /** Code équipage demandé à l'import, avant génération. */
   requestedCrew?: string;
+  /** Confirmé ou déplacé à la main : ni la régénération ni un décalage ne le bougent. */
+  pinned?: boolean;
 }
 
 export interface TimeBlock {
@@ -164,7 +166,7 @@ export interface TimeBlock {
   crewId: string;
   startMin: number;
   endMin: number;
-  kind: "pause" | "panne" | "repas";
+  kind: "pause" | "panne" | "repas" | "absence";
   label: string;
 }
 

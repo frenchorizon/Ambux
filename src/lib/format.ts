@@ -1,5 +1,14 @@
 import type { Posture, TransportKind, VehicleType } from "../game/types";
 
+export function parseClock(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
 export function formatMin(min: number, mode: "floor" | "round" = "round"): string {
   const value = Math.max(0, mode === "floor" ? Math.floor(min) : Math.round(min));
   const hours = Math.floor(value / 60);

@@ -49,6 +49,7 @@ function fingerprint(state: GameState): string {
       transport.posture,
       transport.centerArriveMin ?? "",
       transport.stayMin ?? "",
+      transport.pinned ? 1 : 0,
     ]),
     d: state.missionIso,
     c: state.crews.map((crew) => [crew.id, crew.shiftStart, crew.shiftEnd, crew.dea, crew.plate, crew.driverId ?? "", crew.mateId ?? ""]),

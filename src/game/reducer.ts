@@ -2,6 +2,13 @@ import { CREW_COLORS } from "../data/world";
 import { pickMealSlot } from "./breaks";
 import { generateDay } from "./generate";
 import {
+  applyUnavailability,
+  placeTransport,
+  planRipple,
+  reoptimizeStable,
+  rippleMessage,
+} from "./imprevus";
+import {
   bestSlotFor,
   findPauseStart,
   indexLocations,
@@ -32,7 +39,7 @@ import type {
 } from "./types";
 import { loadRules } from "../lib/rulesStore";
 import { shiftForIndex } from "./shifts";
-import { addIsoDays, labelForIso } from "../lib/format";
+import { addIsoDays, formatMin, labelForIso, personName } from "../lib/format";
 import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE, MISSION_ISO } from "./types";
 import type { DraftSnapshot } from "./persist";
 
@@ -49,8 +56,13 @@ export type Action =
   | { type: "SELECT"; id?: string }
   | { type: "SET_CREW_FILTER"; crewId?: string }
   | { type: "TOGGLE_FOLLOW" }
-  | { type: "ASSIGN"; transportId: string; crewId: string; departMin: number; coalesce?: boolean }
+  | { type: "ASSIGN"; transportId: string; crewId: string; departMin: number; coalesce?: boolean; ripple?: boolean }
   | { type: "UNASSIGN"; transportId: string }
+  | { type: "PIN"; transportId: string }
+  | { type: "UNPIN"; transportId: string }
+  | { type: "SET_UNAVAILABILITY"; crewId: string; fromMin: number; toMin: number; reason: "absence" | "panne"; replace: boolean }
+  | { type: "ADD_LATE"; transport: Transport; patient?: Patient; location?: Location }
+  | { type: "APPLY_REOPT" }
   | { type: "BEST_SLOT"; transportId: string }
   | { type: "COMPACT" }
   | { type: "APPLY_STOPS"; stops: PlanStop[]; meals?: TimeBlock[] }
@@ -219,7 +231,17 @@ export function reducer(state: GameState, action: Action): GameState {
     case "TOGGLE_FOLLOW":
       return { ...state, followNow: !state.followNow };
     case "ASSIGN":
-      return assign(state, action.transportId, action.crewId, action.departMin);
+      return assign(state, action.transportId, action.crewId, action.departMin, action.ripple === true);
+    case "PIN":
+      return pin(state, action.transportId, true);
+    case "UNPIN":
+      return pin(state, action.transportId, false);
+    case "SET_UNAVAILABILITY":
+      return setUnavailability(state, action);
+    case "ADD_LATE":
+      return addLate(state, action.transport, action.patient, action.location);
+    case "APPLY_REOPT":
+      return applyReopt(state);
     case "UNASSIGN":
       return unassign(state, action.transportId);
     case "BEST_SLOT":
@@ -332,32 +354,152 @@ function withToast(state: GameState, message: string, tone: Toast["tone"]): Game
   return { ...state, toastSeq: state.toastSeq + 1, toast: { id: state.toastSeq + 1, message, tone } };
 }
 
-function assign(state: GameState, transportId: string, crewId: string, departMin: number): GameState {
+function assign(state: GameState, transportId: string, crewId: string, departMin: number, ripple = false): GameState {
   const transport = state.transports.find((item) => item.id === transportId);
   const crew = state.crews.find((item) => item.id === crewId);
   if (!transport || !crew) return state;
   const locMap = indexLocations(state.locations);
-  const preview = previewPlacement(
-    crew,
-    transport,
-    departMin,
-    state.transports,
-    state.blocks,
-    locMap,
-    horizon(state),
-    state.rules,
-  );
+  const now = horizon(state);
+  if (ripple) return assignRipple(state, transport, crew, departMin, locMap, now);
+  const preview = previewPlacement(crew, transport, departMin, state.transports, state.blocks, locMap, now, state.rules);
   if (!preview.ok) return withToast(state, preview.message, "warn");
+  const moved = transport.crewId !== crew.id || Math.abs((transport.departMin ?? Number.NaN) - preview.departMin) > 0.5;
   return {
     ...state,
     transports: state.transports.map((item) =>
-      item.id === transport.id ? { ...item, crewId: crew.id, departMin: preview.departMin } : item,
+      item.id === transport.id
+        ? { ...item, crewId: crew.id, departMin: preview.departMin, pinned: moved ? true : item.pinned }
+        : item,
     ),
     stats: { ...state.stats, moves: state.stats.moves + 1 },
     selectedId: transport.id,
     toastSeq: preview.warning ? state.toastSeq + 1 : state.toastSeq,
     toast: preview.warning ? { id: state.toastSeq + 1, message: preview.warning, tone: "warn" } : state.toast,
   };
+}
+
+function assignRipple(
+  state: GameState,
+  transport: Transport,
+  crew: GameState["crews"][number],
+  departMin: number,
+  locMap: ReturnType<typeof indexLocations>,
+  now: number,
+): GameState {
+  const plan = planRipple({
+    crew,
+    transport,
+    requestedDepart: departMin,
+    transports: state.transports,
+    blocks: state.blocks,
+    locMap,
+    nowMin: now,
+    rules: state.rules,
+    labelOf: (item) => courseLabel(state, item),
+  });
+  if (!plan.ok) return withToast(state, plan.message, "warn");
+  const shifts = new Map(plan.shifts.map((shift) => [shift.transportId, shift.toDepartMin]));
+  const next: GameState = {
+    ...state,
+    transports: state.transports.map((item) => {
+      if (item.id === transport.id) return { ...item, crewId: crew.id, departMin: plan.departMin, pinned: true };
+      const depart = shifts.get(item.id);
+      if (depart == null) return item;
+      return { ...item, departMin: depart };
+    }),
+    stats: { ...state.stats, moves: state.stats.moves + 1 },
+    selectedId: transport.id,
+  };
+  const consequence = rippleMessage(plan.shifts);
+  const message = [plan.warning, consequence].filter(Boolean).join(" ");
+  if (!message) return next;
+  return withToast(next, message, plan.warning ? "warn" : "info");
+}
+
+function courseLabel(state: GameState, transport: Transport): string {
+  const patient = state.patients.find((item) => item.id === transport.patientId);
+  return patient ? personName(patient) : transport.dossier;
+}
+
+function pin(state: GameState, transportId: string, pinned: boolean): GameState {
+  const transport = state.transports.find((item) => item.id === transportId);
+  if (!transport || transport.pinned === pinned) return state;
+  return withToast(
+    {
+      ...state,
+      transports: state.transports.map((item) => (item.id === transportId ? { ...item, pinned } : item)),
+      selectedId: transportId,
+    },
+    pinned ? "Course épinglée. Elle ne bougera pas toute seule." : "Épingle retirée.",
+    "info",
+  );
+}
+
+function setUnavailability(
+  state: GameState,
+  action: Extract<Action, { type: "SET_UNAVAILABILITY" }>,
+): GameState {
+  const result = applyUnavailability({
+    crews: state.crews,
+    transports: state.transports,
+    blocks: state.blocks,
+    locations: state.locations,
+    rules: state.rules,
+    nowMin: horizon(state),
+    crewId: action.crewId,
+    fromMin: action.fromMin,
+    toMin: action.toMin,
+    reason: action.reason,
+    replace: action.replace,
+    labelOf: (transport) => courseLabel(state, transport),
+  });
+  if (!result.changed) return withToast(state, result.message, "warn");
+  return withToast(
+    { ...state, transports: result.transports, blocks: result.blocks },
+    result.message,
+    result.changes.length ? "warn" : "info",
+  );
+}
+
+function addLate(state: GameState, transport: Transport, patient?: Patient, location?: Location): GameState {
+  let locations = state.locations;
+  let patients = state.patients;
+  if (location && !locations.some((item) => item.id === location.id)) locations = [...locations, location];
+  if (patient && !patients.some((item) => item.id === patient.id)) patients = [...patients, patient];
+  const draft: Transport = { ...transport, cancelled: false, crewId: undefined, departMin: undefined, pinned: false };
+  const withDraft: GameState = { ...state, locations, patients, transports: [...state.transports, draft], selectedId: draft.id };
+  const locMap = indexLocations(withDraft.locations);
+  const slot = placeTransport(draft, withDraft.crews, withDraft.transports, withDraft.blocks, locMap, horizon(state), state.rules);
+  if (!slot) return withToast(withDraft, "Course ajoutée dans À placer : aucun créneau libre.", "warn");
+  const crew = state.crews.find((item) => item.id === slot.crewId);
+  return withToast(
+    {
+      ...withDraft,
+      transports: withDraft.transports.map((item) =>
+        item.id === draft.id ? { ...item, crewId: slot.crewId, departMin: slot.departMin, pinned: true } : item,
+      ),
+    },
+    `Course ajoutée sur ${crew?.code ?? "un équipage"}, départ ${formatMin(slot.departMin)}.`,
+    "ok",
+  );
+}
+
+function applyReopt(state: GameState): GameState {
+  const plan = reoptimizeStable({
+    crews: state.crews,
+    transports: state.transports,
+    blocks: state.blocks,
+    locations: state.locations,
+    nowMin: horizon(state),
+    rules: state.rules,
+    labelOf: (transport) => courseLabel(state, transport),
+  });
+  if (!plan.changes.length) return withToast(state, "Aucune course déplacée.", "info");
+  return withToast(
+    { ...state, transports: plan.transports },
+    `${plan.changes.length} course${plan.changes.length > 1 ? "s" : ""} déplacée${plan.changes.length > 1 ? "s" : ""}.`,
+    "ok",
+  );
 }
 
 function unassign(state: GameState, transportId: string): GameState {
@@ -371,7 +513,7 @@ function unassign(state: GameState, transportId: string): GameState {
   return {
     ...state,
     transports: state.transports.map((item) =>
-      item.id === transport.id ? { ...item, crewId: undefined, departMin: undefined } : item,
+      item.id === transport.id ? { ...item, crewId: undefined, departMin: undefined, pinned: false } : item,
     ),
     stats: { ...state.stats, moves: state.stats.moves + 1 },
     selectedId: transport.id,
@@ -422,6 +564,7 @@ function applyStops(state: GameState, stops: PlanStop[], meals?: TimeBlock[]): G
   const stopMap = new Map(stops.map((stop) => [stop.transportId, stop]));
   const transports = state.transports.map((transport) => {
     if (transport.cancelled || frozen.has(transport.id)) return transport;
+    if (transport.pinned && transport.crewId && transport.departMin != null) return transport;
     const stop = stopMap.get(transport.id);
     if (!stop) {
       return transport.crewId ? { ...transport, crewId: undefined, departMin: undefined } : transport;
@@ -592,21 +735,28 @@ function delayCrew(state: GameState, call: Call, expired: boolean): GameState {
   if (!call.crewId) return state;
   const delta = call.deltaMin ?? 15;
   const crew = state.crews.find((item) => item.id === call.crewId);
+  let held = 0;
+  const transports = state.transports.map((item) => {
+    if (item.crewId !== call.crewId || item.departMin == null || item.cancelled) return item;
+    if (item.departMin <= state.nowMin) return item;
+    if (item.pinned) {
+      held += 1;
+      return item;
+    }
+    return { ...item, departMin: item.departMin + delta };
+  });
+  const heldNote = held ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} reste${held > 1 ? "nt" : ""} en place.` : "";
   return withToast(
     {
       ...state,
       crews: state.crews.map((item) =>
         item.id === call.crewId ? { ...item, delayUntil: state.nowMin + 50 } : item,
       ),
-      transports: state.transports.map((item) => {
-        if (item.crewId !== call.crewId || item.departMin == null || item.cancelled) return item;
-        if (item.departMin <= state.nowMin) return item;
-        return { ...item, departMin: item.departMin + delta };
-      }),
+      transports,
     },
     expired
-      ? `${crew?.code ?? "L'équipage"} encaisse ${delta} min de retard, appel non pris.`
-      : `${crew?.code ?? "L'équipage"} : courses suivantes décalées de ${delta} min.`,
+      ? `${crew?.code ?? "L'équipage"} encaisse ${delta} min de retard, appel non pris.${heldNote}`
+      : `${crew?.code ?? "L'équipage"} : courses suivantes décalées de ${delta} min.${heldNote}`,
     "warn",
   );
 }
@@ -636,6 +786,7 @@ function breakCrew(
   };
   const blocks = [...state.blocks, block];
   let released = 0;
+  let held = 0;
   const transports = state.transports.map((transport) => {
     if (kind !== "panne" || transport.crewId !== crew.id || transport.departMin == null || transport.cancelled) {
       return transport;
@@ -643,11 +794,16 @@ function breakCrew(
     const overlaps = transport.departMin < block.endMin && transport.departMin + 35 > block.startMin;
     const started = transport.departMin <= state.nowMin;
     if (!overlaps || started) return transport;
+    if (transport.pinned) {
+      held += 1;
+      return transport;
+    }
     released += 1;
-    return { ...transport, crewId: undefined, departMin: undefined };
+    return { ...transport, crewId: undefined, departMin: undefined, pinned: false };
   });
   const label = kind === "panne" ? "Panne enregistrée" : "Pause posée";
   const extra = released ? ` ${released} course${released > 1 ? "s" : ""} remise${released > 1 ? "s" : ""} au standard.` : "";
+  const heldNote = held ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} laissée${held > 1 ? "s" : ""} en place.` : "";
   return withToast(
     {
       ...state,
@@ -657,7 +813,7 @@ function breakCrew(
         item.id === crew.id ? { ...item, delayUntil: kind === "panne" ? block.endMin : item.delayUntil } : item,
       ),
     },
-    expired ? `${label} automatiquement sur ${crew.code}.${extra}` : `${label} sur ${crew.code}.${extra}`,
+    expired ? `${label} automatiquement sur ${crew.code}.${extra}${heldNote}` : `${label} sur ${crew.code}.${extra}${heldNote}`,
     kind === "panne" ? "bad" : "info",
   );
 }
@@ -1110,7 +1266,7 @@ function rollDay(state: GameState): GameState {
       blocks: state.blocks.filter((block) => block.kind !== "repas"),
       transports: state.transports
         .filter((transport) => !transport.cancelled)
-        .map((transport) => ({ ...transport, crewId: undefined, departMin: undefined })),
+        .map((transport) => ({ ...transport, crewId: undefined, departMin: undefined, pinned: false })),
     },
     `Courses reprises pour le ${missionLabel}, sans affectation.`,
     "ok",
