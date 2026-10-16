@@ -487,14 +487,18 @@ async function nudgeFive(page: Page): Promise<{ id: string; before: number; afte
 }
 
 async function changeVehicle(page: Page): Promise<{ id: string; before: string; after: string }> {
-  const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance");
-  for (const candidate of candidates.slice(0, 6)) {
+  const candidates = (await bars(page))
+    .filter((item) => item.posture === "assis" && item.vehicle === "ambulance")
+    .sort((a, b) => b.depart - a.depart);
+  for (const candidate of candidates.slice(0, 16)) {
     await center(page, candidate.id);
     await page.locator(`[data-transport-id="${candidate.id}"]`).click();
     const before = (await barById(page, candidate.id)).crew;
-    await page.getByRole("button", { name: "Véhicule suivant" }).click();
-    const after = (await barById(page, candidate.id)).crew;
-    if (after !== before) return { id: candidate.id, before, after };
+    for (const label of ["Véhicule suivant", "Véhicule précédent"]) {
+      await page.getByRole("button", { name: label }).click();
+      const after = (await barById(page, candidate.id)).crew;
+      if (after !== before) return { id: candidate.id, before, after };
+    }
   }
   throw new Error("aucun changement de véhicule accepté");
 }
