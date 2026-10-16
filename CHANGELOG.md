@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.6.0 — 2026-10-16
+
+Tag `v0.6.0`. Branche `feat/v0.6-gantt-segments`.
+
+- Chaque course du Gantt est en trois segments : trajet à vide hachuré, prise en charge, trajet en charge et dépose. Les largeurs suivent les durées.
+- Prise en charge (10 min ambulance, 5 min VSL) et dépose (8 min) se règlent dans Réglages.
+- Les durées de route viennent d'OSRM, ou d'ORS si une clé est enregistrée dans ce navigateur (`ambux.ors`). Le tracé droit n'est utilisé que si le routage échoue, avec un point d'alerte.
+- Déplacer une course recalcule le trajet à vide depuis l'arrêt précédent. Un tap affiche vide, PEC, trajet, dépose et les kilomètres.
+
 ## v0.5.1 — 2026-10-16
 
 Tag `v0.5.1`. Branche `feat/v0.5.1-feuille-lomaco`.

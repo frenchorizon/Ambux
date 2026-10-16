@@ -1,9 +1,15 @@
 import { indexById } from "../lib/collections";
 import { travelBetween } from "../lib/routing";
-import type { Crew, Location, TimeBlock, Transport } from "./types";
+import { DEFAULT_RULES, type Crew, type Location, type Rules, type TimeBlock, type Transport } from "./types";
 
 export interface Segment {
-  kind: "deadhead" | "wait" | "loaded" | "pec";
+  kind: "deadhead" | "wait" | "loaded" | "pec" | "dropoff";
+  start: number;
+  end: number;
+}
+
+export interface VisualPart {
+  kind: "vide" | "pec" | "charge";
   start: number;
   end: number;
 }
@@ -18,12 +24,14 @@ export interface Leg {
   waitMin: number;
   loadedMin: number;
   pecMin: number;
+  dropoffMin: number;
   deadheadKm: number;
   loadedKm: number;
   lateMin: number;
   deviationMin: number;
   outOfTolerance: boolean;
   kmEstimated: boolean;
+  routingPending: boolean;
   conflict: boolean;
   incompatible: boolean;
   fromId: string;
@@ -58,7 +66,7 @@ export function travelLoc(
   fromId: string,
   toId: string,
   locMap: Map<string, Location>,
-): { km: number; min: number; source: "osrm" | "estimate" } {
+): { km: number; min: number; source: "osrm" | "ors" | "estimate"; pending?: boolean } {
   const from = locMap.get(fromId);
   const to = locMap.get(toId);
   if (!from || !to) return { km: 6, min: 12, source: "estimate" };
@@ -97,26 +105,47 @@ export function legHitsBlock(
   );
 }
 
+export function serviceDurations(crew: Crew, rules: Rules = DEFAULT_RULES): { pecMin: number; dropoffMin: number } {
+  return {
+    pecMin: crew.vehicleType === "ambulance" ? (rules.pecAmbMin ?? DEFAULT_RULES.pecAmbMin) : (rules.pecVslMin ?? DEFAULT_RULES.pecVslMin),
+    dropoffMin: rules.dropoffMin ?? DEFAULT_RULES.dropoffMin,
+  };
+}
+
+export function visualParts(leg: Leg): VisualPart[] {
+  const parts: VisualPart[] = [];
+  const deadhead = leg.segments.find((segment) => segment.kind === "deadhead");
+  if (deadhead) parts.push({ kind: "vide", start: deadhead.start, end: deadhead.end });
+  const pec = leg.segments.find((segment) => segment.kind === "pec");
+  if (pec) parts.push({ kind: "pec", start: pec.start, end: pec.end });
+  const loaded = leg.segments.find((segment) => segment.kind === "loaded");
+  const dropoff = leg.segments.find((segment) => segment.kind === "dropoff");
+  const start = loaded?.start ?? dropoff?.start;
+  const end = dropoff?.end ?? loaded?.end;
+  if (start != null && end != null && end - start >= 0.4) parts.push({ kind: "charge", start, end });
+  return parts;
+}
+
 export function simulateLeg(
   transport: Transport,
   departMin: number,
   fromId: string,
   crew: Crew,
   locMap: Map<string, Location>,
+  rules: Rules = DEFAULT_RULES,
 ): Leg {
   const deadhead = travelLoc(fromId, transport.pickupId, locMap);
   const loaded = travelLoc(transport.pickupId, transport.dropoffId, locMap);
-  const pec1 = Math.max(4, Math.round(transport.serviceMin * 0.58));
-  const pec2 = Math.max(3, transport.serviceMin - pec1);
+  const service = serviceDurations(crew, rules);
   const depart = departMin;
   const rawArrive = depart + deadhead.min;
   const waitMin = Math.max(0, transport.windowStart - rawArrive);
   const arrivePickup = rawArrive + waitMin;
-  const loadedStart = arrivePickup + pec1;
+  const loadedStart = arrivePickup + service.pecMin;
   const dropoffArrive = loadedStart + loaded.min;
   const stayMin = Math.max(0, transport.stayMin ?? 0);
-  const serviceEnd = dropoffArrive + pec2;
-  const endMin = serviceEnd + stayMin;
+  const dropoffEnd = dropoffArrive + service.dropoffMin;
+  const endMin = dropoffEnd + stayMin;
   const segments: Segment[] = [];
   const push = (kind: Segment["kind"], start: number, end: number) => {
     if (end - start >= 0.4) segments.push({ kind, start, end });
@@ -125,8 +154,9 @@ export function simulateLeg(
   push("wait", rawArrive, arrivePickup);
   push("pec", arrivePickup, loadedStart);
   push("loaded", loadedStart, dropoffArrive);
-  push("pec", dropoffArrive, serviceEnd);
-  push("wait", serviceEnd, endMin);
+  push("dropoff", dropoffArrive, dropoffEnd);
+  push("wait", dropoffEnd, endMin);
+  const pending = Boolean(deadhead.pending || loaded.pending);
   const planned = plannedPickup(transport);
   const tolerance = toleranceOf(transport);
 
@@ -139,13 +169,15 @@ export function simulateLeg(
     deadheadMin: deadhead.min,
     waitMin,
     loadedMin: loaded.min,
-    pecMin: pec1 + pec2,
+    pecMin: service.pecMin,
+    dropoffMin: service.dropoffMin,
     deadheadKm: deadhead.km,
     loadedKm: loaded.km,
     lateMin: Math.max(0, arrivePickup - planned - tolerance),
     deviationMin: Math.round(arrivePickup - planned),
     outOfTolerance: arrivePickup > planned + tolerance + 0.5 || arrivePickup < planned - tolerance - 0.5,
-    kmEstimated: deadhead.source !== "osrm" || loaded.source !== "osrm",
+    kmEstimated: !pending && (deadhead.source === "estimate" || loaded.source === "estimate"),
+    routingPending: pending,
     conflict: false,
     incompatible:
       (transport.posture === "allonge" && crew.vehicleType === "vsl") ||
@@ -173,6 +205,7 @@ export function scheduleCrew(
   locMap: Map<string, Location>,
   mode: "anchored" | "chain",
   origin?: { time: number; locId: string },
+  rules: Rules = DEFAULT_RULES,
 ): CrewSchedule {
   const jobs =
     mode === "anchored"
@@ -198,12 +231,12 @@ export function scheduleCrew(
     const jumped = jumpBreaks(blocks, crew.id, depart);
     if (jumped > depart + 1) conflict = true;
     depart = jumped;
-    let leg = simulateLeg(transport, depart, locId, crew, locMap);
+    let leg = simulateLeg(transport, depart, locId, crew, locMap, rules);
     const hit = legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin);
     if (hit) {
       conflict = true;
       const pushed = jumpBreaks(blocks, crew.id, Math.max(depart, hit.endMin));
-      leg = simulateLeg(transport, pushed, locId, crew, locMap);
+      leg = simulateLeg(transport, pushed, locId, crew, locMap, rules);
     }
     if (conflict || legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) {
       leg = { ...leg, conflict: true };
@@ -232,11 +265,12 @@ export function scheduleFleet(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   mode: "anchored" | "chain" = "anchored",
+  rules: Rules = DEFAULT_RULES,
 ): Map<string, CrewSchedule> {
   const map = new Map<string, CrewSchedule>();
   for (const crew of crews) {
     const mine = transports.filter((transport) => transport.crewId === crew.id);
-    map.set(crew.id, scheduleCrew(crew, mine, blocks, locMap, mode));
+    map.set(crew.id, scheduleCrew(crew, mine, blocks, locMap, mode, undefined, rules));
   }
   return map;
 }
@@ -247,6 +281,7 @@ export function freeGaps(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   nowMin: number,
+  rules: Rules = DEFAULT_RULES,
 ): Gap[] {
   const schedule = scheduleCrew(
     crew,
@@ -254,6 +289,8 @@ export function freeGaps(
     blocks,
     locMap,
     "anchored",
+    undefined,
+    rules,
   );
   const ranges: { start: number; end: number; locAfter?: string }[] = [];
   for (const leg of schedule.legs) {
@@ -299,20 +336,22 @@ function placeInGap(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   requested: number,
+  rules: Rules,
 ): Leg | null {
   const travel = travelLoc(gap.fromId, transport.pickupId, locMap);
   const loaded = travelLoc(transport.pickupId, transport.dropoffId, locMap);
-  const minSpan = travel.min + loaded.min + transport.serviceMin + Math.max(0, transport.stayMin ?? 0);
+  const service = serviceDurations(crew, rules);
+  const minSpan = travel.min + loaded.min + service.pecMin + service.dropoffMin + Math.max(0, transport.stayMin ?? 0);
   if (gap.end - gap.start < minSpan - 1) return null;
   let depart = requested;
   if (depart < gap.start) depart = gap.start;
   const latest = gap.end - minSpan;
   if (depart > latest) depart = latest;
   if (depart < gap.start - 0.2) return null;
-  let leg = simulateLeg(transport, depart, gap.fromId, crew, locMap);
+  let leg = simulateLeg(transport, depart, gap.fromId, crew, locMap, rules);
   if (leg.endMin > gap.end + 1.5) {
     depart = Math.max(gap.start, leg.departMin - (leg.endMin - gap.end));
-    leg = simulateLeg(transport, depart, gap.fromId, crew, locMap);
+    leg = simulateLeg(transport, depart, gap.fromId, crew, locMap, rules);
   }
   if (leg.departMin < gap.start - 0.4 || leg.endMin > gap.end + 1.5) return null;
   if (legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) return null;
@@ -325,6 +364,7 @@ function bestLegInGap(
   crew: Crew,
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
+  rules: Rules,
 ): Leg | null {
   const travel = travelLoc(gap.fromId, transport.pickupId, locMap);
   const smart = Math.max(gap.start, transport.windowStart - travel.min);
@@ -333,7 +373,7 @@ function bestLegInGap(
   let bestScore = Number.POSITIVE_INFINITY;
   for (const depart of tries) {
     if (depart >= gap.end) continue;
-    const leg = simulateLeg(transport, depart, gap.fromId, crew, locMap);
+    const leg = simulateLeg(transport, depart, gap.fromId, crew, locMap, rules);
     if (leg.departMin < gap.start - 0.2 || leg.endMin > gap.end + 0.4) continue;
     if (legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) continue;
     const score = leg.lateMin * 20 + leg.waitMin;
@@ -352,6 +392,7 @@ export function candidatePlacements(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   nowMin: number,
+  rules: Rules = DEFAULT_RULES,
 ): Leg[] {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return [];
   if (crew.vehicleType === "ambulance" && !crew.dea) return [];
@@ -361,10 +402,11 @@ export function candidatePlacements(
     blocks,
     locMap,
     nowMin,
+    rules,
   );
   const legs: Leg[] = [];
   for (const gap of gaps) {
-    const leg = bestLegInGap(gap, transport, crew, blocks, locMap);
+    const leg = bestLegInGap(gap, transport, crew, blocks, locMap, rules);
     if (leg && leg.departMin >= nowMin - 0.2) legs.push(leg);
   }
   return legs;
@@ -378,11 +420,12 @@ export function previewPlacement(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   nowMin: number,
+  rules: Rules = DEFAULT_RULES,
 ): PlacementPreview {
   if (transport.cancelled) {
     return { ok: false, reason: "cancelled", message: "Ce transport est annulé." };
   }
-  const existing = scheduleFleet([crew], transports, blocks, locMap).get(crew.id);
+  const existing = scheduleFleet([crew], transports, blocks, locMap, "anchored", rules).get(crew.id);
   const current = existing?.legs.find((leg) => leg.transportId === transport.id);
   if (current && current.departMin <= nowMin) {
     return {
@@ -411,11 +454,12 @@ export function previewPlacement(
     blocks,
     locMap,
     nowMin,
+    rules,
   );
   let leg: Leg | null = null;
   let bestDist = Number.POSITIVE_INFINITY;
   for (const gap of gaps) {
-    const placed = placeInGap(gap, transport, crew, blocks, locMap, requestedDepart);
+    const placed = placeInGap(gap, transport, crew, blocks, locMap, requestedDepart, rules);
     if (!placed || placed.departMin < nowMin - 0.2) continue;
     const dist = Math.abs(placed.departMin - requestedDepart);
     if (dist < bestDist) {
@@ -451,10 +495,11 @@ export function bestSlotFor(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   nowMin: number,
+  rules: Rules = DEFAULT_RULES,
 ): { crewId: string; departMin: number; warning?: string } | null {
   let best: { crewId: string; departMin: number; cost: number; warning?: string } | null = null;
   for (const crew of crews) {
-    const candidates = candidatePlacements(crew, transport, transports, blocks, locMap, nowMin);
+    const candidates = candidatePlacements(crew, transport, transports, blocks, locMap, nowMin, rules);
     for (const leg of candidates) {
       const cost = leg.deadheadKm * 2.4 + leg.lateMin * 7 + leg.waitMin * 0.12;
       if (!best || cost < best.cost) {
@@ -477,9 +522,10 @@ export function suggestCompact(
   blocks: readonly TimeBlock[],
   locMap: Map<string, Location>,
   nowMin: number,
+  rules: Rules = DEFAULT_RULES,
 ): Map<string, number> {
   const updates = new Map<string, number>();
-  const schedules = scheduleFleet(crews, transports, blocks, locMap);
+  const schedules = scheduleFleet(crews, transports, blocks, locMap, "anchored", rules);
   const byId = indexById(transports);
 
   for (const crew of crews) {
@@ -501,11 +547,11 @@ export function suggestCompact(
         crew.id,
         Math.max(cursor, smartDepart(cursor, transport, locId, locMap)),
       );
-      let next = simulateLeg(transport, depart, locId, crew, locMap);
+      let next = simulateLeg(transport, depart, locId, crew, locMap, rules);
       const hit = legHitsBlock(blocks, crew.id, next.departMin, next.endMin);
       if (hit) {
         depart = jumpBreaks(blocks, crew.id, hit.endMin);
-        next = simulateLeg(transport, depart, locId, crew, locMap);
+        next = simulateLeg(transport, depart, locId, crew, locMap, rules);
       }
       if (Math.abs(next.departMin - (transport.departMin ?? next.departMin)) > 0.6) {
         updates.set(transport.id, next.departMin);

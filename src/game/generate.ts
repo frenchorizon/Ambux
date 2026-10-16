@@ -144,13 +144,12 @@ export function generateDay(options: {
     transport.crewId = crew.id;
     transport.departMin = leg.departMin;
     transports.push(transport);
-    const pec1 = Math.max(4, Math.round(transport.serviceMin * 0.58));
-    const pec2 = Math.max(3, transport.serviceMin - pec1);
+    const loadedEnd = leg.segments.find((segment) => segment.kind === "loaded")?.end ?? leg.arrivePickup;
     return {
       transport,
       cursor: leg.endMin + irand(rng, 2, 6),
       locId: transport.dropoffId,
-      dropoffArrive: Math.round(leg.endMin - pec2),
+      dropoffArrive: Math.round(loadedEnd),
     };
   };
 

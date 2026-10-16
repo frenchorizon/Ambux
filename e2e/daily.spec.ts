@@ -28,6 +28,22 @@ test("gestes, exports, brouillon et demande vide", async ({ page }, testInfo) =>
   }
 });
 
+test("le gantt découpe chaque course", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "capture téléphone");
+  await openPlanning(page);
+  const block = page.locator("[data-transport-id]").first();
+  await expect(block.locator("[data-seg='pec']")).toBeVisible();
+  await expect(block.locator("[data-seg='charge']")).toBeVisible();
+  const labels = await page.locator("[data-transport-id]").allInnerTexts();
+  for (const label of labels) {
+    expect(label).not.toContain("à vide");
+    expect(label.trim()).not.toBe("de");
+  }
+  await block.click();
+  await expect(page.getByRole("paragraph").filter({ hasText: /vide \d+ min \/ PEC \d+ min \/ trajet \d+ min \/ dépose \d+ min/ })).toBeVisible();
+  await page.screenshot({ path: "/opt/cursor/artifacts/v060-gantt-phone.png" });
+});
+
 test("la carte charge des rues sans clé", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "vérifié sur téléphone");
   const tiles: string[] = [];

@@ -345,6 +345,7 @@ function assign(state: GameState, transportId: string, crewId: string, departMin
     state.blocks,
     locMap,
     horizon(state),
+    state.rules,
   );
   if (!preview.ok) return withToast(state, preview.message, "warn");
   return {
@@ -363,7 +364,7 @@ function unassign(state: GameState, transportId: string): GameState {
   const transport = state.transports.find((item) => item.id === transportId);
   if (!transport?.crewId) return state;
   const locMap = indexLocations(state.locations);
-  const schedules = scheduleFleet(state.crews, state.transports, state.blocks, locMap);
+  const schedules = scheduleFleet(state.crews, state.transports, state.blocks, locMap, "anchored", state.rules);
   if (startedIds(schedules, horizon(state)).has(transport.id)) {
     return withToast(state, "Course déjà engagée : impossible de la retirer.", "warn");
   }
@@ -415,7 +416,7 @@ function horizon(state: GameState): number {
 function applyStops(state: GameState, stops: PlanStop[], meals?: TimeBlock[]): GameState {
   const locMap = indexLocations(state.locations);
   const frozen = startedIds(
-    scheduleFleet(state.crews, state.transports, state.blocks, locMap),
+    scheduleFleet(state.crews, state.transports, state.blocks, locMap, "anchored", state.rules),
     horizon(state),
   );
   const stopMap = new Map(stops.map((stop) => [stop.transportId, stop]));
@@ -550,7 +551,7 @@ function cancelTransport(state: GameState, call: Call, expired: boolean): GameSt
     return withToast(state, "La course était déjà annulée.", "info");
   }
   const locMap = indexLocations(state.locations);
-  const schedules = scheduleFleet(state.crews, state.transports, state.blocks, locMap);
+  const schedules = scheduleFleet(state.crews, state.transports, state.blocks, locMap, "anchored", state.rules);
   const leg = [...schedules.values()]
     .flatMap((schedule) => schedule.legs)
     .find((item) => item.transportId === transport.id);
@@ -728,7 +729,7 @@ function placeMeals(state: GameState, preset?: TimeBlock[]): GameState {
   const foreign = state.blocks.filter((block) => block.kind !== "repas");
   if (preset) return { ...state, blocks: [...foreign, ...preset] };
   const locMap = indexLocations(state.locations);
-  const schedules = scheduleFleet(state.crews, state.transports, foreign, locMap);
+  const schedules = scheduleFleet(state.crews, state.transports, foreign, locMap, "anchored", state.rules);
   const meals: TimeBlock[] = [];
   for (const crew of state.crews) {
     const schedule = schedules.get(crew.id);
@@ -773,7 +774,7 @@ function snapBack(state: GameState, transportId: string): GameState {
   }
   const crew = state.crews.find((item) => item.id === transport.crewId);
   if (!crew) return state;
-  const schedule = scheduleFleet([crew], state.transports.filter((item) => item.id !== transport.id), state.blocks, locMap).get(crew.id);
+  const schedule = scheduleFleet([crew], state.transports.filter((item) => item.id !== transport.id), state.blocks, locMap, "anchored", state.rules).get(crew.id);
   let fromId = crew.baseId;
   let earliest = crew.shiftStart;
   for (const leg of schedule?.legs ?? []) {
@@ -784,9 +785,9 @@ function snapBack(state: GameState, transportId: string): GameState {
   }
   const travel = travelLoc(fromId, transport.pickupId, locMap);
   const depart = Math.max(earliest, appointment - travel.min);
-  const preview = previewPlacement(crew, transport, depart, state.transports, state.blocks, locMap, horizon(state));
+  const preview = previewPlacement(crew, transport, depart, state.transports, state.blocks, locMap, horizon(state), state.rules);
   if (!preview.ok) return withToast(state, preview.message, "warn");
-  const current = scheduleFleet([crew], state.transports, state.blocks, locMap)
+  const current = scheduleFleet([crew], state.transports, state.blocks, locMap, "anchored", state.rules)
     .get(crew.id)
     ?.legs.find((leg) => leg.transportId === transport.id);
   const nextGap = Math.abs(preview.leg.deviationMin);
@@ -852,6 +853,7 @@ function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
       followNow: false,
       toastSeq: state.toastSeq + 1,
       selectedId: undefined,
+      rules: { ...DEFAULT_RULES, ...snapshot.rules },
       missionIso: snapshot.missionIso || MISSION_ISO,
       missionLabel: snapshot.missionDate || labelForIso(snapshot.missionIso || MISSION_ISO),
     },

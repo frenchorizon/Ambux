@@ -36,6 +36,12 @@ export interface Rules {
   maxVsl: number;
   sessionMin: number;
   amplitudeMin: number;
+  /** Prise en charge au domicile ou à l'adresse, ambulance. */
+  pecAmbMin: number;
+  /** Prise en charge au domicile ou à l'adresse, VSL. */
+  pecVslMin: number;
+  /** Dépose et fin de mission, après le trajet en charge. */
+  dropoffMin: number;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -47,6 +53,9 @@ export const DEFAULT_RULES: Rules = {
   maxVsl: 25,
   sessionMin: 4 * 60,
   amplitudeMin: 11 * 60,
+  pecAmbMin: 10,
+  pecVslMin: 5,
+  dropoffMin: 8,
 };
 
 export interface StaffMember {

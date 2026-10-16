@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
-import type { Leg } from "../../game/schedule";
+import { visualParts, type Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
 import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
 import { mealIssue } from "../../game/breaks";
@@ -89,7 +89,7 @@ export function GanttBoard({
           )}
         </div>
       </div>
-      {tip && tipTransport && !drag?.moved && (
+      {tip && tipTransport && !drag?.moved && !narrow && (
         <div
           className="pointer-events-none fixed z-[60] w-64 rounded-xl border border-line bg-white p-3 text-xs shadow-xl"
           style={{ left: Math.min(tip.x + 12, window.innerWidth - 280), top: Math.min(tip.y + 12, window.innerHeight - 180) }}
@@ -191,7 +191,7 @@ function CrewRow({
         {schedule && schedule.returnKm > 0.2 && (
           <div
             title={`Retour dépôt à vide · ${formatKm(schedule.returnKm, 1)}`}
-            className="seg-deadhead absolute flex items-center overflow-hidden rounded-md border border-slate-300 px-1 text-[10px] font-semibold text-slate-800"
+            className="seg-deadhead absolute overflow-hidden rounded-md border border-slate-300"
             style={{
               top: barTop,
               height: barH,
@@ -199,28 +199,29 @@ function CrewRow({
               width: Math.max(8, (schedule.returnEnd - schedule.returnStart) * pxPerMin),
               backgroundColor: "#dbe4ee",
             }}
-          >
-            {(schedule.returnEnd - schedule.returnStart) * pxPerMin > 46 ? "Retour dépôt" : ""}
-          </div>
+          />
         )}
         {legs.map((leg) => {
           const transport = transports.find((item) => item.id === leg.transportId);
           if (!transport) return null;
           const patient = patientById.get(transport.patientId);
           const left = (leg.departMin - DAY_START) * pxPerMin;
-          const bar = Math.max(5, (leg.endMin - leg.departMin) * pxPerMin);
+          const span = Math.max(1, leg.endMin - leg.departMin);
+          const bar = Math.max(5, span * pxPerMin);
           const selected = selectedId === transport.id;
           const off = Math.abs(leg.deviationMin) >= 5;
+          const parts = visualParts(leg);
+          const name = patient?.lastName.toUpperCase() ?? "Course";
           return (
             <span key={leg.transportId} className="contents">
             <button
               type="button"
               className={cn(
-                "absolute overflow-hidden rounded-md text-left text-[11px] font-semibold text-white shadow-sm",
+                "absolute overflow-hidden rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
                 leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
               )}
-              style={{ left, width: bar, top: barTop, height: barH, background: crew.color, touchAction: "manipulation" }}
+              style={{ left, width: bar, top: barTop, height: barH, background: "color-mix(in srgb, var(--crew) 16%, transparent)", ["--crew" as string]: crew.color, touchAction: "manipulation" }}
               onContextMenu={(event) => event.preventDefault()}
               data-transport-id={transport.id}
               data-posture={transport.posture}
@@ -231,33 +232,38 @@ function CrewRow({
               onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
               onMouseLeave={() => onTip(null)}
             >
-              {leg.segments.map((segment) => (
-                <span
-                  key={`${segment.kind}-${segment.start}`}
-                  className={cn(
-                    "relative h-full",
-                    segment.kind === "deadhead" && "seg-deadhead",
-                    segment.kind === "loaded" && "seg-loaded",
-                    segment.kind === "pec" && "seg-pec",
-                    segment.kind === "wait" && "seg-wait",
-                  )}
-                  style={{ width: `${((segment.end - segment.start) / Math.max(1, leg.endMin - leg.departMin)) * 100}%` }}
-                >
-                  {segment.kind === "deadhead" && (segment.end - segment.start) * pxPerMin > 36 && (
-                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-800">à vide</span>
-                  )}
-                </span>
-              ))}
-              {leg.kmEstimated && bar > 54 && (
-                <span className="pointer-events-none absolute bottom-0 left-0 rounded-tr bg-rose-700 px-1 text-[8px] font-bold text-white">km estimé</span>
-              )}
-              {bar > 72 && (
-                <span className="pointer-events-none absolute inset-0 flex items-center px-1.5">
-                  <span className="truncate drop-shadow">
-                    {patient?.lastName.toUpperCase() ?? "Course"}
-                    {transport.priority === "urgent" ? " · URG" : ""}
+              {parts.map((part) => {
+                const minutes = part.end - part.start;
+                const wide = minutes * pxPerMin > 42;
+                return (
+                  <span
+                    key={part.kind}
+                    data-seg={part.kind}
+                    data-minutes={Math.round(minutes)}
+                    className={cn(
+                      "absolute inset-y-0 overflow-hidden",
+                      part.kind === "vide" && "seg-vide",
+                      part.kind === "pec" && "seg-pec",
+                      part.kind === "charge" && "seg-charge",
+                    )}
+                    style={{
+                      left: `${((part.start - leg.departMin) / span) * 100}%`,
+                      width: `${(minutes / span) * 100}%`,
+                    }}
+                  >
+                    {part.kind === "charge" && wide && (
+                      <span className="pointer-events-none absolute inset-0 flex items-center px-1">
+                        <span className="truncate">{name}{transport.priority === "urgent" ? " · URG" : ""}</span>
+                      </span>
+                    )}
                   </span>
-                </span>
+                );
+              })}
+              {leg.kmEstimated && (
+                <span
+                  title="Durée estimée : le routage n'a pas répondu"
+                  className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-600"
+                />
               )}
             </button>
             {off && (
@@ -319,13 +325,13 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
         {from?.short ?? "Départ"} → {to?.short ?? "Arrivée"}
       </div>
       <div className="mt-1 text-muted">
-        Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±{transport.toleranceMin ?? 20} min · PEC {transport.serviceMin} min
+        Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±{transport.toleranceMin ?? 20} min
         {(transport.stayMin ?? 0) > 0 ? ` · attente établissement ${transport.stayMin} min` : ""}
       </div>
       {leg && (
-        <div className="mt-1 text-muted">
-          Départ {formatMin(leg.departMin)} · à vide {formatKm(leg.deadheadKm, 1)} ({leg.deadheadMin} min) · en charge {formatKm(leg.loadedKm, 1)}
-          {leg.kmEstimated ? " · km estimé" : ""}
+        <div className="mt-1 text-ink">
+          vide {leg.deadheadMin} min / PEC {leg.pecMin} min / trajet {leg.loadedMin} min / dépose {leg.dropoffMin} min · {formatKm(leg.deadheadKm + leg.loadedKm, 1)}
+          {leg.kmEstimated ? " · estimé" : ""}
         </div>
       )}
       {leg && Math.abs(leg.deviationMin) >= 1 && (

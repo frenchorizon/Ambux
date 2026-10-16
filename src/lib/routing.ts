@@ -4,7 +4,9 @@ import { minutesForKm, roadKm, type LatLng } from "./geo";
 export interface Travel {
   km: number;
   min: number;
-  source: "osrm" | "estimate";
+  source: "osrm" | "ors" | "estimate";
+  /** Vrai tant que la durée routière de ce tronçon n'est pas encore en cache. */
+  pending?: boolean;
 }
 
 const travelById = new Map<string, Travel>();
@@ -15,6 +17,8 @@ let matrixState: "idle" | "loading" | "osrm" | "estimate" = "idle";
 const listeners = new Set<() => void>();
 
 const OSRM = "https://router.project-osrm.org";
+const OSRM_DE = "https://routing.openstreetmap.de/routed-car";
+const ORS = "https://api.openrouteservice.org/v2/directions/driving-car";
 
 function bump(): void {
   version += 1;
@@ -48,14 +52,29 @@ function coordKey(a: LatLng, b: LatLng): string {
   return `${a.lat.toFixed(4)},${a.lng.toFixed(4)}>${b.lat.toFixed(4)},${b.lng.toFixed(4)}`;
 }
 
+export function rememberTravel(fromId: string, toId: string, travel: Travel): void {
+  travelById.set(idKey(fromId, toId), {
+    km: travel.km,
+    min: travel.min,
+    source: travel.source,
+  });
+}
+
 export function travelBetween(
   fromId: string,
   toId: string,
   from: LatLng,
   to: LatLng,
-): { km: number; min: number; source: "osrm" | "estimate" } {
+): Travel {
+  if (fromId === toId) return { km: 0, min: 0, source: "osrm" };
   const known = travelById.get(idKey(fromId, toId));
-  if (known) return { km: known.km, min: known.min, source: known.source };
+  if (known) return known;
+  const estimate = estimateTravel(from, to);
+  if (routingForcedEstimate() || typeof window === "undefined") return estimate;
+  return { ...estimate, pending: true };
+}
+
+function estimateTravel(from: LatLng, to: LatLng): Travel {
   const km = roadKm(from, to);
   return { km, min: minutesForKm(km), source: "estimate" };
 }
@@ -140,9 +159,124 @@ export async function warmMatrix(locations: readonly { id: string; lat: number; 
     bump();
     return true;
   } catch {
-    matrixState = "estimate";
+    if (matrixState === "loading") matrixState = "idle";
     bump();
     return false;
+  }
+}
+
+interface LegPair {
+  fromId: string;
+  toId: string;
+  from: LatLng;
+  to: LatLng;
+}
+
+const legQueue: LegPair[] = [];
+const legPending = new Set<string>();
+let legWorkers = 0;
+
+export function warmLegs(pairs: readonly LegPair[]): void {
+  if (typeof window === "undefined" || routingForcedEstimate()) return;
+  for (const pair of pairs) {
+    if (pair.fromId === pair.toId) continue;
+    const key = idKey(pair.fromId, pair.toId);
+    if (travelById.has(key) || legPending.has(key)) continue;
+    legPending.add(key);
+    legQueue.push(pair);
+  }
+  void pumpLegs();
+}
+
+async function pumpLegs(): Promise<void> {
+  while (legWorkers < 2 && legQueue.length) {
+    const next = legQueue.shift();
+    if (!next) return;
+    legWorkers += 1;
+    void fetchLeg(next).finally(() => {
+      legWorkers -= 1;
+      void pumpLegs();
+    });
+  }
+}
+
+async function fetchLeg(pair: LegPair): Promise<void> {
+  const key = idKey(pair.fromId, pair.toId);
+  try {
+    const osrm = await osrmLeg(OSRM, pair.from, pair.to);
+    if (osrm) {
+      travelById.set(key, { ...osrm, source: "osrm" });
+      if (matrixState !== "estimate") matrixState = "osrm";
+      return;
+    }
+    const ors = await orsLeg(pair.from, pair.to);
+    if (ors) {
+      travelById.set(key, { ...ors, source: "ors" });
+      if (matrixState !== "estimate") matrixState = "osrm";
+      return;
+    }
+    const mirror = await osrmLeg(OSRM_DE, pair.from, pair.to);
+    if (mirror) {
+      travelById.set(key, { ...mirror, source: "osrm" });
+      if (matrixState !== "estimate") matrixState = "osrm";
+      return;
+    }
+    travelById.set(key, estimateTravel(pair.from, pair.to));
+    matrixState = "estimate";
+  } finally {
+    legPending.delete(key);
+    bump();
+  }
+}
+
+async function osrmLeg(base: string, from: LatLng, to: LatLng): Promise<{ km: number; min: number } | null> {
+  try {
+    const response = await fetchRouting(
+      `${base}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=false`,
+    );
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      code?: string;
+      routes?: { duration?: number; distance?: number }[];
+    };
+    const route = data.routes?.[0];
+    if (data.code !== "Ok" || route?.duration == null || route.distance == null) return null;
+    return { km: Math.max(0.2, route.distance / 1000), min: Math.max(1, Math.round(route.duration / 60)) };
+  } catch {
+    return null;
+  }
+}
+
+function orsKey(): string {
+  try {
+    return localStorage.getItem("ambux.ors") ?? "";
+  } catch {
+    return "";
+  }
+}
+
+async function orsLeg(from: LatLng, to: LatLng): Promise<{ km: number; min: number } | null> {
+  const key = orsKey();
+  if (!key) return null;
+  try {
+    const response = await fetch(ORS, {
+      method: "POST",
+      headers: {
+        Authorization: key,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ coordinates: [[from.lng, from.lat], [to.lng, to.lat]] }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      routes?: { summary?: { duration?: number; distance?: number } }[];
+    };
+    const summary = data.routes?.[0]?.summary;
+    if (summary?.duration == null || summary.distance == null) return null;
+    return { km: Math.max(0.2, summary.distance / 1000), min: Math.max(1, Math.round(summary.duration / 60)) };
+  } catch {
+    return null;
   }
 }
 

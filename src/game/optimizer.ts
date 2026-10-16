@@ -47,7 +47,7 @@ export function optimizePlan(input: {
   const locMap = indexById(input.locations);
   const active = input.transports.filter((transport) => !transport.cancelled);
   const byId = indexById(active);
-  const current = scheduleFleet(input.crews, active, input.blocks, locMap, "anchored");
+  const current = scheduleFleet(input.crews, active, input.blocks, locMap, "anchored", input.rules ?? DEFAULT_RULES);
 
   const frozenCount: Record<string, number> = {};
   const origin: Record<string, { time: number; locId: string }> = {};
@@ -117,7 +117,7 @@ export function optimizePlan(input: {
   const meals = mealsFor(input.crews, planned, foreignBlocks, locMap, ctx.rules);
   const metrics = metricsFromSchedules(
     input.crews,
-    scheduleFleet(input.crews, planned, [...foreignBlocks, ...meals], locMap, "anchored"),
+    scheduleFleet(input.crews, planned, [...foreignBlocks, ...meals], locMap, "anchored", input.rules ?? DEFAULT_RULES),
     planned,
     [...foreignBlocks, ...meals],
   );
@@ -139,7 +139,7 @@ function mealsFor(
   locMap: Map<string, Location>,
   rules: Rules,
 ): TimeBlock[] {
-  const schedules = scheduleFleet(crews, transports, blocks, locMap, "anchored");
+  const schedules = scheduleFleet(crews, transports, blocks, locMap, "anchored", rules);
   const meals: TimeBlock[] = [];
   for (const crew of crews) {
     const schedule = schedules.get(crew.id);
@@ -198,7 +198,7 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
   const foreign = ctx.blocks.filter((block) => !(block.crewId === crew.id && block.kind === "repas"));
-  const schedule = scheduleCrew(crew, jobs, foreign, ctx.locMap, "chain", ctx.origin[crew.id]);
+  const schedule = scheduleCrew(crew, jobs, foreign, ctx.locMap, "chain", ctx.origin[crew.id], ctx.rules);
   if (!suffixOk(schedule, crew) || !seriesOrderOk(jobs, schedule)) {
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }

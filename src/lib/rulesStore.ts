@@ -16,6 +16,9 @@ export function loadRules(): Rules {
       maxVsl: num(parsed.maxVsl, DEFAULT_RULES.maxVsl, 1, 40),
       sessionMin: num(parsed.sessionMin, DEFAULT_RULES.sessionMin, 60, 8 * 60),
       amplitudeMin: num(parsed.amplitudeMin, DEFAULT_RULES.amplitudeMin, 8 * 60, 14 * 60),
+      pecAmbMin: num(parsed.pecAmbMin, DEFAULT_RULES.pecAmbMin, 1, 40),
+      pecVslMin: num(parsed.pecVslMin, DEFAULT_RULES.pecVslMin, 1, 40),
+      dropoffMin: num(parsed.dropoffMin, DEFAULT_RULES.dropoffMin, 1, 40),
     };
   } catch {
     return DEFAULT_RULES;

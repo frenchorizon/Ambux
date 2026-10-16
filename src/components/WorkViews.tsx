@@ -81,6 +81,17 @@ export function ReglagesView() {
         <Field label="Séance de dialyse (heures)">
           <input type="number" min={1} max={8} step={0.5} value={rules.sessionMin / 60} onChange={(event) => set({ sessionMin: Math.round(Number(event.target.value) * 60) })} className={input} />
         </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Prise en charge ambulance (min)">
+            <input type="number" min={1} max={40} value={rules.pecAmbMin} onChange={(event) => set({ pecAmbMin: Number(event.target.value) })} className={input} />
+          </Field>
+          <Field label="Prise en charge VSL (min)">
+            <input type="number" min={1} max={40} value={rules.pecVslMin} onChange={(event) => set({ pecVslMin: Number(event.target.value) })} className={input} />
+          </Field>
+        </div>
+        <Field label="Dépose (min)">
+          <input type="number" min={1} max={40} value={rules.dropoffMin} onChange={(event) => set({ dropoffMin: Number(event.target.value) })} className={input} />
+        </Field>
         <p className="text-xs text-muted">Enregistré dans ce navigateur à chaque modification.</p>
       </form>
     </div>

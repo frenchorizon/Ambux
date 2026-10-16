@@ -33,31 +33,29 @@ body {
   scrollbar-color: #b7c9db transparent;
 }
 
+.seg-vide {
+  background-color: var(--crew);
+  opacity: 0.45;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    rgba(255, 255, 255, 0.62) 4px 7px
+  );
+}
+
+.seg-pec {
+  background: var(--crew);
+}
+
+.seg-charge {
+  background: color-mix(in srgb, var(--crew) 72%, #061018);
+}
+
 .seg-deadhead {
   background: repeating-linear-gradient(
     -45deg,
     rgba(255, 255, 255, 0.15) 0 3px,
     rgba(255, 255, 255, 0.72) 3px 6px
-  );
-}
-
-.seg-loaded {
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(0, 0, 0, 0.05) 0 3px,
-    rgba(0, 0, 0, 0.28) 3px 6px
-  );
-}
-
-.seg-pec {
-  background: rgba(255, 255, 255, 0.38);
-}
-
-.seg-wait {
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.15) 0 2px,
-    rgba(255, 255, 255, 0.55) 2px 4px
   );
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, ty
 import { useClock, useData } from "../../game/context";
 import { previewPlacement } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
-import { formatMin, personName, postureLabel } from "../../lib/format";
+import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import type { DragState } from "./drag";
@@ -66,6 +66,7 @@ export function PlanningWorkspace() {
             bag.current.data.blocks,
             bag.current.data.locMap,
             bag.current.clock.nowMin,
+            bag.current.data.rules,
           );
         }
       }
@@ -128,6 +129,9 @@ export function PlanningWorkspace() {
 
   const selected = data.selectedId ? data.transportById.get(data.selectedId) : undefined;
   const selectedPatient = selected ? data.patientById.get(selected.patientId) : undefined;
+  const selectedLeg = selected
+    ? [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((leg) => leg.transportId === selected.id)
+    : undefined;
 
   return (
     <div className={cn("relative flex h-full min-h-0 flex-col", drag?.moved && "touch-none")}>
@@ -139,6 +143,12 @@ export function PlanningWorkspace() {
             <div className="truncate text-xs text-muted">
               {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
             </div>
+            {selectedLeg && (
+              <p className="text-[12px] leading-snug text-ink">
+                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min / dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
+                {selectedLeg.kmEstimated ? " · estimé" : ""}
+              </p>
+            )}
           </div>
           <Button size="sm" className="h-11" variant="secondary" onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}>
             Heure prévue

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react";
 import { indexById } from "../lib/collections";
-import { useRoutingVersion, warmMatrix } from "../lib/routing";
+import { useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
@@ -127,13 +127,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!state.locations.length || state.phase === "briefing") return;
     let cancel = false;
     void warmMatrix(state.locations).then((ok) => {
-      if (cancel) return;
+      if (cancel || !ok) return;
       dispatch({
         type: "TOAST",
-        tone: ok ? "ok" : "warn",
-        message: ok
-          ? "Distances et durées calculées sur le réseau routier (OSRM)."
-          : "OSRM indisponible : durées estimées, tracés de secours.",
+        tone: "ok",
+        message: "Durées calculées sur le réseau routier (OSRM).",
       });
     });
     return () => {
@@ -186,8 +184,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const locMap = useMemo(() => indexLocations(state.locations), [state.locations]);
   const schedules = useMemo(() => {
     void routeVersion;
-    return scheduleFleet(state.crews, state.transports, state.blocks, locMap);
-  }, [state.crews, state.transports, state.blocks, locMap, routeVersion]);
+    return scheduleFleet(state.crews, state.transports, state.blocks, locMap, "anchored", state.rules);
+  }, [state.crews, state.transports, state.blocks, locMap, routeVersion, state.rules]);
+
+  useEffect(() => {
+    const pairs: { fromId: string; toId: string; from: Location; to: Location }[] = [];
+    for (const transport of state.transports) {
+      if (transport.cancelled || !transport.crewId) continue;
+      const leg = schedules.get(transport.crewId)?.legs.find((item) => item.transportId === transport.id);
+      if (!leg) continue;
+      const from = locMap.get(leg.fromId);
+      const pickup = locMap.get(transport.pickupId);
+      const drop = locMap.get(transport.dropoffId);
+      if (from && pickup) pairs.push({ fromId: leg.fromId, toId: transport.pickupId, from, to: pickup });
+      if (pickup && drop) pairs.push({ fromId: transport.pickupId, toId: transport.dropoffId, from: pickup, to: drop });
+    }
+    for (const crew of state.crews) {
+      const last = schedules.get(crew.id)?.legs.at(-1);
+      const drop = last ? locMap.get(last.dropoffId) : undefined;
+      const base = locMap.get(crew.baseId);
+      if (last && drop && base) pairs.push({ fromId: last.dropoffId, toId: crew.baseId, from: drop, to: base });
+    }
+    warmLegs(pairs);
+  }, [schedules, state.transports, state.crews, locMap]);
   const metrics = useMemo(
     () => metricsFromSchedules(state.crews, schedules, state.transports, state.blocks),
     [state.crews, schedules, state.transports, state.blocks],
