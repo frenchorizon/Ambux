@@ -64,9 +64,9 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/Heure invalide/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
   await expect(page.getByText(/\d+ transports? ajoutés?\./)).toBeVisible();
-  await expect(page.getByText("ZORAQA Line").first()).toBeVisible();
-  await expect(page.getByText("Aller", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Retour", { exact: true }).first()).toBeVisible();
+  const zora = page.locator("div.border-b").filter({ hasText: "ZORAQA Line" });
+  await expect(zora.filter({ hasText: "Aller" }).first()).toBeVisible();
+  await expect(zora.filter({ hasText: "Retour" }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter un transport" }).click();
   await page.getByPlaceholder("Nom").fill("SEANCEQA");
