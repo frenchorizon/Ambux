@@ -4,7 +4,7 @@ Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas �
 
 ## v0.8.0 — 2026-10-16
 
-Tag `v0.8.0`. Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`, `ux/donnees-menu`.
+Tag `v0.8.0`. Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`, `ux/donnees-menu`, `feat/import-export`.
 
 - Le bloc suit le doigt à chaque image. Le contrôle de créneau ne se relance que si l'équipage ou la minute calée sur 5 minutes change. Près du bord, le planning défile pendant le glisser.
 - L'appui long se voit (anneau bleu) avant le déplacement. Le défilement, le seuil de 18 px et le zoom restent.
@@ -21,6 +21,10 @@ Tag `v0.8.0`. Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat
 - Mention explicite : les données restent dans ce navigateur.
 - Journée type de Rouen : adresses et établissements plausibles (CHU Charles-Nicolle, Becquerel, cliniques, dialyse, kinés), environ 67 courses pour 3 ambulances et 3 VSL, kilomètres à vide autour de 27 %.
 - La synthèse retire le temps de régulation à 00:00 et compare le planning affiché au planning initial : kilomètres à vide, temps de trajet à vide, courses placées.
+- 15 ambulance et 25 VSL restent l'exemple d'une journée chargée. Ils ne refusent aucune course.
+- L'import couvre les courses, les patients, le personnel et les véhicules. Une attente de séance crée le retour, sur la grille de 5 minutes. L'aperçu est un tableau (lignes, rejets, avertissements). Rien n'est écrit avant Fusionner, qui s'annule en une seule étape.
+- Export du planning en CSV (point-virgule, BOM) et Excel (dates JJ/MM/AAAA), filtre de dates, colonnes mémorisées. Les feuilles Lomaco restent disponibles.
+- Sur téléphone, Importer et Exporter sont visibles sous la barre.
 
 ## v0.7.0 — 2026-10-16
 

@@ -158,11 +158,29 @@ export function TopBar() {
           <div className="h-full bg-brand" style={{ width: `${progress * 100}%` }} />
         </div>
       )}
+      {narrow && (
+        <div className="flex gap-2 px-2 pb-2">
+          <button
+            type="button"
+            className="h-11 flex-1 rounded-xl bg-ice text-sm font-semibold"
+            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "import" })}
+          >
+            Importer
+          </button>
+          <button
+            type="button"
+            className="h-11 flex-1 rounded-xl bg-ice text-sm font-semibold"
+            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}
+          >
+            Exporter
+          </button>
+        </div>
+      )}
       {menu && (
         <div
           role="group"
           aria-label="Autres actions"
-          className="absolute right-2 top-14 z-50 w-56 rounded-2xl border border-line bg-card p-1 shadow-xl"
+          className="absolute right-2 top-full z-50 mt-1 w-56 rounded-2xl border border-line bg-card p-1 shadow-xl"
         >
           <MenuButton
             icon={<FileText size={16} />}

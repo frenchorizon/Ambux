@@ -108,6 +108,14 @@ export type Action =
   | { type: "CLEAR_DEMAND" }
   | { type: "IMPORT_VEHICLES"; rows: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string }[] }
   | { type: "IMPORT_CREWS"; rows: { plate: string; driver: string; mate?: string; dea: boolean }[] }
+  | {
+      type: "IMPORT_APPLY";
+      vehicles: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string; active?: boolean; availability?: string }[];
+      crews: { plate: string; driver: string; mate?: string; dea: boolean }[];
+      patients: { patient: Patient; location?: Location }[];
+      personnel: { name: string; role: StaffMember["role"]; dea?: boolean; availability?: string }[];
+      courses: { transport: Transport; patient: Patient; location?: Location; locations?: Location[]; retour?: Transport }[];
+    }
   | { type: "HYDRATE"; state: GameState; label: string }
   | { type: "TOAST"; message: string; tone: Toast["tone"] }
   | { type: "DISMISS_TOAST" }
@@ -337,6 +345,8 @@ export function reducer(state: GameState, action: Action): GameState {
       return importVehicles(state, action.rows);
     case "IMPORT_CREWS":
       return importCrews(state, action.rows);
+    case "IMPORT_APPLY":
+      return importApply(state, action);
     case "HYDRATE":
       return hydrate(state, action.state, action.label);
     case "SET_TOMORROW_STOPS":
@@ -1284,6 +1294,103 @@ function clearDemand(state: GameState): GameState {
     "Demande vidée. Importez ou saisissez les courses.",
     "info",
   );
+}
+
+function importApply(state: GameState, action: Extract<Action, { type: "IMPORT_APPLY" }>): GameState {
+  let next = state;
+  let vehiclesAdded = 0;
+  for (const row of action.vehicles) {
+    const before = next.vehicles.length;
+    next = pushImportedVehicle(next, row);
+    if (next.vehicles.length > before) vehiclesAdded += 1;
+  }
+  let staffAdded = 0;
+  for (const row of action.personnel) {
+    const existing = next.staff.find((member) => member.name.localeCompare(row.name, "fr", { sensitivity: "accent" }) === 0 && member.role === row.role);
+    if (existing) {
+      next = {
+        ...next,
+        staff: next.staff.map((member) => member.id === existing.id ? { ...member, dea: member.dea || Boolean(row.dea), availability: row.availability ?? member.availability } : member),
+      };
+      continue;
+    }
+    const added = ensureStaff(next, row.name, row.role, Boolean(row.dea));
+    next = added.state;
+    if (row.availability) {
+      next = { ...next, staff: next.staff.map((member) => member.id === added.id ? { ...member, availability: row.availability } : member) };
+    }
+    staffAdded += 1;
+  }
+  let crewsUpdated = 0;
+  for (const row of action.crews) {
+    const plate = row.plate.replace(/\s+/g, "").toUpperCase();
+    const crew = next.crews.find((item) => item.plate.replace(/\s+/g, "").toUpperCase() === plate);
+    if (!crew) continue;
+    const driver = ensureStaff(next, row.driver, "conducteur", false);
+    next = driver.state;
+    const mate = row.mate ? ensureStaff(next, row.mate, "auxiliaire", row.dea) : undefined;
+    if (mate) next = mate.state;
+    next = setCrewStaff(next, crew.id, driver.id, mate?.id);
+    crewsUpdated += 1;
+  }
+  let patientsAdded = 0;
+  for (const row of action.patients) {
+    if (row.location && !next.locations.some((item) => item.id === row.location!.id)) {
+      next = { ...next, locations: [...next.locations, row.location] };
+    }
+    if (next.patients.some((item) => item.id === row.patient.id)) continue;
+    next = { ...next, patients: [...next.patients, row.patient] };
+    patientsAdded += 1;
+  }
+  const courseCount = action.courses.reduce((sum, row) => sum + (row.retour ? 2 : 1), 0);
+  if (action.courses.length) next = importBatch(next, action.courses);
+  const bits: string[] = [];
+  if (courseCount) bits.push(`${courseCount} transport${courseCount > 1 ? "s" : ""} ajouté${courseCount > 1 ? "s" : ""}`);
+  if (patientsAdded) bits.push(`${patientsAdded} patient${patientsAdded > 1 ? "s" : ""} ajouté${patientsAdded > 1 ? "s" : ""}`);
+  if (vehiclesAdded) bits.push(`${vehiclesAdded} véhicule${vehiclesAdded > 1 ? "s" : ""} ajouté${vehiclesAdded > 1 ? "s" : ""}`);
+  if (staffAdded) bits.push(`${staffAdded} personne${staffAdded > 1 ? "s" : ""} ajoutée${staffAdded > 1 ? "s" : ""}`);
+  if (crewsUpdated) bits.push(`${crewsUpdated} équipage${crewsUpdated > 1 ? "s" : ""} mis à jour`);
+  if (!bits.length) return withToast(state, "Rien à fusionner.", "warn");
+  return withToast(next, `${bits.join(" · ")}.`, "ok");
+}
+
+function pushImportedVehicle(
+  state: GameState,
+  row: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string; active?: boolean; availability?: string },
+): GameState {
+  const clean = row.plate.trim().toUpperCase();
+  if (clean.length < 4) return state;
+  if (state.vehicles.some((item) => item.plate.replace(/\s+/g, "").toUpperCase() === clean.replace(/\s+/g, ""))) return state;
+  const id = `veh-import-${clean.replace(/[^A-Z0-9]+/g, "")}`;
+  const code = row.vehicleCode?.trim() || undefined;
+  const vehicle: Vehicle = {
+    id,
+    plate: clean,
+    vehicleType: row.vehicleType,
+    name: row.name.trim() || (row.vehicleType === "ambulance" ? "Ambulance" : "VSL"),
+    vehicleCode: code,
+    active: row.active !== false,
+    availability: row.availability,
+  };
+  const index = state.crews.length;
+  const crewId = `crew-import-${id}`;
+  const crew = {
+    id: crewId,
+    code: row.vehicleType === "ambulance" ? `AMB-${index + 1}` : `VSL-${index + 1}`,
+    driver: "Conducteur à nommer",
+    mate: row.vehicleType === "ambulance" ? "DEA à nommer" : "",
+    vehicleType: row.vehicleType,
+    vehicleCode: code,
+    plate: clean,
+    vehicleName: vehicle.name,
+    color: CREW_COLORS[index % CREW_COLORS.length]!,
+    baseId: state.crews[0]?.baseId ?? "depot-sud",
+    ...shiftForIndex(index, state.rules.amplitudeMin),
+    delayUntil: 0,
+    dea: false,
+    vehicleId: id,
+  };
+  return { ...state, vehicles: [...state.vehicles, vehicle], crews: [...state.crews, crew] };
 }
 
 function importVehicles(

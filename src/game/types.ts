@@ -63,6 +63,8 @@ export interface StaffMember {
   name: string;
   role: "conducteur" | "auxiliaire";
   dea: boolean;
+  /** Plage ou mention lue à l'import, ex. 06:00-17:00. */
+  availability?: string;
 }
 
 export interface Vehicle {
@@ -73,6 +75,8 @@ export interface Vehicle {
   /** Code parc, ex. 105. */
   vehicleCode?: string;
   active: boolean;
+  /** Plage ou mention lue à l'import. */
+  availability?: string;
 }
 export type CallKind = "ajout" | "annulation" | "deplacement" | "retard" | "panne" | "pause" | "urgent";
 
@@ -98,6 +102,8 @@ export interface Patient {
   addressId: string;
   mobility?: Posture;
   note?: string;
+  /** Contraintes lues à l'import (fauteuil, oxygène…). */
+  constraints?: string;
 }
 
 export interface Crew {
