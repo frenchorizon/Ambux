@@ -12,6 +12,10 @@ export type Speed = 1 | 2 | 4;
 export type Phase = "briefing" | "playing" | "review" | "report";
 export type ViewId =
   | "gantt"
+  | "carte"
+  | "file"
+  | "synthese"
+  | "reglages"
   | "tomorrow"
   | "crews"
   | "vehicles"

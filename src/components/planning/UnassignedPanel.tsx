@@ -1,5 +1,5 @@
 import { Armchair, BedDouble } from "lucide-react";
-import { useMemo, useState, type PointerEvent } from "react";
+import { useMemo, useState } from "react";
 import { useData } from "../../game/context";
 import { formatMin, personName } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -7,13 +7,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { DragState } from "./drag";
 
-export function UnassignedPanel({
-  drag,
-  onStart,
-}: {
-  drag: DragState | null;
-  onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
-}) {
+export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
   const { transports, patientById, locMap, dispatch } = useData();
   const [query, setQuery] = useState("");
   const items = useMemo(() => {
@@ -47,14 +41,14 @@ export function UnassignedPanel({
     >
       <div className="border-b border-line px-3 py-2">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold">Transports non affectés</h2>
+          <h2 className="text-base font-semibold">À placer</h2>
           <span className="text-xs font-semibold text-brand">{items.length}</span>
         </div>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Patient, adresse…"
-          className="mt-2 h-8 w-full rounded-lg border border-line bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-brand/30"
+          className="mt-2 h-12 w-full rounded-xl border border-line bg-white px-3 text-base outline-none focus:ring-2 focus:ring-brand/30"
         />
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -74,18 +68,10 @@ export function UnassignedPanel({
                 const from = locMap.get(transport.pickupId)?.short ?? "Départ";
                 const to = locMap.get(transport.dropoffId)?.short ?? "Arrivée";
                 return (
-                  <article
-                    key={transport.id}
-                    onPointerDown={(event) => {
-                      if ((event.target as HTMLElement).closest("button")) return;
-                      onStart(transport.id, event);
-                    }}
-                    className="cursor-grab rounded-xl border border-line bg-white p-2 shadow-sm active:cursor-grabbing"
-                    style={{ touchAction: "none" }}
-                  >
+                  <article key={transport.id} className="rounded-xl border border-line bg-white p-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="truncate text-xs font-semibold">
+                        <div className="truncate text-sm font-semibold">
                           {patient ? personName(patient) : "Patient"}
                         </div>
                         <div className="mt-0.5 text-[11px] text-muted">
@@ -104,9 +90,8 @@ export function UnassignedPanel({
                       <div className="mt-1 text-[11px] font-semibold text-rose-600">Urgent</div>
                     )}
                     <Button
-                      size="sm"
                       variant="secondary"
-                      className="mt-2 w-full"
+                      className="mt-3 h-12 w-full"
                       onClick={() => dispatch({ type: "BEST_SLOT", transportId: transport.id })}
                     >
                       Meilleur créneau

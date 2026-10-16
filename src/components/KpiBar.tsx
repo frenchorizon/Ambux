@@ -8,7 +8,7 @@ export function KpiBar() {
   const { metrics } = useData();
   const { regulationMs } = useClock();
   return (
-    <section className="grid grid-cols-2 gap-2 border-b border-line bg-paper px-3 py-2 lg:grid-cols-4">
+    <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
       <Kpi
         icon={<Route size={16} />}
         label="Km à vide"

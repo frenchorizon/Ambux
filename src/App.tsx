@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { CallDock } from "./components/CallDock";
 import { GameDialogs } from "./components/GameDialogs";
-import { KpiBar } from "./components/KpiBar";
 import { PlanningWorkspace } from "./components/planning/PlanningWorkspace";
+import { MapPanel } from "./components/planning/MapPanel";
+import { UnassignedPanel } from "./components/planning/UnassignedPanel";
 import { Report } from "./components/Report";
 import {
   CompaniesView,
@@ -16,7 +17,8 @@ import { Cinema } from "./components/pitch/Cinema";
 import { CrewSheet } from "./components/pitch/CrewSheet";
 import { Landing } from "./components/pitch/Landing";
 import { Tour } from "./components/pitch/Tour";
-import { Sidebar } from "./components/Sidebar";
+import { BottomNav, Sidebar } from "./components/Sidebar";
+import { ReglagesView, SyntheseView } from "./components/WorkViews";
 import { Toaster } from "./components/Toaster";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/button";
@@ -72,9 +74,16 @@ function Dashboard() {
         )}
         <TopBar />
         <RoutingBanner />
-        <KpiBar />
         <main className="min-h-0 flex-1">
           {view === "gantt" && <PlanningWorkspace />}
+          {view === "carte" && (
+            <div className="h-full">
+              <MapPanel />
+            </div>
+          )}
+          {view === "file" && <UnassignedPanel />}
+          {view === "synthese" && <SyntheseView />}
+          {view === "reglages" && <ReglagesView />}
           {view === "tomorrow" && <TomorrowView />}
           {view === "crews" && <CrewsView />}
           {view === "vehicles" && <VehiclesView />}
@@ -83,6 +92,7 @@ function Dashboard() {
           {view === "lomaco" && <LomacoView />}
           {view === "feuille" && <CrewSheet />}
         </main>
+        <BottomNav />
       </div>
       {phase === "playing" && <LiveCalls />}
       <Toaster />

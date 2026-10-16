@@ -30,6 +30,7 @@ import type {
   VehicleType,
   ViewId,
 } from "./types";
+import { loadRules } from "../lib/rulesStore";
 import { shiftForIndex } from "./shifts";
 import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE } from "./types";
 import type { DraftSnapshot } from "./persist";
@@ -138,20 +139,21 @@ export function reducer(state: GameState, action: Action): GameState {
     case "START": {
       const world = generateDay(action);
       const fleet = fleetOf(world.crews);
+      const rules = loadRules();
       return {
         ...initialState,
         ...world,
-        crews: fleet.crews,
+        crews: fleet.crews.map((crew, index) => ({ ...crew, ...shiftForIndex(index, rules.amplitudeMin) })),
         vehicles: fleet.vehicles,
         staff: fleet.staff,
-        rules: DEFAULT_RULES,
+        rules,
         live: false,
         transports: world.transports.map((transport) => ({
           ...transport,
           crewId: undefined,
           departMin: undefined,
           appointmentMin: transport.appointmentMin ?? transport.windowStart,
-          toleranceMin: transport.toleranceMin ?? DEFAULT_RULES.toleranceMin,
+          toleranceMin: rules.toleranceMin,
         })),
         phase: "playing",
         view: "tomorrow",

@@ -5,6 +5,7 @@ import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
 import { saveDraft } from "./persist";
+import { saveRules } from "../lib/rulesStore";
 import { reviewIssues, type Issue } from "./review";
 import { initialState, reducer, type Action } from "./reducer";
 import type {
@@ -102,6 +103,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.phase === "briefing") return;
     saveDraft(state);
+    saveRules(state.rules);
   }, [state]);
 
   useEffect(() => {

@@ -3,8 +3,12 @@ import {
   Cable,
   CalendarClock,
   ChartNoAxesGantt,
+  ChevronDown,
   ClipboardList,
-  Menu,
+  Inbox,
+  LayoutDashboard,
+  Map,
+  SlidersHorizontal,
   Stethoscope,
   Truck,
   Users,
@@ -14,16 +18,22 @@ import { useData } from "../game/context";
 import type { ViewId } from "../game/types";
 import { cn } from "../lib/utils";
 import { useNarrow } from "../lib/useMedia";
-import { Modal } from "./ui/dialog";
 
-const ITEMS: { id: ViewId; label: string; icon: ReactNode }[] = [
-  { id: "tomorrow", label: "Planning du lendemain", icon: <CalendarClock size={18} /> },
-  { id: "gantt", label: "Timeline Gantt", icon: <ChartNoAxesGantt size={18} /> },
+const PRIMARY: { id: ViewId; label: string; icon: ReactNode }[] = [
+  { id: "gantt", label: "Timeline", icon: <ChartNoAxesGantt size={18} /> },
+  { id: "carte", label: "Carte", icon: <Map size={18} /> },
+  { id: "file", label: "À placer", icon: <Inbox size={18} /> },
+  { id: "synthese", label: "Synthèse", icon: <LayoutDashboard size={18} /> },
+  { id: "reglages", label: "Réglages", icon: <SlidersHorizontal size={18} /> },
+];
+
+const MORE: { id: ViewId; label: string; icon: ReactNode }[] = [
+  { id: "tomorrow", label: "Demande de demain", icon: <CalendarClock size={18} /> },
   { id: "feuille", label: "Feuille équipage", icon: <ClipboardList size={18} /> },
   { id: "crews", label: "Équipages", icon: <Users size={18} /> },
   { id: "vehicles", label: "Véhicules", icon: <Truck size={18} /> },
   { id: "patients", label: "Patients", icon: <Stethoscope size={18} /> },
-  { id: "companies", label: "Groupes de sociétés", icon: <Building size={18} /> },
+  { id: "companies", label: "Sociétés", icon: <Building size={18} /> },
   { id: "lomaco", label: "Export CSV", icon: <Cable size={18} /> },
 ];
 
@@ -52,34 +62,60 @@ export function Logo({ light = false }: { light?: boolean }) {
 
 export function NavList({ onPick }: { onPick?: () => void }) {
   const { view, dispatch, calls } = useData();
+  const [more, setMore] = useState(MORE.some((item) => item.id === view));
   const pending = calls.filter((call) => call.spawned && !call.resolved).length;
   return (
     <nav className="flex flex-col gap-1">
-      {ITEMS.map((item) => {
-        const active = view === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              dispatch({ type: "SET_VIEW", view: item.id });
-              onPick?.();
-            }}
-            data-tour={item.id === "feuille" ? "feuille" : undefined}
-            className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
-              active ? "bg-white/15 text-white" : "text-sky-100/80 hover:bg-white/10 hover:text-white",
-            )}
-          >
-            <span className={cn(active ? "text-sky-200" : "text-sky-100/70")}>{item.icon}</span>
-            <span className="flex-1">{item.label}</span>
-            {item.id === "gantt" && pending > 0 && (
-              <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>
-            )}
-          </button>
-        );
-      })}
+      {PRIMARY.map((item) => (
+        <NavButton key={item.id} item={item} active={view === item.id} pending={item.id === "gantt" ? pending : 0} onPick={onPick} dispatch={dispatch} />
+      ))}
+      <button
+        type="button"
+        className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-sky-100/70 hover:text-white"
+        onClick={() => setMore((value) => !value)}
+        aria-expanded={more}
+      >
+        <ChevronDown size={14} className={cn("transition-transform", more && "rotate-180")} />
+        Données et export
+      </button>
+      {more &&
+        MORE.map((item) => (
+          <NavButton key={item.id} item={item} active={view === item.id} pending={0} onPick={onPick} dispatch={dispatch} />
+        ))}
     </nav>
+  );
+}
+
+function NavButton({
+  item,
+  active,
+  pending,
+  onPick,
+  dispatch,
+}: {
+  item: { id: ViewId; label: string; icon: ReactNode };
+  active: boolean;
+  pending: number;
+  onPick?: () => void;
+  dispatch: ReturnType<typeof useData>["dispatch"];
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        dispatch({ type: "SET_VIEW", view: item.id });
+        onPick?.();
+      }}
+      data-tour={item.id === "feuille" ? "feuille" : item.id === "carte" ? "carte" : undefined}
+      className={cn(
+        "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors",
+        active ? "bg-white/15 text-white" : "text-sky-100/80 hover:bg-white/10 hover:text-white",
+      )}
+    >
+      <span className={cn(active ? "text-sky-200" : "text-sky-100/70")}>{item.icon}</span>
+      <span className="flex-1">{item.label}</span>
+      {pending > 0 && <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>}
+    </button>
   );
 }
 
@@ -107,36 +143,30 @@ export function Sidebar() {
   );
 }
 
-export function MobileNav() {
+export function BottomNav() {
   const narrow = useNarrow();
-  const { dispatch } = useData();
-  const [open, setOpen] = useState(false);
+  const { view, dispatch } = useData();
   if (!narrow) return null;
   return (
-    <>
-      <button
-        type="button"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy hover:bg-ice"
-        aria-label="Ouvrir le menu"
-        onClick={() => setOpen(true)}
-      >
-        <Menu size={18} />
-      </button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Navigation">
-        <div className="rounded-xl bg-navy p-2">
-          <NavList onPick={() => setOpen(false)} />
+    <nav className="grid shrink-0 grid-cols-5 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Navigation">
+      {PRIMARY.map((item) => {
+        const active = view === item.id;
+        return (
           <button
+            key={item.id}
             type="button"
-            className="mt-2 w-full px-3 py-2 text-left text-xs font-semibold text-sky-100/80"
-            onClick={() => {
-              setOpen(false);
-              dispatch({ type: "REPLAY" });
-            }}
+            data-tour={item.id === "carte" ? "carte" : undefined}
+            onClick={() => dispatch({ type: "SET_VIEW", view: item.id })}
+            className={cn(
+              "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold",
+              active ? "text-brand" : "text-muted",
+            )}
           >
-            Retour à l'accueil
+            {item.icon}
+            {item.label}
           </button>
-        </div>
-      </Modal>
-    </>
+        );
+      })}
+    </nav>
   );
 }

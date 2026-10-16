@@ -1,38 +1,56 @@
-import { Minus, Plus, Crosshair } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useClock, useData } from "../../game/context";
 import { previewPlacement } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
 import { formatMin, personName, postureLabel } from "../../lib/format";
-import { useNarrow } from "../../lib/useMedia";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import type { DragState } from "./drag";
 import { GanttBoard } from "./GanttBoard";
-import { MapPanel } from "./MapPanel";
-import { UnassignedPanel } from "./UnassignedPanel";
-
-type Pane = "plan" | "carte" | "file";
+import { closeTimelineSheet, setTimelineQuery, useTimelineUi } from "./timelineUi";
 
 export function PlanningWorkspace() {
   const data = useData();
   const clock = useClock();
-  const narrow = useNarrow();
-  const [pane, setPane] = useState<Pane>("plan");
-  const [pxPerMin, setPxPerMin] = useState(2.2);
-  const [query, setQuery] = useState("");
+  const ui = useTimelineUi();
+  const [pxPerMin, setPxPerMin] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 2.4,
+  );
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const pending = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
   const bag = useRef({ data, clock, pxPerMin });
   useEffect(() => {
     bag.current = { data, clock, pxPerMin };
   });
+  useEffect(() => () => closeTimelineSheet(), []);
+
+  const begin = (transportId: string, x: number, y: number) => {
+    const next: DragState = {
+      transportId,
+      x,
+      y,
+      originX: x,
+      originY: y,
+      moved: false,
+      overUnassigned: false,
+    };
+    dragRef.current = next;
+    setDrag(next);
+  };
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
+      const hold = pending.current;
+      if (hold && Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > 12) {
+        window.clearTimeout(hold.timer);
+        pending.current = null;
+        return;
+      }
       const current = dragRef.current;
       if (!current) return;
-      const moved = current.moved || Math.hypot(event.clientX - current.originX, event.clientY - current.originY) > 5;
+      const moved = current.moved || Math.hypot(event.clientX - current.originX, event.clientY - current.originY) > 8;
       if (!moved) return;
       const hover = readHover(event.clientX, event.clientY, bag.current.pxPerMin);
       let preview = undefined;
@@ -64,151 +82,180 @@ export function PlanningWorkspace() {
       dragRef.current = next;
       setDrag(next);
     };
-    const up = (event: PointerEvent) => {
+    const up = () => {
+      const hold = pending.current;
+      if (hold) {
+        window.clearTimeout(hold.timer);
+        pending.current = null;
+        bag.current.data.dispatch({ type: "SELECT", id: hold.id });
+        return;
+      }
       const current = dragRef.current;
       if (!current) return;
-      move(event);
-      const final = dragRef.current ?? current;
       dragRef.current = null;
       setDrag(null);
-      commit(final, bag.current);
+      commit(current, bag.current);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
   }, []);
 
   const start = (transportId: string, event: ReactPointerEvent<HTMLElement>) => {
-    event.preventDefault();
     const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === transportId);
     if (leg && leg.departMin <= clock.nowMin) {
       data.dispatch({ type: "TOAST", message: "Course déjà engagée : l'équipage est parti.", tone: "warn" });
       data.dispatch({ type: "SELECT", id: transportId });
       return;
     }
-    const next: DragState = {
-      transportId,
-      x: event.clientX,
-      y: event.clientY,
-      originX: event.clientX,
-      originY: event.clientY,
-      moved: false,
-      overUnassigned: false,
-    };
-    dragRef.current = next;
-    setDrag(next);
+    if (event.pointerType !== "touch") {
+      event.preventDefault();
+      begin(transportId, event.clientX, event.clientY);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      pending.current = null;
+      begin(transportId, event.clientX, event.clientY);
+      navigator.vibrate?.(12);
+    }, 420);
+    pending.current = { id: transportId, x: event.clientX, y: event.clientY, timer };
   };
 
   const selected = data.selectedId ? data.transportById.get(data.selectedId) : undefined;
   const selectedPatient = selected ? data.patientById.get(selected.patientId) : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-white px-3 py-1.5 text-xs">
-        {narrow && (
-          <div className="flex rounded-lg bg-ice p-0.5">
-            {(
-              [
-                ["plan", "Planning"],
-                ["carte", "Carte"],
-                ["file", "À placer"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setPane(id)}
-                className={cn("rounded-md px-2 py-1 font-semibold", pane === id ? "bg-white text-navy shadow-sm" : "text-muted")}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        <span className="hidden text-muted sm:inline">Glisser une course : le pastille marine est l'heure prévue, l'écart s'affiche en orange. Hachures « à vide » entre deux prises en charge.</span>
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Patient ou dossier"
-          aria-label="Rechercher un patient"
-          className="h-7 w-40 rounded border border-line bg-white px-2"
-        />
-        <select
-          value={data.crewFilter ?? ""}
-          aria-label="Filtrer un équipage"
-          onChange={(event) => data.dispatch({ type: "SET_CREW_FILTER", crewId: event.target.value || undefined })}
-          className="h-7 rounded border border-line bg-white px-1"
-        >
-          <option value="">Tous les équipages</option>
-          {data.crews.map((crew) => (
-            <option key={crew.id} value={crew.id}>
-              {crew.code}
-            </option>
-          ))}
-        </select>
-        <RulesChip />
-        <div className="ml-auto flex items-center gap-1">
-          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.35))} aria-label="Dézoomer">
-            <Minus size={14} />
-          </button>
-          <span className="w-10 text-center font-semibold tabular-nums">{Math.round(pxPerMin * 100)}%</span>
-          <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ice" onClick={() => setPxPerMin((value) => Math.min(6, value + 0.35))} aria-label="Zoomer">
-            <Plus size={14} />
-          </button>
-          <Button
-            size="sm"
-            variant={data.followNow ? "navy" : "secondary"}
-            onClick={() => data.dispatch({ type: "TOGGLE_FOLLOW" })}
-          >
-            <Crosshair size={13} /> Suivre l'heure
-          </Button>
-          {data.crewFilter && (
-            <Button size="sm" variant="ghost" onClick={() => data.dispatch({ type: "SET_CREW_FILTER" })}>
-              Tous les équipages
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className={cn("relative flex h-full min-h-0 flex-col", drag?.moved && "touch-none")}>
+      <GanttBoard drag={drag} pxPerMin={pxPerMin} query={ui.query} onStart={start} />
       {selected && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-ice/60 px-3 py-1.5 text-xs">
-          <span className="font-semibold">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
-          <span className="text-muted">
-            {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)} · tolérance ±{selected.toleranceMin ?? data.rules.toleranceMin} min
-          </span>
-          <Button size="sm" variant="secondary" onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}>
-            Revenir à l'heure prévue
+        <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{selectedPatient ? personName(selectedPatient) : "Course"}</div>
+            <div className="truncate text-xs text-muted">
+              {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
+            </div>
+          </div>
+          <Button size="sm" className="h-11" variant="secondary" onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}>
+            Heure prévue
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}>
+          <Button size="sm" className="h-11" variant="secondary" onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}>
             Meilleur créneau
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}>
-            Désaffecter
+          <Button size="sm" className="h-11" variant="ghost" onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}>
+            Retirer
           </Button>
         </div>
       )}
-      <div data-tour="controle">
-        <ReviewStrip />
-      </div>
-      <div className="flex min-h-0 flex-1">
-        <div className={cn("min-h-0 min-w-0 flex-1", narrow && pane !== "plan" && "hidden")}>
-          <GanttBoard drag={drag} pxPerMin={pxPerMin} query={query} onStart={start} />
-        </div>
-        <div data-tour="carte" className={cn("min-h-0 border-line", narrow ? (pane === "carte" ? "min-w-0 flex-1" : "hidden") : "w-[min(400px,34%)] shrink-0 border-l")}>
-          <MapPanel />
-        </div>
-        <div className={cn("min-h-0 border-line", narrow ? (pane === "file" ? "min-w-0 flex-1" : "hidden") : "flex w-[260px] shrink-0 flex-col border-l")}>
-          <UnassignedPanel drag={drag} onStart={start} />
-        </div>
-      </div>
+      {ui.sheet === "find" && (
+        <Sheet title="Chercher et afficher" onClose={closeTimelineSheet}>
+          <label className="block text-sm font-semibold">
+            Patient ou dossier
+            <input
+              value={ui.query}
+              autoFocus
+              onChange={(event) => setTimelineQuery(event.target.value)}
+              placeholder="Nom, dossier"
+              className="mt-1 h-12 w-full rounded-xl border border-line bg-paper px-3 text-base"
+            />
+          </label>
+          <label className="mt-3 block text-sm font-semibold">
+            Équipage
+            <select
+              value={data.crewFilter ?? ""}
+              onChange={(event) => data.dispatch({ type: "SET_CREW_FILTER", crewId: event.target.value || undefined })}
+              className="mt-1 h-12 w-full rounded-xl border border-line bg-paper px-3 text-base"
+            >
+              <option value="">Tous les équipages</option>
+              {data.crews.map((crew) => (
+                <option key={crew.id} value={crew.id}>
+                  {crew.code} · {crew.driver}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold">Zoom</span>
+            <div className="flex items-center gap-2">
+              <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.35))} aria-label="Dézoomer">
+                <Minus size={18} />
+              </button>
+              <span className="w-12 text-center text-sm font-semibold tabular-nums">{Math.round(pxPerMin * 100)}%</span>
+              <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line" onClick={() => setPxPerMin((value) => Math.min(6, value + 0.35))} aria-label="Zoomer">
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          {data.live && (
+            <Button className="mt-4 w-full" variant={data.followNow ? "navy" : "secondary"} onClick={() => data.dispatch({ type: "TOGGLE_FOLLOW" })}>
+              {data.followNow ? "Le planning suit l'heure" : "Suivre l'heure"}
+            </Button>
+          )}
+          <p className="mt-4 text-xs leading-relaxed text-muted">
+            Au doigt, maintenez une course pour la déplacer. Un tap ouvre les actions. La pastille marine est l'heure prévue.
+          </p>
+        </Sheet>
+      )}
+      {ui.sheet === "review" && <ReviewSheet onClose={closeTimelineSheet} />}
       {drag?.moved && (
-        <div className="pointer-events-none fixed z-[65] -translate-x-1/2 -translate-y-10 rounded-lg bg-navy px-2 py-1 text-[11px] font-semibold text-white shadow-lg" style={{ left: drag.x, top: drag.y }}>
+        <div className="pointer-events-none fixed z-[65] -translate-x-1/2 -translate-y-14 rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white shadow-lg" style={{ left: drag.x, top: drag.y }}>
           {labelFor(drag.transportId, data.transportById, data.patientById)}
           {drag.preview && !drag.preview.ok ? ` · ${drag.preview.reason === "incompatible" ? "Incompatibilité" : "Conflit horaire"}` : ""}
         </div>
       )}
+    </div>
+  );
+}
+
+export function ReviewSheet({ onClose }: { onClose: () => void }) {
+  const { issues, dispatch } = useData();
+  const shown = issues.filter((issue) => issue.kind !== "km_estime");
+  const estimated = issues.find((issue) => issue.kind === "km_estime");
+  return (
+    <Sheet title={`À contrôler · ${shown.length}`} onClose={onClose}>
+      {estimated && <p className="mb-3 text-sm text-muted">{estimated.title}</p>}
+      <ul className="max-h-[50vh] space-y-1 overflow-auto">
+        {shown.length === 0 && <li className="text-sm text-muted">Rien à contrôler sur ce planning fictif.</li>}
+        {shown.map((issue) => (
+          <li key={issue.id}>
+            <button
+              type="button"
+              className={cn(
+                "min-h-11 w-full rounded-xl px-3 py-2 text-left text-sm",
+                issue.level === "bloquant" ? "bg-rose-50 text-rose-800" : "bg-amber-50 text-amber-950",
+              )}
+              onClick={() => {
+                if (issue.transportId) dispatch({ type: "SELECT", id: issue.transportId });
+                if (issue.crewId) dispatch({ type: "SET_CREW_FILTER", crewId: issue.crewId });
+                onClose();
+              }}
+            >
+              {issue.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
+  );
+}
+
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-navy/40 sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
+      <button type="button" className="absolute inset-0" aria-label="Fermer" onClick={onClose} />
+      <div className="relative max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-3xl bg-card p-4 shadow-2xl sm:rounded-3xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button type="button" className="h-11 rounded-xl px-3 text-sm font-semibold text-muted" onClick={onClose}>
+            Fermer
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
@@ -221,134 +268,6 @@ function labelFor(
   const transport = transports.get(id);
   const patient = transport ? patients.get(transport.patientId) : undefined;
   return patient ? personName(patient) : "Course";
-}
-
-function RulesChip() {
-  const { rules, dispatch } = useData();
-  return (
-    <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted">
-      <span>Repas</span>
-      <input
-        type="number"
-        min={0}
-        max={60}
-        value={rules.mealMin}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealMin: Number(event.target.value) } })}
-        className="h-7 w-12 rounded border border-line bg-white px-1"
-        aria-label="Durée de la pause repas"
-      />
-      <span>min</span>
-      <input
-        type="time"
-        value={formatMin(rules.mealFrom)}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealFrom: parseTime(event.target.value) } })}
-        className="h-7 rounded border border-line bg-white px-1"
-        aria-label="Début de la fenêtre repas"
-      />
-      <input
-        type="time"
-        value={formatMin(rules.mealTo)}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { mealTo: parseTime(event.target.value) } })}
-        className="h-7 rounded border border-line bg-white px-1"
-        aria-label="Fin de la fenêtre repas"
-      />
-      <span>Tolérance ±</span>
-      <input
-        type="number"
-        min={5}
-        max={60}
-        value={rules.toleranceMin}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { toleranceMin: Number(event.target.value) } })}
-        className="h-7 w-12 rounded border border-line bg-white px-1"
-        aria-label="Tolérance horaire"
-      />
-      <span>min</span>
-      <span>Amplitude</span>
-      <input
-        type="number"
-        min={8}
-        max={14}
-        step={0.5}
-        value={rules.amplitudeMin / 60}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { amplitudeMin: Math.round(Number(event.target.value) * 60) } })}
-        className="h-7 w-14 rounded border border-line bg-white px-1"
-        aria-label="Amplitude en heures"
-      />
-      <span>h</span>
-      <span>Max AMB</span>
-      <input
-        type="number"
-        min={1}
-        max={40}
-        value={rules.maxAmb}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { maxAmb: Number(event.target.value) } })}
-        className="h-7 w-12 rounded border border-line bg-white px-1"
-        aria-label="Charge max ambulance"
-      />
-      <span>VSL</span>
-      <input
-        type="number"
-        min={1}
-        max={40}
-        value={rules.maxVsl}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { maxVsl: Number(event.target.value) } })}
-        className="h-7 w-12 rounded border border-line bg-white px-1"
-        aria-label="Charge max VSL"
-      />
-      <span>Séance</span>
-      <input
-        type="number"
-        min={1}
-        max={8}
-        step={0.5}
-        value={rules.sessionMin / 60}
-        onChange={(event) => dispatch({ type: "SET_RULES", rules: { sessionMin: Math.round(Number(event.target.value) * 60) } })}
-        className="h-7 w-12 rounded border border-line bg-white px-1"
-        aria-label="Durée de séance de dialyse en heures"
-      />
-      <span>h</span>
-    </div>
-  );
-}
-
-function ReviewStrip() {
-  const { issues, dispatch } = useData();
-  const [open, setOpen] = useState(false);
-  const shown = issues.filter((issue) => issue.kind !== "km_estime").slice(0, 30);
-  const estimated = issues.find((issue) => issue.kind === "km_estime");
-  return (
-    <div className="border-b border-line bg-white px-3 py-1 text-xs">
-      <button type="button" className="font-semibold text-navy" onClick={() => setOpen((value) => !value)}>
-        À contrôler · {shown.length}
-        {estimated ? ` · ${estimated.title}` : ""}
-      </button>
-      {open && (
-        <ul className="mt-1 max-h-36 space-y-1 overflow-auto">
-          {shown.length === 0 && <li className="text-muted">Rien à contrôler.</li>}
-          {shown.map((issue) => (
-            <li key={issue.id}>
-              <button
-                type="button"
-                className={cn("text-left", issue.level === "bloquant" ? "text-rose-800" : "text-amber-900")}
-                onClick={() => {
-                  if (issue.transportId) dispatch({ type: "SELECT", id: issue.transportId });
-                  if (issue.crewId) dispatch({ type: "SET_CREW_FILTER", crewId: issue.crewId });
-                }}
-              >
-                {issue.title}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function parseTime(value: string): number {
-  const [hours, minutes] = value.split(":").map(Number);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 12 * 60;
-  return hours * 60 + minutes;
 }
 
 function readHover(x: number, y: number, pxPerMin: number): { hoverCrewId?: string; hoverMinute?: number; overUnassigned: boolean } {

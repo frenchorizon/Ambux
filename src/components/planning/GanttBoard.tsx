@@ -4,11 +4,9 @@ import type { Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
 import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
 import { mealIssue } from "../../game/breaks";
+import { useNarrow } from "../../lib/useMedia";
 import { cn } from "../../lib/utils";
-import { Badge } from "../ui/badge";
 import type { DragState } from "./drag";
-
-const LABEL = 210;
 
 export function GanttBoard({
   drag,
@@ -23,6 +21,8 @@ export function GanttBoard({
 }) {
   const data = useData();
   const { nowMin } = useClock();
+  const narrow = useNarrow();
+  const label = narrow ? 104 : 156;
   const scrollRef = useRef<HTMLDivElement>(null);
   const width = (DAY_END - DAY_START) * pxPerMin;
   const [tip, setTip] = useState<{ x: number; y: number; transportId: string } | null>(null);
@@ -30,9 +30,9 @@ export function GanttBoard({
   useEffect(() => {
     const node = scrollRef.current;
     if (!node || !data.followNow) return;
-    const left = LABEL + (nowMin - DAY_START) * pxPerMin - node.clientWidth * 0.35;
+    const left = label + (nowMin - DAY_START) * pxPerMin - node.clientWidth * 0.35;
     node.scrollLeft = Math.max(0, left);
-  }, [data.followNow, nowMin, pxPerMin]);
+  }, [data.followNow, label, nowMin, pxPerMin]);
 
   const tipTransport = tip ? data.transportById.get(tip.transportId) : undefined;
   const tipLeg = tipTransport
@@ -42,11 +42,11 @@ export function GanttBoard({
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-white">
       <div ref={scrollRef} className="gantt-scroll min-h-0 flex-1 overflow-auto">
-        <div className="relative" style={{ width: LABEL + width }}>
+        <div className="relative" style={{ width: label + width }}>
           <div className="sticky top-0 z-30 flex border-b border-line bg-white">
             <div
-              className="sticky left-0 z-40 flex items-end border-r border-line bg-white px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted"
-              style={{ width: LABEL }}
+              className="sticky left-0 z-40 flex items-end border-r border-line bg-white px-2 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted"
+              style={{ width: label }}
             >
               Équipage
             </div>
@@ -69,6 +69,7 @@ export function GanttBoard({
               key={crew.id}
               crew={crew}
               width={width}
+              label={label}
               pxPerMin={pxPerMin}
               query={query}
               drag={drag}
@@ -79,7 +80,7 @@ export function GanttBoard({
           {data.live && (
             <div
               className="pointer-events-none absolute bottom-0 z-20 w-px bg-rose-500"
-              style={{ left: LABEL + (nowMin - DAY_START) * pxPerMin, top: 36 }}
+              style={{ left: label + (nowMin - DAY_START) * pxPerMin, top: 36 }}
             >
               <span className="absolute -left-5 top-0 rounded bg-rose-500 px-1 py-0.5 text-[10px] font-bold text-white">
                 {formatMin(nowMin, "floor")}
@@ -103,6 +104,7 @@ export function GanttBoard({
 function CrewRow({
   crew,
   width,
+  label,
   pxPerMin,
   query,
   drag,
@@ -111,6 +113,7 @@ function CrewRow({
 }: {
   crew: Crew;
   width: number;
+  label: number;
   pxPerMin: number;
   query: string;
   drag: DragState | null;
@@ -131,34 +134,31 @@ function CrewRow({
     return name.includes(needle) || (transport?.dossier.toLowerCase().includes(needle) ?? false);
   });
   if (needle && legs.length === 0) return null;
-  const count = schedule?.legs.length ?? 0;
   const hot = drag?.hoverCrewId === crew.id;
   const bad = hot && drag.preview && !drag.preview.ok && drag.preview.reason === "incompatible";
+  const rowH = label < 120 ? 76 : 64;
+  const barH = label < 120 ? 44 : 34;
+  const barTop = Math.round((rowH - barH) / 2);
+  const family = crew.driver.split(" ").slice(-1)[0] ?? crew.driver;
   return (
     <div className="flex border-b border-line">
       <div
-        className="sticky left-0 z-20 flex items-center gap-2 border-r border-line bg-white px-2.5"
-        style={{ width: LABEL, height: 64 }}
+        className="sticky left-0 z-20 flex items-center gap-1.5 border-r border-line bg-white px-1.5"
+        style={{ width: label, height: rowH }}
+        title={`${crew.driver}${crew.mate ? ` · ${crew.mate}` : ""} · ${formatMin(crew.shiftStart)}–${formatMin(crew.shiftEnd)}`}
       >
-        <span className="h-7 w-1.5 rounded-full" style={{ background: crew.color }} />
+        <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: crew.color }} />
         <span className="min-w-0">
-          <span className="flex items-center gap-1.5">
-            <span className="text-sm font-semibold">{crew.code}</span>
-            <Badge className={crew.vehicleType === "ambulance" ? "bg-rose-50 text-rose-700" : "bg-sky-50 text-sky-800"}>
-              {crew.vehicleType === "ambulance" ? "AMB" : "VSL"}
-            </Badge>
-          </span>
-          <span className="block truncate text-[11px] text-muted">
-            {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)} · {count} course{count > 1 ? "s" : ""}
-            {mealWarn ? ` · ${mealWarn}` : ""}
-          </span>
+          <span className="block truncate text-[13px] font-semibold leading-tight">{crew.code}</span>
+          <span className="block truncate text-[11px] leading-tight text-ink">{family}</span>
+          {mealWarn && <span className="block truncate text-[10px] text-amber-800">{mealWarn}</span>}
         </span>
       </div>
       <div
         data-track
         data-crew-id={crew.id}
         className={cn("relative", hot && !bad && "bg-emerald-50/70", bad && "bg-rose-50")}
-        style={{ width, height: 64 }}
+        style={{ width, height: rowH }}
       >
         {hours().map((hour) => (
           <div
@@ -172,12 +172,14 @@ function CrewRow({
             key={block.id}
             title={block.kind === "repas" ? "Pause repas obligatoire" : block.label}
             className={cn(
-              "absolute top-4 flex h-[34px] items-center overflow-hidden rounded-md px-1 text-[10px] font-semibold",
+              "absolute flex items-center overflow-hidden rounded-md px-1 text-[10px] font-semibold",
               block.kind === "repas"
                 ? "border border-amber-500 bg-amber-100 text-amber-950"
                 : "border border-dashed border-slate-400 bg-slate-200/90 text-slate-700",
             )}
             style={{
+              top: barTop,
+              height: barH,
               left: (block.startMin - DAY_START) * pxPerMin,
               width: Math.max(8, (block.endMin - block.startMin) * pxPerMin),
             }}
@@ -188,8 +190,10 @@ function CrewRow({
         {schedule && schedule.returnKm > 0.2 && (
           <div
             title={`Retour dépôt à vide · ${formatKm(schedule.returnKm, 1)}`}
-            className="seg-deadhead absolute top-4 flex h-[34px] items-center overflow-hidden rounded-md border border-slate-300 px-1 text-[10px] font-semibold text-slate-800"
+            className="seg-deadhead absolute flex items-center overflow-hidden rounded-md border border-slate-300 px-1 text-[10px] font-semibold text-slate-800"
             style={{
+              top: barTop,
+              height: barH,
               left: (schedule.returnStart - DAY_START) * pxPerMin,
               width: Math.max(8, (schedule.returnEnd - schedule.returnStart) * pxPerMin),
               backgroundColor: "#dbe4ee",
@@ -211,11 +215,12 @@ function CrewRow({
             <button
               type="button"
               className={cn(
-                "absolute top-6 flex h-[34px] overflow-hidden rounded-md text-left text-[10px] font-semibold text-white shadow-sm",
+                "absolute overflow-hidden rounded-md text-left text-[11px] font-semibold text-white shadow-sm",
                 leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
                 selected && "outline outline-2 outline-offset-1 outline-navy",
               )}
-              style={{ left, width: bar, background: crew.color, touchAction: "none" }}
+              style={{ left, width: bar, top: barTop, height: barH, background: crew.color, touchAction: "manipulation" }}
+              onContextMenu={(event) => event.preventDefault()}
               onPointerDown={(event) => onStart(transport.id, event)}
               onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
               onMouseLeave={() => onTip(null)}
@@ -278,8 +283,10 @@ function CrewRow({
         })}
         {drag?.moved && drag.hoverCrewId === crew.id && drag.preview?.ok && (
           <div
-            className="pointer-events-none absolute top-4 h-[34px] rounded-md border-2 border-white/80 opacity-80"
+            className="pointer-events-none absolute rounded-md border-2 border-white/80 opacity-80"
             style={{
+              top: barTop,
+              height: barH,
               left: (drag.preview.departMin - DAY_START) * pxPerMin,
               width: Math.max(8, (drag.preview.leg.endMin - drag.preview.departMin) * pxPerMin),
               background: crew.color,

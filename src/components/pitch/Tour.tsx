@@ -17,13 +17,13 @@ const STEPS = [
   },
   {
     id: "carte",
-    title: "La carte, à côté de la timeline",
+    title: "La carte a son onglet",
     body: "Chaque trait est la tournée d'un équipage. Tant que le routier public n'a pas répondu, la distance est une estimation, signalée comme telle.",
   },
   {
-    id: "export",
-    title: "Un CSV, pas un envoi",
-    body: "Exporter télécharge le planning retenu. Aucun dossier n'est transmis à Lomaco ni à un organisme. La démo s'arrête au fichier.",
+    id: "plus",
+    title: "Le reste est dans le menu",
+    body: "Feuilles, export CSV, simulation. L'export télécharge un fichier. Aucun dossier n'est transmis à Lomaco ni à un organisme.",
   },
   {
     id: "feuille",
