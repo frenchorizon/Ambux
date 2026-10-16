@@ -2,7 +2,7 @@
 
 `stable` désigne la dernière version qu'on accepte de montrer. On ne commit pas dessus. On ne la fait avancer qu'en fast-forward vers un tag déjà posé sur `main`.
 
-La version courante livrée est `v0.7.0`. Les tags `v0.6.0`, `v0.5.1`, `v0.5.0`, `v0.4.1`, `v0.4.0` et `v0.3.0-mvp-epure` restent en place.
+La version courante livrée est `v0.8.0`. Les tags `v0.7.0`, `v0.6.0`, `v0.5.1`, `v0.5.0`, `v0.4.1`, `v0.4.0` et `v0.3.0-mvp-epure` restent en place.
 
 Le tunnel public n'est pas une version. Il sert le dossier `dist` de la machine du moment et peut s'arrêter. Le fichier `ambux-vX.Y.Z.html` et le tag git restent.
 
@@ -40,6 +40,6 @@ npm run build
 git checkout -b cursor/reprise-v0.3.0 v0.3.0-mvp-epure
 ```
 
-Sans recompiler, ouvrir le fichier déjà figé : `/opt/cursor/artifacts/releases/ambux-v0.3.0.html`.
+Sans recompiler, ouvrir le fichier déjà figé : `/opt/cursor/artifacts/releases/ambux-v0.8.0.html`. Les versions précédentes restent à côté, jusqu'à `ambux-v0.3.0.html`.
 
 Pour réaligner `main` sur cette version, seulement si c'est voulu et après accord : `git checkout main && git reset --hard v0.3.0-mvp-epure` puis un push forcé. Ce n'est pas le geste par défaut. Le checkout du tag suffit à reconstruire l'application telle qu'elle était.
