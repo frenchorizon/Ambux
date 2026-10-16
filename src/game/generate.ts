@@ -83,7 +83,7 @@ export function generateDay(options: {
       firstName: name.firstName,
       lastName: name.lastName,
       phone: phoneOf(rng),
-      birthYear: irand(rng, 1942, 1998),
+      ...birthOf(rng),
       addressId,
       note,
     };
@@ -125,8 +125,13 @@ export function generateDay(options: {
     if (draft.appointmentMin != null && Math.abs(probe.arrivePickup - appointmentMin) > toleranceMin + 0.5) return null;
     const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
     const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
+    const dropoff = locMap.get(draft.dropoffId);
+    const motif = draft.motif ?? (draft.kind.startsWith("dialyse") || dropoff?.kind === "dialyse" ? "DIAL" : MOTIFS[irand(rng, 0, MOTIFS.length - 1)]!);
+    const service = draft.service ?? (crew.vehicleType === "ambulance" ? "AMB" : rng() < 0.4 ? "TAP" : "VSL");
     const transport: Transport = {
       ...draft,
+      motif,
+      service,
       cancelled: false,
       windowStart,
       windowEnd,
@@ -184,7 +189,7 @@ export function generateDay(options: {
         kind: "dialyse_aller",
         seriesId,
         priority: "normal",
-        note: "Séance du matin",
+        note: "PRENDRE PROCHAIN RDV",
       });
       if (placed) {
         cursor = placed.cursor;
@@ -394,18 +399,19 @@ export function generateDay(options: {
 
 function makeCrews(amb: number, vsl: number): Crew[] {
   const crews: Crew[] = [];
-  let plate = 0;
   const add = (type: VehicleType, count: number) => {
     for (let index = 0; index < count; index++) {
       const pair = CREW_PAIRS[(crews.length) % CREW_PAIRS.length]!;
       const n = index + 1;
+      const park = 101 + crews.length;
       crews.push({
         id: `${type}-${n}`,
         code: type === "ambulance" ? `AMB-${n}` : `VSL-${n}`,
         driver: pair[0],
         mate: pair[1],
         vehicleType: type,
-        plate: `GR-${String(200 + plate++).padStart(3, "0")}-HK`,
+        vehicleCode: String(park),
+        plate: `HC ${park} KL`,
         vehicleName:
           type === "ambulance"
             ? AMBULANCE_MODELS[index % AMBULANCE_MODELS.length]!
@@ -767,6 +773,15 @@ function uniqueNames(rng: () => number, count: number): { firstName: string; las
     names.push({ firstName, lastName });
   }
   return names;
+}
+
+const MOTIFS = ["KINE", "CONS", "ORTHO", "RADI"] as const;
+
+function birthOf(rng: () => number): { birthYear: number; birthDate: string } {
+  const birthYear = irand(rng, 1942, 1998);
+  const month = String(irand(rng, 1, 12)).padStart(2, "0");
+  const day = String(irand(rng, 1, 28)).padStart(2, "0");
+  return { birthYear, birthDate: `${birthYear}-${month}-${day}` };
 }
 
 function phoneOf(rng: () => number): string {

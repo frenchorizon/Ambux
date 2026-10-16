@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.5.1 — 2026-10-16
+
+Tag `v0.5.1`. Branche `feat/v0.5.1-feuille-lomaco`.
+
+- Feuille de route PDF « Planning », choix IMPRESSION_STD : une page A4 portrait noir et blanc par équipage.
+- En-tête : date à gauche, « Planning - Édité le … / Par … / Choix IMPRESSION_STD » au centre, « Page x/y » à droite.
+- Colonnes Transport, Personne transportée, horaires (prise en charge, RDV en gras, dépose), Trajet, Équipage. Une ligne de séparation reprend la note, par exemple PRENDRE PROCHAIN RDV.
+- L'import reconnaît naissance, motif (DIAL, KINE, CONS, ORTHO, RADI), série ou unique, et le code véhicule. Données de démonstration fictives.
+
 ## v0.5.0 — 2026-10-16
 
 Tag `v0.5.0`. Branche `feat/v0.5-import-lomaco`.

@@ -1,7 +1,37 @@
-import { useData, type DataValue } from "../game/context";
+import { useClock, useData, type DataValue } from "../game/context";
+import { lomacoPlanningHtml } from "../game/lomacoSheet";
+import type { Leg } from "../game/schedule";
 import { formatKm, formatMin, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
+
+export function printLomacoSheets(data: DataValue, crewId?: string, nowMin = 0): void {
+  const legs = new Map<string, Leg>();
+  for (const schedule of data.schedules.values()) {
+    for (const leg of schedule.legs) legs.set(leg.transportId, leg);
+  }
+  const html = lomacoPlanningHtml({
+    missionIso: data.missionIso,
+    editedAt: new Date(),
+    nowMin,
+    live: data.live,
+    crews: data.crews,
+    transports: data.transports,
+    patients: data.patientById,
+    locations: data.locMap,
+    legs,
+    crewId,
+  });
+  const popup = window.open("", "_blank");
+  if (!popup) {
+    data.dispatch({ type: "TOAST", message: "Autorisez les fenêtres pour imprimer les feuilles.", tone: "warn" });
+    return;
+  }
+  popup.document.write(html);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+}
 
 export function printSheets(data: DataValue, crewId?: string): void {
   const html = sheetHtml(data, crewId);
@@ -18,6 +48,7 @@ export function printSheets(data: DataValue, crewId?: string): void {
 
 export function RouteSheetsDialog({ open }: { open: boolean }) {
   const data = useData();
+  const clock = useClock();
   return (
     <Modal
       open={open}
@@ -43,7 +74,7 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
                 {meal ? ` · repas ${formatMin(meal.startMin)}–${formatMin(meal.endMin)}` : " · repas non posé"}
               </p>
               <p className="mt-1 text-xs text-muted">{legs.length} courses · retour dépôt {formatKm(schedule?.returnKm ?? 0, 1)}</p>
-              <Button variant="secondary" size="sm" className="mt-2" onClick={() => printSheets(data, crew.id)}>
+              <Button variant="secondary" size="sm" className="mt-2" onClick={() => printLomacoSheets(data, crew.id, clock.nowMin)}>
                 Imprimer {crew.code}
               </Button>
             </article>
@@ -54,7 +85,7 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
         <Button variant="secondary" onClick={() => data.dispatch({ type: "CLOSE_MODAL" })}>
           Fermer
         </Button>
-        <Button onClick={() => printSheets(data)}>Imprimer tout / PDF</Button>
+        <Button onClick={() => printLomacoSheets(data, undefined, clock.nowMin)}>Feuille de route Lomaco</Button>
       </div>
     </Modal>
   );

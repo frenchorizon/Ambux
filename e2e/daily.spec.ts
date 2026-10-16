@@ -285,9 +285,12 @@ async function expectPrintSheet(page: Page) {
   const popup = page.waitForEvent("popup");
   await page.getByRole("button", { name: /Imprimer AMB-/ }).first().click();
   const sheet = await popup;
-  await expect(sheet.locator("h2").first()).toContainText(/AMB-/);
-  await expect(sheet.getByText("Lieu de prise en charge")).toBeVisible();
+  await expect(sheet.getByText("Choix IMPRESSION_STD").first()).toBeVisible();
+  await expect(sheet.getByText("Personne transportée").first()).toBeVisible();
+  await expect(sheet.getByText("À faire").first()).toBeVisible();
   await expect(sheet.locator("tbody tr").first()).toBeVisible();
+  await sheet.setViewportSize({ width: 820, height: 1160 });
+  await sheet.screenshot({ path: "/opt/cursor/artifacts/v051-feuille-lomaco.png", fullPage: true });
   await sheet.close();
   await page.getByRole("button", { name: "Fermer" }).click();
 }

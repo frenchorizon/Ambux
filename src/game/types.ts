@@ -2,6 +2,8 @@ export const DAY_START = 6 * 60;
 export const DAY_END = 20 * 60;
 export const MISSION_ISO = "2026-10-16";
 export const MISSION_DATE = "Vendredi 16 octobre 2026";
+/** Nom fictif du régulateur imprimé sur la feuille Lomaco. */
+export const DEMO_REGULATOR = "Noam Keller";
 export const MAX_VEHICLES = 20;
 
 export type VehicleType = "ambulance" | "vsl";
@@ -59,6 +61,8 @@ export interface Vehicle {
   plate: string;
   vehicleType: VehicleType;
   name: string;
+  /** Code parc, ex. 105. */
+  vehicleCode?: string;
   active: boolean;
 }
 export type CallKind =
@@ -78,6 +82,7 @@ export interface Location {
   lat: number;
   lng: number;
   city: string;
+  postalCode?: string;
 }
 
 export interface Patient {
@@ -86,6 +91,8 @@ export interface Patient {
   lastName: string;
   phone: string;
   birthYear: number;
+  /** Date de naissance ISO, affichée « Né(e) le ». */
+  birthDate?: string;
   addressId: string;
   mobility?: Posture;
   note?: string;
@@ -98,6 +105,8 @@ export interface Crew {
   mate: string;
   vehicleType: VehicleType;
   plate: string;
+  /** Code parc affiché avant l'immatriculation, ex. 105. */
+  vehicleCode?: string;
   vehicleName: string;
   color: string;
   baseId: string;
@@ -135,6 +144,8 @@ export interface Transport {
   stayMin?: number;
   /** Prestation lue dans l'export Lomaco. TAP est planifié comme un VSL. */
   service?: "AMB" | "VSL" | "TAP";
+  /** Motif de transport, ex. DIAL, KINE, CONS, ORTHO, RADI. */
+  motif?: "DIAL" | "KINE" | "CONS" | "ORTHO" | "RADI";
   /** Code équipage demandé à l'import, avant génération. */
   requestedCrew?: string;
 }

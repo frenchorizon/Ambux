@@ -283,7 +283,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                 if (preview.vehicles.length) {
                   data.dispatch({
                     type: "IMPORT_VEHICLES",
-                    rows: preview.vehicles.map((row) => ({ plate: row.plate, vehicleType: row.vehicleType, name: row.name })),
+                    rows: preview.vehicles.map((row) => ({ plate: row.plate, vehicleType: row.vehicleType, name: row.name, vehicleCode: row.vehicleCode })),
                   });
                 }
                 if (preview.crews.length) {

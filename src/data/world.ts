@@ -262,6 +262,7 @@ export const AMBULANCE_MODELS = ["Renault Master", "Fiat Ducato", "Mercedes Spri
 export const VSL_MODELS = ["Peugeot Rifter", "Renault Kangoo", "Citroën Berlingo", "Volkswagen Caddy"];
 
 export const NOTES = [
+  "PRENDRE PROCHAIN RDV",
   "Fauteuil roulant",
   "Oxygène 2 L",
   "Accompagnant",
@@ -269,6 +270,33 @@ export const NOTES = [
   "Escalier étroit",
   "Sortie d'hospitalisation",
 ];
+
+const POSTAL: Record<string, string> = {
+  rouen: "76000",
+  "le petit-quevilly": "76140",
+  "bois-guillaume": "76230",
+  "mont-saint-aignan": "76130",
+  "sotteville-les-rouen": "76300",
+  "deville-les-rouen": "76250",
+  canteleu: "76380",
+  darnetal: "76160",
+  bihorel: "76420",
+  bonsecours: "76240",
+  "notre-dame-de-bondeville": "76960",
+  maromme: "76150",
+  "saint-etienne-du-rouvray": "76800",
+  oissel: "76350",
+  "le mesnil-esnard": "76240",
+  barentin: "76360",
+  elbeuf: "76500",
+  "caudebec-les-elbeuf": "76320",
+  "grand-couronne": "76530",
+};
+
+export function postalOf(city: string): string {
+  const key = city.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  return POSTAL[key] ?? "";
+}
 
 export interface CompanyCard {
   id: string;

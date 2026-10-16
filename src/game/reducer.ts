@@ -86,7 +86,7 @@ export type Action =
   | { type: "ROLL_DAY" }
   | { type: "IMPORT_SERIES" }
   | { type: "CLEAR_DEMAND" }
-  | { type: "IMPORT_VEHICLES"; rows: { plate: string; vehicleType: VehicleType; name: string }[] }
+  | { type: "IMPORT_VEHICLES"; rows: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string }[] }
   | { type: "IMPORT_CREWS"; rows: { plate: string; driver: string; mate?: string; dea: boolean }[] }
   | { type: "HYDRATE"; state: GameState; label: string }
   | { type: "TOAST"; message: string; tone: Toast["tone"] }
@@ -860,12 +860,13 @@ function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
   );
 }
 
-function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, name: string): GameState {
+function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, name: string, vehicleCode?: string): GameState {
   const clean = plate.trim().toUpperCase();
   if (clean.length < 4) return withToast(state, "Immatriculation trop courte.", "warn");
   if (state.crews.length >= MAX_VEHICLES) return withToast(state, `Plafond de ${MAX_VEHICLES} véhicules.`, "warn");
   const id = `veh-${state.toastSeq}`;
-  const vehicle: Vehicle = { id, plate: clean, vehicleType, name: name.trim() || (vehicleType === "ambulance" ? "Ambulance" : "VSL"), active: true };
+  const code = vehicleCode?.trim() || undefined;
+  const vehicle: Vehicle = { id, plate: clean, vehicleType, name: name.trim() || (vehicleType === "ambulance" ? "Ambulance" : "VSL"), vehicleCode: code, active: true };
   const index = state.crews.length;
   const crewId = `crew-${state.toastSeq}`;
   const driver = state.staff.find((member) => member.role === "conducteur" && !state.crews.some((crew) => crew.driverId === member.id));
@@ -878,6 +879,7 @@ function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, n
     driver: driver?.name ?? "Conducteur à nommer",
     mate: mate?.name ?? (vehicleType === "ambulance" ? "DEA à nommer" : ""),
     vehicleType,
+    vehicleCode: code,
     plate: clean,
     vehicleName: vehicle.name,
     color: CREW_COLORS[index % CREW_COLORS.length]!,
@@ -1030,13 +1032,13 @@ function clearDemand(state: GameState): GameState {
 
 function importVehicles(
   state: GameState,
-  rows: { plate: string; vehicleType: VehicleType; name: string }[],
+  rows: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string }[],
 ): GameState {
   let next = state;
   let added = 0;
   for (const row of rows) {
     const before = next.vehicles.length;
-    next = addVehicle(next, row.plate, row.vehicleType, row.name);
+    next = addVehicle(next, row.plate, row.vehicleType, row.name, row.vehicleCode);
     if (next.vehicles.length > before) added += 1;
   }
   if (!added) return withToast(state, "Aucun véhicule ajouté.", "warn");

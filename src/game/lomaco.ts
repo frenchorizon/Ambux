@@ -23,6 +23,9 @@ export type ImportField =
   | "sens"
   | "serie"
   | "telephone"
+  | "naissance"
+  | "motif"
+  | "code_vehicule"
   | "note"
   | "equipage"
   | "immatriculation"
@@ -68,6 +71,9 @@ export const IMPORT_FIELD_LABELS: { id: ImportField; label: string }[] = [
   { id: "sens", label: "Aller / retour" },
   { id: "serie", label: "Série" },
   { id: "telephone", label: "Téléphone" },
+  { id: "naissance", label: "Né(e) le" },
+  { id: "motif", label: "Motif" },
+  { id: "code_vehicule", label: "Code véhicule" },
   { id: "note", label: "Note" },
   { id: "equipage", label: "Équipage" },
   { id: "immatriculation", label: "Immatriculation" },
@@ -99,6 +105,9 @@ const SYNONYMS: { field: ImportField; phrases: string[] }[] = [
   { field: "nom", phrases: ["nom patient", "nom du patient", "nom"] },
   { field: "patient", phrases: ["patient", "beneficiaire"] },
   { field: "telephone", phrases: ["telephone", "tel", "portable", "mobile"] },
+  { field: "naissance", phrases: ["date de naissance", "nee le", "ne le", "ne e le", "naissance", "ddn"] },
+  { field: "motif", phrases: ["motif", "code motif", "nature du transport"] },
+  { field: "code_vehicule", phrases: ["code vehicule", "numero de parc", "n parc", "code parc"] },
   { field: "serie", phrases: ["serie", "seance", "habitude"] },
   { field: "dea", phrases: ["dea"] },
   { field: "note", phrases: ["commentaire", "observation", "note", "remarque"] },
@@ -143,6 +152,7 @@ export interface LomacoVehicleRow {
   plate: string;
   vehicleType: VehicleType;
   name: string;
+  vehicleCode?: string;
   summary: string;
 }
 
@@ -235,7 +245,7 @@ export function normKey(value: string): string {
 
 export function detectField(header: string, profile: ImportProfile = LOMACO_IMPORT_PROFILE): ImportField {
   const key = normKey(header);
-  if (!key || key.includes("naissance")) return "ignore";
+  if (!key) return "ignore";
   const saved = profile.map[key];
   if (saved) return saved;
   for (const entry of SYNONYMS) {
@@ -549,6 +559,7 @@ function parseVehicle(
   plates.add(plate);
   types.set(plate, type);
   const name = (record.nom_vehicule ?? "").trim() || (service === "TAP" ? "TAP" : type === "ambulance" ? "Ambulance" : "VSL");
+  const vehicleCode = (record.code_vehicule ?? "").trim() || undefined;
   return {
     line,
     file: sheet.file,
@@ -556,6 +567,7 @@ function parseVehicle(
     plate,
     vehicleType: type,
     name,
+    vehicleCode,
     summary: `${plate} · ${service === "TAP" ? "TAP (planifié en VSL)" : type === "ambulance" ? "ambulance" : "VSL"}${name ? ` · ${name}` : ""}`,
   };
 }
@@ -663,19 +675,22 @@ async function parseTransport(
     posture,
     serviceMin: posture === "allonge" ? 16 : 10,
     kind,
-    seriesId: record.serie || (sens === "ar" ? id : undefined),
+    seriesId: seriesIdOf(record.serie, sens === "ar" ? id : undefined),
     priority: "normal",
     cancelled: false,
     note: record.note || undefined,
     service: service ?? undefined,
+    motif: parseMotif(record.motif ?? "") ?? undefined,
     requestedCrew: record.equipage?.trim() || undefined,
   };
+  const born = parseBirth(record.naissance ?? "");
   const patient: Patient = {
     id: patientId,
     firstName: names.first || "—",
     lastName: names.last,
     phone: record.telephone || "",
-    birthYear: 1950,
+    birthYear: born?.year ?? 1950,
+    birthDate: born?.iso,
     addressId: depart.location.kind === "domicile" ? depart.location.id : arrivee.location.id,
     mobility: posture,
     note: record.note || undefined,
@@ -790,6 +805,37 @@ function parseSens(value: string): "simple" | "aller" | "retour" | "ar" | null {
   if (v === "retour" || v === "r") return "retour";
   if (v === "ar" || v === "allerretour" || v === "aller/retour") return "ar";
   return null;
+}
+
+function seriesIdOf(value: string | undefined, fallback?: string): string | undefined {
+  const text = (value ?? "").trim();
+  if (!text) return fallback;
+  const key = normKey(text).replace(/\s+/g, "");
+  if (key === "unique" || key === "u" || key === "non") return undefined;
+  if (key === "serie" || key === "s" || key === "oui") return fallback || "serie";
+  return text;
+}
+
+function parseMotif(value: string): "DIAL" | "KINE" | "CONS" | "ORTHO" | "RADI" | null {
+  const key = normKey(value).replace(/\s+/g, "");
+  if (!key) return null;
+  if (key.startsWith("dial")) return "DIAL";
+  if (key.startsWith("kine")) return "KINE";
+  if (key.startsWith("cons")) return "CONS";
+  if (key.startsWith("ortho")) return "ORTHO";
+  if (key.startsWith("radi")) return "RADI";
+  return null;
+}
+
+function parseBirth(value: string): { iso: string; year: number } | null {
+  const text = value.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  const fr = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/.exec(text);
+  const year = iso ? Number(iso[1]) : fr ? Number(fr[3]) : 0;
+  const month = iso ? Number(iso[2]) : fr ? Number(fr[2]) : 0;
+  const day = iso ? Number(iso[3]) : fr ? Number(fr[1]) : 0;
+  if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` };
 }
 
 function parseClock(value: string): number | null {

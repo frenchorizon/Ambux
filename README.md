@@ -28,7 +28,7 @@ npm run sim
 3. **Importer** (menu ⋯) lit les exports Lomaco : un ou plusieurs fichiers `.xlsx`, `.xls` ou `.csv`. Les colonnes se reconnaissent, le profil « Lomaco (à confirmer) » se corrige et s'enregistre. L'aperçu montre les courses, les véhicules, les équipages et les rejets. Le collage CSV de **Demande de demain** reste disponible.
 4. **Générer le planning** respecte la tolérance, la charge max (15 ambulance / 25 VSL), l'amplitude (11 h, prises de poste décalées), la pause repas et le DEA. Ce qui ne tient pas va dans **À contrôler**.
 5. Sur la timeline, cherchez un patient, filtrez un équipage, zoomez. La carte est à côté du planning. L'écart horaire est un badge orange.
-6. **Exporter le CSV** écrit les feuilles de route à réimporter dans Lomaco : Excel ou CSV (une feuille par équipage, colonnes du profil) et l'impression PDF. **Feuilles de route** imprime aussi une page par équipage. Annuler et rétablir sont dans la barre (aussi Ctrl+Z).
+6. **Exporter le CSV** écrit les feuilles de route à réimporter dans Lomaco : Excel ou CSV (une feuille par équipage, colonnes du profil). Le PDF par défaut est **Feuille de route Lomaco** (planning A4, choix IMPRESSION_STD, une page par équipage). Annuler et rétablir sont dans la barre (aussi Ctrl+Z).
 7. **Simuler la journée** reste un module à part : horloge accélérée et appels.
 8. Si OSRM ne répond pas, un bandeau rouge signale les kilomètres estimés, repris sur la timeline et le PDF.
 

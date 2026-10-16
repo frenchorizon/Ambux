@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { useData } from "../game/context";
+import { useClock, useData } from "../game/context";
 import { downloadBytes, loadExportProfiles, routeSheets, saveExportProfile, sheetsToCsvFiles, zipTexts, LOMACO_EXPORT_PROFILE, EXPORT_CATALOG, type ExportField, type ExportProfile } from "../game/lomaco";
 import { sheetsToXlsx } from "../game/lomacoFiles";
-import { printSheets } from "./RouteSheets";
+import { printLomacoSheets } from "./RouteSheets";
 import { Button } from "./ui/button";
 
 export function LomacoExportPanel() {
   const data = useData();
+  const clock = useClock();
   const [profiles, setProfiles] = useState<ExportProfile[]>(() => loadExportProfiles());
   const [profileId, setProfileId] = useState(LOMACO_EXPORT_PROFILE.id);
   const [name, setName] = useState(LOMACO_EXPORT_PROFILE.name);
@@ -81,7 +82,7 @@ export function LomacoExportPanel() {
       </ul>
       <p className="mt-2 text-xs text-muted">{sheets.map((sheet) => `${sheet.name} (${Math.max(0, sheet.rows.length - 1)})`).join(" · ")}</p>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <Button type="button" size="sm" variant="secondary" onClick={() => printSheets(data)}>Imprimer / PDF</Button>
+        <Button type="button" size="sm" onClick={() => printLomacoSheets(data, undefined, clock.nowMin)}>Feuille de route Lomaco</Button>
         <Button
           type="button"
           size="sm"
