@@ -8,6 +8,7 @@ import { formatKm } from "../lib/format";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
 import { LomacoExportPanel } from "./LomacoExport";
+import { PlanningExport } from "./PlanningExport";
 import { LomacoImportDialog } from "./LomacoImport";
 import { RouteSheetsDialog } from "./RouteSheets";
 
@@ -22,9 +23,10 @@ export function GameDialogs() {
       <Modal
         open={data.modal === "lomaco"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-        title="Exporter vers Lomaco"
-        description="Feuilles de route à réimporter dans Lomaco. Aucun envoi réseau : les conducteurs gardent l'application du téléphone."
+        title="Exporter"
+        description="Planning CSV ou Excel, puis les feuilles à réimporter dans Lomaco. Aucun envoi : le fichier reste dans ce navigateur."
       >
+        <PlanningExport />
         <LomacoExportPanel />
         <ul className="mb-4 space-y-1 text-sm">
           {data.crews.map((crew) => {

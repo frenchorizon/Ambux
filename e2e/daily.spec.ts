@@ -169,7 +169,7 @@ async function mouseRejectsOverlap(page: Page) {
   await page.mouse.down();
   await page.mouse.move(from.x, box!.y + box!.height / 2, { steps: 12 });
   await page.mouse.up();
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité|Conflit horaire/).first()).toBeVisible();
   expect((await barById(page, from.id)).depart).toBe(from.depart);
 }
 
@@ -221,7 +221,7 @@ async function touchRejectsOverlap(page: Page) {
     },
     { x: from.x, y: from.y, x2: from.x, y2: box!.y + box!.height / 2 },
   );
-  await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();
+  await expect(page.getByText(/Incompatibilité|Conflit horaire/).first()).toBeVisible();
   expect((await barById(page, from.id)).depart).toBe(from.depart);
 }
 

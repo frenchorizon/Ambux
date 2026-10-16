@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## En cours — import et export
+
+Branche `feat/import-export`. Pas de tag.
+
+- L'import v0.5 (CSV, Excel, profil Lomaco, aperçu, fusion) reste en place. Il couvre en plus les patients, le personnel, la disponibilité des véhicules et l'attente de séance qui crée le retour.
+- Aperçu en tableau, avec rejets et avertissements. Rien n'est écrit avant Fusionner. Cette fusion est une seule étape d'annulation.
+- Export du planning en CSV (point-virgule, BOM) et Excel (dates JJ/MM/AAAA), filtre de dates par défaut sur le lendemain, colonnes mémorisées. Les feuilles Lomaco restent disponibles.
+- Sur téléphone, Importer et Exporter sont visibles sous la barre, sans ouvrir le menu.
+
 ## En cours — menu, données, synthèse
 
 Branche `ux/donnees-menu`. Pas de tag.

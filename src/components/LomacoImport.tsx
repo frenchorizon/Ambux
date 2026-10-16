@@ -22,6 +22,8 @@ import { Modal } from "./ui/dialog";
 
 const KINDS: { id: SheetKind; label: string }[] = [
   { id: "transport", label: "Courses" },
+  { id: "patient", label: "Patients" },
+  { id: "personnel", label: "Personnel" },
   { id: "equipage", label: "Équipages" },
   { id: "vehicule", label: "Véhicules" },
   { id: "ignorer", label: "Ignorer" },
@@ -103,7 +105,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
       wide
       onClose={close}
       title="Importer"
-      description="Exports Lomaco en xlsx, xls ou csv. Aucune connexion : les conducteurs restent sur l'application Lomaco."
+      description="CSV ou Excel. Patients, courses, personnel et véhicules. Rien n'est écrit avant la fusion, qui s'annule d'un seul geste."
     >
       <ol className="mb-4 flex gap-2 text-xs font-semibold">
         {(["fichiers", "colonnes", "apercu"] as const).map((id, index) => (
@@ -130,7 +132,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
               }}
             />
           </label>
-          <p className="text-xs text-muted">Un ou plusieurs fichiers. Courses, équipages et véhicules peuvent être dans des feuilles différentes.</p>
+          <p className="text-xs text-muted">Un ou plusieurs fichiers .csv, .xlsx ou .xls. Une feuille peut contenir des courses, des patients, du personnel ou des véhicules.</p>
           <ul className="max-h-40 space-y-1 overflow-auto text-sm">
             {sheets.map((sheet, index) => (
               <li key={`${sheet.file}-${sheet.sheet}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
@@ -261,48 +263,101 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
       {step === "apercu" && preview && counts && (
         <div className="space-y-3">
           <p className="text-sm">
-            {counts.courses} course{counts.courses > 1 ? "s" : ""} · {counts.vehicles} véhicule{counts.vehicles > 1 ? "s" : ""} · {counts.crews} équipage{counts.crews > 1 ? "s" : ""} · {counts.rejected} rejet{counts.rejected > 1 ? "s" : ""}
+            {counts.courses} course{counts.courses > 1 ? "s" : ""} · {preview.patients.length} patient{preview.patients.length > 1 ? "s" : ""} · {preview.personnel.length} personne{preview.personnel.length > 1 ? "s" : ""} · {counts.vehicles} véhicule{counts.vehicles > 1 ? "s" : ""} · {counts.crews} équipage{counts.crews > 1 ? "s" : ""} · {counts.rejected} rejet{counts.rejected > 1 ? "s" : ""} · {preview.warnings.length} avertissement{preview.warnings.length > 1 ? "s" : ""}
           </p>
-          <PreviewList title="Acceptées" empty="Aucune ligne retenue." items={[
-            ...preview.transports.map((row) => `L${row.line} · ${row.summary}`),
-            ...preview.vehicles.map((row) => `L${row.line} · ${row.summary}`),
-            ...preview.crews.map((row) => `L${row.line} · ${row.summary}`),
-          ]} />
-          <PreviewList
-            title="Rejets"
-            tone="bad"
-            empty="Aucun rejet."
-            items={preview.rejected.map((row) => `${row.file} · ${row.sheet} · L${row.line} · ${row.reason}`)}
-          />
+          <div className="max-h-52 overflow-auto rounded-xl border border-line">
+            <table className="w-full min-w-[28rem] text-left text-xs">
+              <thead className="sticky top-0 bg-paper text-[11px] uppercase tracking-wide text-muted">
+                <tr>
+                  <th className="px-2 py-2 font-semibold">Ligne</th>
+                  <th className="px-2 py-2 font-semibold">Statut</th>
+                  <th className="px-2 py-2 font-semibold">Détail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.transports.map((row) => (
+                  <tr key={`t-${row.file}-${row.line}`} className="border-t border-line">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Acceptée</td>
+                    <td className="px-2 py-1.5">{row.summary}</td>
+                  </tr>
+                ))}
+                {preview.patients.map((row) => (
+                  <tr key={`p-${row.file}-${row.line}`} className="border-t border-line">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Acceptée</td>
+                    <td className="px-2 py-1.5">{row.summary}</td>
+                  </tr>
+                ))}
+                {preview.personnel.map((row) => (
+                  <tr key={`s-${row.file}-${row.line}`} className="border-t border-line">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Acceptée</td>
+                    <td className="px-2 py-1.5">{row.summary}</td>
+                  </tr>
+                ))}
+                {preview.vehicles.map((row) => (
+                  <tr key={`v-${row.file}-${row.line}`} className="border-t border-line">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Acceptée</td>
+                    <td className="px-2 py-1.5">{row.summary}</td>
+                  </tr>
+                ))}
+                {preview.crews.map((row) => (
+                  <tr key={`c-${row.file}-${row.line}`} className="border-t border-line">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Acceptée</td>
+                    <td className="px-2 py-1.5">{row.summary}</td>
+                  </tr>
+                ))}
+                {preview.warnings.map((row, index) => (
+                  <tr key={`w-${index}`} className="border-t border-line bg-amber-50">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Avertissement</td>
+                    <td className="px-2 py-1.5">{row.message}</td>
+                  </tr>
+                ))}
+                {preview.rejected.map((row, index) => (
+                  <tr key={`r-${index}`} className="border-t border-line bg-rose-50 text-rose-900">
+                    <td className="px-2 py-1.5">L{row.line}</td>
+                    <td className="px-2 py-1.5">Rejet</td>
+                    <td className="px-2 py-1.5">{row.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setStep("colonnes")}>Retour</Button>
             <Button
               type="button"
-              disabled={!counts.courses && !counts.vehicles && !counts.crews}
+              disabled={!counts.courses && !counts.vehicles && !counts.crews && !preview.patients.length && !preview.personnel.length}
               onClick={() => {
-                if (preview.vehicles.length) {
-                  data.dispatch({
-                    type: "IMPORT_VEHICLES",
-                    rows: preview.vehicles.map((row) => ({ plate: row.plate, vehicleType: row.vehicleType, name: row.name, vehicleCode: row.vehicleCode })),
-                  });
-                }
-                if (preview.crews.length) {
-                  data.dispatch({
-                    type: "IMPORT_CREWS",
-                    rows: preview.crews.map((row) => ({ plate: row.plate, driver: row.driver, mate: row.mate, dea: row.dea })),
-                  });
-                }
-                if (preview.transports.length) {
-                  data.dispatch({
-                    type: "IMPORT_BATCH",
-                    rows: preview.transports.map((row) => ({
-                      transport: row.transport,
-                      patient: row.patient,
-                      locations: row.locations,
-                      retour: row.retour,
-                    })),
-                  });
-                }
+                data.dispatch({
+                  type: "IMPORT_APPLY",
+                  vehicles: preview.vehicles.map((row) => ({
+                    plate: row.plate,
+                    vehicleType: row.vehicleType,
+                    name: row.name,
+                    vehicleCode: row.vehicleCode,
+                    active: row.active,
+                    availability: row.availability,
+                  })),
+                  crews: preview.crews.map((row) => ({ plate: row.plate, driver: row.driver, mate: row.mate, dea: row.dea })),
+                  patients: preview.patients.map((row) => ({ patient: row.patient, location: row.location })),
+                  personnel: preview.personnel.map((row) => ({
+                    name: row.name,
+                    role: row.role,
+                    dea: row.dea,
+                    availability: row.availability,
+                  })),
+                  courses: preview.transports.map((row) => ({
+                    transport: row.transport,
+                    patient: row.patient,
+                    locations: row.locations,
+                    retour: row.retour,
+                  })),
+                });
                 data.dispatch({ type: "SET_VIEW", view: "gantt" });
                 close();
               }}
@@ -314,21 +369,5 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
       )}
       {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
     </Modal>
-  );
-}
-
-function PreviewList({ title, items, empty, tone }: { title: string; items: string[]; empty: string; tone?: "bad" }) {
-  return (
-    <div>
-      <h3 className={tone === "bad" ? "text-sm font-semibold text-rose-800" : "text-sm font-semibold"}>{title}</h3>
-      <ul className="mt-1 max-h-36 space-y-1 overflow-auto text-xs">
-        {items.length === 0 && <li className="text-muted">{empty}</li>}
-        {items.map((item, index) => (
-          <li key={`${index}-${item}`} className={tone === "bad" ? "rounded-lg bg-rose-50 px-2 py-1 text-rose-900" : "rounded-lg bg-paper px-2 py-1"}>
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

@@ -2,6 +2,8 @@ import type { CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
 import { geocodeAddress } from "../lib/routing";
 import { formatMin } from "../lib/format";
+import { suggestExtraField } from "../io/mapping/suggest";
+import { checkPatient, checkPersonnel, parseAttente, readAvailability } from "../io/validators/rows";
 
 export type ImportField =
   | "ignore"
@@ -27,6 +29,11 @@ export type ImportField =
   | "motif"
   | "code_vehicule"
   | "note"
+  | "attente"
+  | "contraintes"
+  | "disponibilite"
+  | "role"
+  | "adresse"
   | "equipage"
   | "immatriculation"
   | "conducteur"
@@ -34,7 +41,7 @@ export type ImportField =
   | "dea"
   | "nom_vehicule";
 
-export type SheetKind = "transport" | "equipage" | "vehicule" | "ignorer";
+export type SheetKind = "transport" | "equipage" | "vehicule" | "patient" | "personnel" | "ignorer";
 
 export interface ImportProfile {
   id: string;
@@ -75,6 +82,11 @@ export const IMPORT_FIELD_LABELS: { id: ImportField; label: string }[] = [
   { id: "motif", label: "Motif" },
   { id: "code_vehicule", label: "Code véhicule" },
   { id: "note", label: "Note" },
+  { id: "attente", label: "Attente (séance)" },
+  { id: "contraintes", label: "Contraintes" },
+  { id: "disponibilite", label: "Disponibilité" },
+  { id: "role", label: "Rôle" },
+  { id: "adresse", label: "Adresse" },
   { id: "equipage", label: "Équipage" },
   { id: "immatriculation", label: "Immatriculation" },
   { id: "conducteur", label: "Conducteur" },
@@ -143,6 +155,7 @@ export interface LomacoTransportRow {
   patient: Patient;
   locations: Location[];
   retour?: Transport;
+  warnings: string[];
 }
 
 export interface LomacoVehicleRow {
@@ -153,6 +166,9 @@ export interface LomacoVehicleRow {
   vehicleType: VehicleType;
   name: string;
   vehicleCode?: string;
+  active: boolean;
+  availability?: string;
+  warnings: string[];
   summary: string;
 }
 
@@ -167,11 +183,43 @@ export interface LomacoCrewRow {
   summary: string;
 }
 
+export interface LomacoPatientRow {
+  line: number;
+  file: string;
+  sheet: string;
+  summary: string;
+  patient: Patient;
+  location?: Location;
+  warnings: string[];
+}
+
+export interface LomacoPersonnelRow {
+  line: number;
+  file: string;
+  sheet: string;
+  summary: string;
+  name: string;
+  role: "conducteur" | "auxiliaire";
+  dea: boolean;
+  availability?: string;
+  warnings: string[];
+}
+
+export interface LomacoWarning {
+  file: string;
+  sheet: string;
+  line: number;
+  message: string;
+}
+
 export interface LomacoPreview {
   transports: LomacoTransportRow[];
   vehicles: LomacoVehicleRow[];
   crews: LomacoCrewRow[];
+  patients: LomacoPatientRow[];
+  personnel: LomacoPersonnelRow[];
   rejected: LomacoReject[];
+  warnings: LomacoWarning[];
 }
 
 export type ExportField =
@@ -258,16 +306,18 @@ export function detectField(header: string, profile: ImportProfile = LOMACO_IMPO
       if (key.includes(phrase) && (!best || phrase.length > best.length)) best = { field: entry.field, length: phrase.length };
     }
   }
-  return best?.field ?? "ignore";
+  return best?.field ?? suggestExtraField(header) ?? "ignore";
 }
 
 export function detectKind(fields: readonly ImportField[]): SheetKind {
   const set = new Set(fields);
-  if (set.has("heure_rdv") || set.has("adresse_depart") || (set.has("nom") && set.has("adresse_arrivee")) || set.has("patient")) {
+  if (set.has("heure_rdv") || set.has("adresse_depart") || set.has("attente") || (set.has("nom") && set.has("adresse_arrivee")) || set.has("patient")) {
     return "transport";
   }
   if (set.has("conducteur")) return "equipage";
   if (set.has("immatriculation") || set.has("nom_vehicule")) return "vehicule";
+  if (set.has("role") || set.has("disponibilite")) return "personnel";
+  if (set.has("contraintes") || set.has("adresse")) return "patient";
   return "ignorer";
 }
 
@@ -300,14 +350,18 @@ export async function previewLomaco(
   const transports: LomacoTransportRow[] = [];
   const vehicles: LomacoVehicleRow[] = [];
   const crews: LomacoCrewRow[] = [];
+  const patients: LomacoPatientRow[] = [];
+  const personnel: LomacoPersonnelRow[] = [];
   const rejected: LomacoReject[] = [];
+  const warnings: LomacoWarning[] = [];
+  const staffNames = new Set<string>();
   const plates = new Set(options.fleet.map((item) => normPlate(item.plate)));
   const types = new Map(options.fleet.map((item) => [normPlate(item.plate), item.vehicleType]));
 
   for (const sheet of sheets) {
     if (sheet.kind === "ignorer") {
       if (sheet.rows.length) {
-        rejected.push({ file: sheet.file, sheet: sheet.sheet, line: 1, reason: "Feuille non reconnue. Choisissez courses, équipages ou véhicules." });
+        rejected.push({ file: sheet.file, sheet: sheet.sheet, line: 1, reason: "Feuille non reconnue. Choisissez courses, patients, personnel ou véhicules." });
       }
       continue;
     }
@@ -319,7 +373,29 @@ export async function previewLomaco(
       if (sheet.kind === "vehicule") {
         const parsed = parseVehicle(record, line, sheet, plates, types);
         if ("reason" in parsed) rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: parsed.reason });
-        else vehicles.push(parsed);
+        else {
+          vehicles.push(parsed);
+          for (const message of parsed.warnings) warnings.push({ file: sheet.file, sheet: sheet.sheet, line, message });
+        }
+        continue;
+      }
+      if (sheet.kind === "personnel") {
+        const parsed = parsePersonnel(record, line, sheet, staffNames);
+        if ("reason" in parsed) rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: parsed.reason });
+        else {
+          personnel.push(parsed);
+          for (const message of parsed.warnings) warnings.push({ file: sheet.file, sheet: sheet.sheet, line, message });
+        }
+        continue;
+      }
+      if (sheet.kind === "patient") {
+        const parsed = await parsePatient(record, line, sheet, known, geocode);
+        if ("reason" in parsed) rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: parsed.reason });
+        else {
+          if (parsed.location) known.push(parsed.location);
+          patients.push(parsed);
+          for (const message of parsed.warnings) warnings.push({ file: sheet.file, sheet: sheet.sheet, line, message });
+        }
         continue;
       }
       if (sheet.kind === "equipage") {
@@ -335,10 +411,14 @@ export async function previewLomaco(
       }
       for (const place of parsed.locations) known.push(place);
       transports.push(parsed);
+      for (const message of parsed.warnings) warnings.push({ file: sheet.file, sheet: sheet.sheet, line, message });
       const vehicle = vehicleFromTransport(record, line, sheet, plates, types);
       if (vehicle && "reason" in vehicle) {
         if (!vehicle.reason.includes("déjà")) rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: vehicle.reason });
-      } else if (vehicle) vehicles.push(vehicle);
+      } else if (vehicle) {
+        vehicles.push(vehicle);
+        for (const message of vehicle.warnings) warnings.push({ file: sheet.file, sheet: sheet.sheet, line, message });
+      }
       const crew = crewFromTransport(record, line, sheet, types);
       if (crew && !("reason" in crew)) crews.push(crew);
       else if (crew && "reason" in crew && record.conducteur) {
@@ -346,7 +426,7 @@ export async function previewLomaco(
       }
     }
   }
-  return { transports, vehicles, crews, rejected };
+  return { transports, vehicles, crews, patients, personnel, rejected, warnings };
 }
 
 export interface RouteSheet {
@@ -543,6 +623,74 @@ function recordOf(fields: readonly ImportField[], cells: readonly string[]): Par
   return record;
 }
 
+function parsePersonnel(
+  record: Partial<Record<ImportField, string>>,
+  line: number,
+  sheet: SourceSheet,
+  seen: Set<string>,
+): LomacoPersonnelRow | { reason: string } {
+  const checked = checkPersonnel({ nom: record.nom || record.patient, role: record.role, disponibilite: record.disponibilite });
+  if (!checked.ok) return { reason: checked.reason };
+  const key = checked.name.toLocaleLowerCase("fr");
+  if (seen.has(key)) return { reason: `${checked.name} est déjà dans le fichier.` };
+  seen.add(key);
+  return {
+    line,
+    file: sheet.file,
+    sheet: sheet.sheet,
+    summary: `${checked.name} · ${checked.role}${checked.availability ? ` · ${checked.availability}` : ""}`,
+    name: checked.name,
+    role: checked.role,
+    dea: checked.dea,
+    availability: checked.availability,
+    warnings: checked.warnings,
+  };
+}
+
+async function parsePatient(
+  record: Partial<Record<ImportField, string>>,
+  line: number,
+  sheet: SourceSheet,
+  locations: Location[],
+  geocode: (query: string) => Promise<{ lat: number; lng: number; label: string } | null>,
+): Promise<LomacoPatientRow | { reason: string }> {
+  const address = [record.adresse || record.adresse_depart, record.cp_depart, record.ville_depart]
+    .map((part) => (part ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const checked = checkPatient({
+    nom: record.nom,
+    prenom: record.prenom,
+    patient: record.patient,
+    address,
+    contraintes: record.contraintes,
+  });
+  if (!checked.ok) return { reason: checked.reason };
+  const place = await resolvePlace(address, locations, `pat-${sheet.sheet}-${line}`, geocode);
+  if (!place.ok) return { reason: place.reason };
+  const id = `pat-${normKey(sheet.file)}-${normKey(sheet.sheet)}-${line}`;
+  const patient: Patient = {
+    id,
+    firstName: checked.first || "—",
+    lastName: checked.last,
+    phone: record.telephone || "",
+    birthYear: 1950,
+    addressId: place.location.id,
+    mobility: checked.mobility,
+    constraints: checked.constraints,
+    note: checked.constraints,
+  };
+  return {
+    line,
+    file: sheet.file,
+    sheet: sheet.sheet,
+    summary: `${checked.last} ${checked.first} · ${place.location.short}${checked.constraints ? ` · ${checked.constraints}` : ""}`,
+    patient,
+    location: place.created,
+    warnings: checked.warnings,
+  };
+}
+
 function parseVehicle(
   record: Partial<Record<ImportField, string>>,
   line: number,
@@ -560,6 +708,9 @@ function parseVehicle(
   types.set(plate, type);
   const name = (record.nom_vehicule ?? "").trim() || (service === "TAP" ? "TAP" : type === "ambulance" ? "Ambulance" : "VSL");
   const vehicleCode = (record.code_vehicule ?? "").trim() || undefined;
+  const availability = readAvailability(record.disponibilite ?? "");
+  const warnings = availability.warning ? [availability.warning] : [];
+  const typeLabel = service === "TAP" ? "TAP (planifié en VSL)" : type === "ambulance" ? "ambulance" : "VSL";
   return {
     line,
     file: sheet.file,
@@ -568,7 +719,10 @@ function parseVehicle(
     vehicleType: type,
     name,
     vehicleCode,
-    summary: `${plate} · ${service === "TAP" ? "TAP (planifié en VSL)" : type === "ambulance" ? "ambulance" : "VSL"}${name ? ` · ${name}` : ""}`,
+    active: availability.active,
+    availability: availability.label,
+    warnings,
+    summary: `${plate} · ${typeLabel}${availability.label ? ` · ${availability.label}` : ""}${name ? ` · ${name}` : ""}`,
   };
 }
 
@@ -647,8 +801,20 @@ async function parseTransport(
   }
   const sens = parseSens(record.sens ?? "");
   if (!sens) return { reason: `Sens « ${record.sens} » inconnu. Valeurs : aller, retour, simple, A/R.` };
-  const retourClock = (record.heure_retour ?? "").trim() ? parseClock(record.heure_retour ?? "") : null;
+  const attente = parseAttente(record.attente ?? "");
+  if (!attente.ok) return { reason: attente.reason };
+  let retourClock = (record.heure_retour ?? "").trim() ? parseClock(record.heure_retour ?? "") : null;
   if ((record.heure_retour ?? "").trim() && retourClock == null) return { reason: `Heure retour invalide « ${record.heure_retour} ».` };
+  const warnings: string[] = [];
+  if (service === "TAP") warnings.push("TAP planifié comme un VSL.");
+  if (attente.minutes != null && sens === "retour") warnings.push("Attente ignorée : la ligne est déjà un retour.");
+  if (attente.minutes != null && sens !== "retour" && retourClock == null) {
+    retourClock = clock + attente.minutes;
+    warnings.push(`Séance de ${attente.minutes} min : retour créé.`);
+  } else if (attente.minutes != null && retourClock != null && Math.abs(retourClock - clock - attente.minutes) > 5) {
+    warnings.push("L'heure de retour ne correspond pas à l'attente.");
+  }
+  if (retourClock != null && retourClock >= 24 * 60) return { reason: "La séance dépasse minuit." };
   if (sens === "ar" && retourClock == null) return { reason: "Aller-retour sans heure de retour." };
   const departLabel = joinAddress(record, "depart");
   const arriveeLabel = joinAddress(record, "arrivee");
@@ -675,7 +841,7 @@ async function parseTransport(
     posture,
     serviceMin: posture === "allonge" ? 16 : 10,
     kind,
-    seriesId: seriesIdOf(record.serie, sens === "ar" ? id : undefined),
+    seriesId: seriesIdOf(record.serie, sens === "ar" || (attente.minutes != null && sens !== "retour") ? id : undefined),
     priority: "normal",
     cancelled: false,
     note: record.note || undefined,
@@ -696,7 +862,8 @@ async function parseTransport(
     note: record.note || undefined,
   };
   let retour: Transport | undefined;
-  if (sens === "ar" && retourClock != null) {
+  const seance = attente.minutes != null && sens !== "retour";
+  if (retourClock != null && (sens === "ar" || seance)) {
     retour = {
       ...transport,
       id: `${id}-r`,
@@ -712,8 +879,8 @@ async function parseTransport(
   }
   const created = [depart.created, arrivee.created].filter((place): place is Location => Boolean(place));
   const typeLabel = service === "TAP" ? "TAP (VSL)" : service ?? posture;
-  const summary = `${names.last} ${names.first} · ${formatMin(clock)} · ${depart.location.short} → ${arrivee.location.short} · ${typeLabel} · ${sens}${record.equipage ? ` · équipage ${record.equipage}` : ""}`;
-  return { line, file: sheet.file, sheet: sheet.sheet, summary, transport, patient, locations: created, retour };
+  const summary = `${names.last} ${names.first} · ${formatMin(clock)} · ${depart.location.short} → ${arrivee.location.short} · ${typeLabel} · ${sens}${retour ? " · retour" : ""}${record.equipage ? ` · équipage ${record.equipage}` : ""}`;
+  return { line, file: sheet.file, sheet: sheet.sheet, summary, transport, patient, locations: created, retour, warnings };
 }
 
 async function resolvePlace(

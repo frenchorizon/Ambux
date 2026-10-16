@@ -30,6 +30,7 @@ const TRACKED = new Set<Action["type"]>([
   "CLEAR_DEMAND",
   "IMPORT_VEHICLES",
   "IMPORT_CREWS",
+  "IMPORT_APPLY",
   "REPLAY",
 ]);
 

@@ -36,7 +36,7 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
   await page.getByRole("button", { name: "Aperçu" }).click();
   await expect(page.getByText(/BERNARD Luc/)).toBeVisible();
   await expect(page.getByText(/Heure invalide/)).toBeVisible();
-  await expect(page.getByText(/TAP/)).toBeVisible();
+  await expect(page.getByText(/TAP/).first()).toBeVisible();
   if (testInfo.project.name === "desktop") {
     await page.screenshot({ path: "/opt/cursor/artifacts/v05-import-apercu.png" });
   }
