@@ -22,7 +22,9 @@ test("l'attente de séance reste lisible sur la timeline étroite", async ({ pag
   await page.getByRole("button", { name: "Enregistrer" }).click();
   const row = page.locator("div.border-b").filter({ hasText: "SEANCEGANTT Lea" }).filter({ hasText: "Aller" });
   await expect(row.getByText("attente 45 min")).toBeVisible();
-  await expect(page.locator("div.border-b").filter({ hasText: "SEANCEGANTT Lea" }).filter({ hasText: "Retour" })).toBeVisible();
+  await expect(
+    page.locator("div.border-b").filter({ hasText: "SEANCEGANTT Lea" }).filter({ hasText: "Retour" }),
+  ).toBeVisible();
   await row.getByRole("button", { name: "Timeline" }).click();
   await expect(page.getByText("Attente à l'établissement : 45 min")).toBeVisible();
   await expect(page.locator("[data-stay='45']").first()).toBeVisible();

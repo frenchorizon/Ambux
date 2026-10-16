@@ -27,7 +27,10 @@ export function defaultPlanningChoice(missionIso: string): PlanningChoice {
   return { columns: PLANNING_COLUMNS.map((column) => column.id), from: missionIso, to: missionIso };
 }
 
-export function loadPlanningChoice(missionIso: string, storage: Pick<Storage, "getItem"> | null = browserStorage()): PlanningChoice {
+export function loadPlanningChoice(
+  missionIso: string,
+  storage: Pick<Storage, "getItem"> | null = browserStorage(),
+): PlanningChoice {
   const fallback = defaultPlanningChoice(missionIso);
   if (!storage) return fallback;
   try {
@@ -45,7 +48,10 @@ export function loadPlanningChoice(missionIso: string, storage: Pick<Storage, "g
   }
 }
 
-export function savePlanningChoice(choice: PlanningChoice, storage: Pick<Storage, "setItem"> | null = browserStorage()): void {
+export function savePlanningChoice(
+  choice: PlanningChoice,
+  storage: Pick<Storage, "setItem"> | null = browserStorage(),
+): void {
   storage?.setItem(CHOICE_KEY, JSON.stringify(choice));
 }
 
@@ -117,7 +123,10 @@ export function frenchDate(iso: string): string {
   return `${day}/${month}/${year}`;
 }
 
-export async function planningXlsx(matrix: { headers: string[]; rows: string[][] }, missionIso: string): Promise<Uint8Array> {
+export async function planningXlsx(
+  matrix: { headers: string[]; rows: string[][] },
+  missionIso: string,
+): Promise<Uint8Array> {
   const XLSX = await import("xlsx");
   const sheet = XLSX.utils.aoa_to_sheet([matrix.headers, ...matrix.rows]);
   const dateIndex = matrix.headers.indexOf("Date");

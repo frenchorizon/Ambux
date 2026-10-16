@@ -7,12 +7,15 @@ export function parseAttente(value: string): { ok: false; reason: string } | { o
   if (clock) {
     const hours = Number(clock[1]);
     const minutes = Number(clock[2] ?? 0);
-    if (hours > 12 || minutes > 59) return { ok: false, reason: `Attente « ${value} » invalide. Exemples : 90 ou 1h30.` };
+    if (hours > 12 || minutes > 59)
+      return { ok: false, reason: `Attente « ${value} » invalide. Exemples : 90 ou 1h30.` };
     return { ok: true, minutes: hours * 60 + minutes };
   }
-  if (!/^\d+(\.\d+)?$/.test(text)) return { ok: false, reason: `Attente « ${value} » invalide. Exemples : 90 ou 1h30.` };
+  if (!/^\d+(\.\d+)?$/.test(text))
+    return { ok: false, reason: `Attente « ${value} » invalide. Exemples : 90 ou 1h30.` };
   const minutes = Math.round(Number(text));
-  if (minutes <= 0 || minutes > 12 * 60) return { ok: false, reason: `Attente « ${value} » hors limites (1 à 720 min).` };
+  if (minutes <= 0 || minutes > 12 * 60)
+    return { ok: false, reason: `Attente « ${value} » hors limites (1 à 720 min).` };
   return { ok: true, minutes };
 }
 
@@ -49,7 +52,8 @@ export function readRole(value: string): { role: "conducteur" | "auxiliaire"; de
   if (!key) return null;
   const dea = key.includes("dea");
   if (/(conducteur|chauffeur|ambulancier)/.test(key)) return { role: "conducteur", dea };
-  if (/(auxiliaire|equipier|coequipier|second)/.test(key)) return { role: "auxiliaire", dea: dea || key.includes("dea") };
+  if (/(auxiliaire|equipier|coequipier|second)/.test(key))
+    return { role: "auxiliaire", dea: dea || key.includes("dea") };
   return null;
 }
 
@@ -95,22 +99,21 @@ export function checkPatient(input: {
   };
 }
 
-export function checkPersonnel(input: {
-  nom?: string;
-  role?: string;
-  disponibilite?: string;
-}): { ok: false; reason: string } | {
-  ok: true;
-  name: string;
-  role: "conducteur" | "auxiliaire";
-  dea: boolean;
-  availability?: string;
-  warnings: string[];
-} {
+export function checkPersonnel(input: { nom?: string; role?: string; disponibilite?: string }):
+  | { ok: false; reason: string }
+  | {
+      ok: true;
+      name: string;
+      role: "conducteur" | "auxiliaire";
+      dea: boolean;
+      availability?: string;
+      warnings: string[];
+    } {
   const name = (input.nom ?? "").trim();
   if (name.length < 3) return { ok: false, reason: "Nom manquant." };
   const role = readRole(input.role ?? "");
-  if (!role) return { ok: false, reason: `Rôle « ${input.role || "vide"} » inconnu. Valeurs : conducteur, auxiliaire.` };
+  if (!role)
+    return { ok: false, reason: `Rôle « ${input.role || "vide"} » inconnu. Valeurs : conducteur, auxiliaire.` };
   const availability = readAvailability(input.disponibilite ?? "");
   const warnings: string[] = [];
   if (!availability.label) warnings.push("Disponibilité absente.");

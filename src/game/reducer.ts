@@ -110,11 +110,24 @@ export type Action =
   | { type: "IMPORT_CREWS"; rows: { plate: string; driver: string; mate?: string; dea: boolean }[] }
   | {
       type: "IMPORT_APPLY";
-      vehicles: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string; active?: boolean; availability?: string }[];
+      vehicles: {
+        plate: string;
+        vehicleType: VehicleType;
+        name: string;
+        vehicleCode?: string;
+        active?: boolean;
+        availability?: string;
+      }[];
       crews: { plate: string; driver: string; mate?: string; dea: boolean }[];
       patients: { patient: Patient; location?: Location }[];
       personnel: { name: string; role: StaffMember["role"]; dea?: boolean; availability?: string }[];
-      courses: { transport: Transport; patient: Patient; location?: Location; locations?: Location[]; retour?: Transport }[];
+      courses: {
+        transport: Transport;
+        patient: Patient;
+        location?: Location;
+        locations?: Location[];
+        retour?: Transport;
+      }[];
     }
   | { type: "HYDRATE"; state: GameState; label: string }
   | { type: "TOAST"; message: string; tone: Toast["tone"] }
@@ -959,7 +972,15 @@ function snapBack(state: GameState, transportId: string): GameState {
   const locMap = indexLocations(state.locations);
   const appointment = plannedPickup(transport);
   if (!transport.crewId) {
-    const slot = bestSlotFor(transport, state.crews, state.transports, state.blocks, locMap, horizon(state), state.rules);
+    const slot = bestSlotFor(
+      transport,
+      state.crews,
+      state.transports,
+      state.blocks,
+      locMap,
+      horizon(state),
+      state.rules,
+    );
     if (!slot) return withToast(state, "Aucun créneau compatible pour revenir à l'heure prévue.", "warn");
     return assign(state, transport.id, slot.crewId, appointment);
   }
@@ -1227,7 +1248,11 @@ function updatePatient(state: GameState, patient: Patient, location?: Location):
 function updateTransport(state: GameState, transport: Transport): GameState {
   return {
     ...state,
-    transports: linkSeance(state.transports.filter((item) => item.id !== transport.id), transport, state.rules.toleranceMin),
+    transports: linkSeance(
+      state.transports.filter((item) => item.id !== transport.id),
+      transport,
+      state.rules.toleranceMin,
+    ),
   };
 }
 
@@ -1306,18 +1331,30 @@ function importApply(state: GameState, action: Extract<Action, { type: "IMPORT_A
   }
   let staffAdded = 0;
   for (const row of action.personnel) {
-    const existing = next.staff.find((member) => member.name.localeCompare(row.name, "fr", { sensitivity: "accent" }) === 0 && member.role === row.role);
+    const existing = next.staff.find(
+      (member) =>
+        member.name.localeCompare(row.name, "fr", { sensitivity: "accent" }) === 0 && member.role === row.role,
+    );
     if (existing) {
       next = {
         ...next,
-        staff: next.staff.map((member) => member.id === existing.id ? { ...member, dea: member.dea || Boolean(row.dea), availability: row.availability ?? member.availability } : member),
+        staff: next.staff.map((member) =>
+          member.id === existing.id
+            ? { ...member, dea: member.dea || Boolean(row.dea), availability: row.availability ?? member.availability }
+            : member,
+        ),
       };
       continue;
     }
     const added = ensureStaff(next, row.name, row.role, Boolean(row.dea));
     next = added.state;
     if (row.availability) {
-      next = { ...next, staff: next.staff.map((member) => member.id === added.id ? { ...member, availability: row.availability } : member) };
+      next = {
+        ...next,
+        staff: next.staff.map((member) =>
+          member.id === added.id ? { ...member, availability: row.availability } : member,
+        ),
+      };
     }
     staffAdded += 1;
   }
@@ -1345,9 +1382,12 @@ function importApply(state: GameState, action: Extract<Action, { type: "IMPORT_A
   const courseCount = action.courses.reduce((sum, row) => sum + (row.retour ? 2 : 1), 0);
   if (action.courses.length) next = importBatch(next, action.courses);
   const bits: string[] = [];
-  if (courseCount) bits.push(`${courseCount} transport${courseCount > 1 ? "s" : ""} ajouté${courseCount > 1 ? "s" : ""}`);
-  if (patientsAdded) bits.push(`${patientsAdded} patient${patientsAdded > 1 ? "s" : ""} ajouté${patientsAdded > 1 ? "s" : ""}`);
-  if (vehiclesAdded) bits.push(`${vehiclesAdded} véhicule${vehiclesAdded > 1 ? "s" : ""} ajouté${vehiclesAdded > 1 ? "s" : ""}`);
+  if (courseCount)
+    bits.push(`${courseCount} transport${courseCount > 1 ? "s" : ""} ajouté${courseCount > 1 ? "s" : ""}`);
+  if (patientsAdded)
+    bits.push(`${patientsAdded} patient${patientsAdded > 1 ? "s" : ""} ajouté${patientsAdded > 1 ? "s" : ""}`);
+  if (vehiclesAdded)
+    bits.push(`${vehiclesAdded} véhicule${vehiclesAdded > 1 ? "s" : ""} ajouté${vehiclesAdded > 1 ? "s" : ""}`);
   if (staffAdded) bits.push(`${staffAdded} personne${staffAdded > 1 ? "s" : ""} ajoutée${staffAdded > 1 ? "s" : ""}`);
   if (crewsUpdated) bits.push(`${crewsUpdated} équipage${crewsUpdated > 1 ? "s" : ""} mis à jour`);
   if (!bits.length) return withToast(state, "Rien à fusionner.", "warn");
@@ -1356,11 +1396,19 @@ function importApply(state: GameState, action: Extract<Action, { type: "IMPORT_A
 
 function pushImportedVehicle(
   state: GameState,
-  row: { plate: string; vehicleType: VehicleType; name: string; vehicleCode?: string; active?: boolean; availability?: string },
+  row: {
+    plate: string;
+    vehicleType: VehicleType;
+    name: string;
+    vehicleCode?: string;
+    active?: boolean;
+    availability?: string;
+  },
 ): GameState {
   const clean = row.plate.trim().toUpperCase();
   if (clean.length < 4) return state;
-  if (state.vehicles.some((item) => item.plate.replace(/\s+/g, "").toUpperCase() === clean.replace(/\s+/g, ""))) return state;
+  if (state.vehicles.some((item) => item.plate.replace(/\s+/g, "").toUpperCase() === clean.replace(/\s+/g, "")))
+    return state;
   const id = `veh-import-${clean.replace(/[^A-Z0-9]+/g, "")}`;
   const code = row.vehicleCode?.trim() || undefined;
   const vehicle: Vehicle = {

@@ -43,7 +43,9 @@ export function PlanningExport() {
   return (
     <section className="mb-4 rounded-xl border border-line p-3">
       <h3 className="text-sm font-semibold">Planning</h3>
-      <p className="mt-1 text-xs leading-relaxed text-muted">Par défaut, le lendemain préparé. Le choix des colonnes et des dates est mémorisé dans ce navigateur.</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">
+        Par défaut, le lendemain préparé. Le choix des colonnes et des dates est mémorisé dans ce navigateur.
+      </p>
       <div className="mt-2 flex flex-wrap gap-2">
         <label className="text-xs font-semibold">
           Du
@@ -84,9 +86,19 @@ export function PlanningExport() {
         ))}
       </ul>
       {!matrix.rangeOk && <p className="mt-2 text-xs text-rose-700">La date de début est après la date de fin.</p>}
-      <p className="mt-2 text-xs text-muted">{matrix.rangeOk ? `${matrix.rows.length} course${matrix.rows.length > 1 ? "s" : ""} dans la période.` : "Période invalide."}</p>
+      <p className="mt-2 text-xs text-muted">
+        {matrix.rangeOk
+          ? `${matrix.rows.length} course${matrix.rows.length > 1 ? "s" : ""} dans la période.`
+          : "Période invalide."}
+      </p>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <Button type="button" size="sm" variant="secondary" disabled={!matrix.rangeOk || choice.columns.length === 0} onClick={downloadCsvFile}>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!matrix.rangeOk || choice.columns.length === 0}
+          onClick={downloadCsvFile}
+        >
           Planning CSV
         </Button>
         <Button
@@ -97,7 +109,11 @@ export function PlanningExport() {
             setBusy(true);
             void planningXlsx(matrix, data.missionIso)
               .then((bytes) => {
-                downloadBytes(`ambux-planning-${choice.from}.xlsx`, bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                downloadBytes(
+                  `ambux-planning-${choice.from}.xlsx`,
+                  bytes,
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                );
                 data.dispatch({ type: "NOTE_EXPORT", message: "Planning Excel téléchargé." });
               })
               .finally(() => setBusy(false));

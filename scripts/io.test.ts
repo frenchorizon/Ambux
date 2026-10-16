@@ -20,8 +20,24 @@ import {
   savePlanningChoice,
 } from "../src/io/exporters/planning.ts";
 
-const chu: Location = { id: "chu", name: "CHU Charles-Nicolle", short: "CHU Nicolle", kind: "chu", lat: 49.44, lng: 1.1, city: "Rouen" };
-const mathilde: Location = { id: "mathilde", name: "Clinique Mathilde, rue de Lessard", short: "Clinique Mathilde", kind: "clinique", lat: 49.42, lng: 1.09, city: "Rouen" };
+const chu: Location = {
+  id: "chu",
+  name: "CHU Charles-Nicolle",
+  short: "CHU Nicolle",
+  kind: "chu",
+  lat: 49.44,
+  lng: 1.1,
+  city: "Rouen",
+};
+const mathilde: Location = {
+  id: "mathilde",
+  name: "Clinique Mathilde, rue de Lessard",
+  short: "Clinique Mathilde",
+  kind: "clinique",
+  lat: 49.42,
+  lng: 1.09,
+  city: "Rouen",
+};
 
 describe("io / mapping", () => {
   it("suggère les champs ajoutés sans écraser Lomaco", () => {
@@ -40,7 +56,14 @@ describe("io / parsers", () => {
     const tables = await readTables(csv.buffer.slice(csv.byteOffset, csv.byteOffset + csv.byteLength), "personnel.csv");
     assert.equal(tables[0]!.headers[0], "Nom");
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([["Immatriculation", "Type"], ["ZZ-100-ZZ", "VSL"]]), "Vehicules");
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Immatriculation", "Type"],
+        ["ZZ-100-ZZ", "VSL"],
+      ]),
+      "Vehicules",
+    );
     const bytes = XLSX.write(book, { type: "array", bookType: "xls" });
     const buffer = bytes instanceof ArrayBuffer ? bytes : Uint8Array.from(bytes as ArrayLike<number>).buffer;
     const xls = await readTables(buffer, "flotte.xls");
@@ -51,12 +74,26 @@ describe("io / parsers", () => {
 describe("io / validators", () => {
   it("crée le retour d'une séance et n'écrit rien avant la fusion", async () => {
     const locations = [chu, mathilde];
-    const sheet = mapSheet({
-      file: "seance.csv",
-      sheet: "Courses",
-      headers: ["Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Sens", "Attente"],
-      rows: [["TESSIER", "Noémie", "09:00", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "VSL", "simple", "90"]],
-    }, LOMACO_IMPORT_PROFILE);
+    const sheet = mapSheet(
+      {
+        file: "seance.csv",
+        sheet: "Courses",
+        headers: ["Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Sens", "Attente"],
+        rows: [
+          [
+            "TESSIER",
+            "Noémie",
+            "09:00",
+            "CHU Charles-Nicolle",
+            "Clinique Mathilde, rue de Lessard",
+            "VSL",
+            "simple",
+            "90",
+          ],
+        ],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
     const preview = await previewLomaco([sheet], {
       locations,
       rules: DEFAULT_RULES,
@@ -75,27 +112,36 @@ describe("io / validators", () => {
   });
 
   it("prévisualise patients, personnel et disponibilité", async () => {
-    const people = mapSheet({
-      file: "gens.csv",
-      sheet: "Personnel",
-      headers: ["Nom", "Rôle", "Disponibilités"],
-      rows: [
-        ["LEROY Marc", "conducteur", "06:00-17:00"],
-        ["LEROY Marc", "conducteur", "08:00-12:00"],
-      ],
-    }, LOMACO_IMPORT_PROFILE);
-    const patients = mapSheet({
-      file: "patients.csv",
-      sheet: "Patients",
-      headers: ["Nom", "Prénom", "Adresse", "Contraintes"],
-      rows: [["LEROY", "Marc", "12 rue des Carmes, Rouen", "fauteuil, oxygène"]],
-    }, LOMACO_IMPORT_PROFILE);
-    const fleet = mapSheet({
-      file: "vehicules.csv",
-      sheet: "Vehicules",
-      headers: ["Immatriculation", "Type", "Disponibilité"],
-      rows: [["ZZ-200-ZZ", "VSL", "indisponible"]],
-    }, LOMACO_IMPORT_PROFILE);
+    const people = mapSheet(
+      {
+        file: "gens.csv",
+        sheet: "Personnel",
+        headers: ["Nom", "Rôle", "Disponibilités"],
+        rows: [
+          ["LEROY Marc", "conducteur", "06:00-17:00"],
+          ["LEROY Marc", "conducteur", "08:00-12:00"],
+        ],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
+    const patients = mapSheet(
+      {
+        file: "patients.csv",
+        sheet: "Patients",
+        headers: ["Nom", "Prénom", "Adresse", "Contraintes"],
+        rows: [["LEROY", "Marc", "12 rue des Carmes, Rouen", "fauteuil, oxygène"]],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
+    const fleet = mapSheet(
+      {
+        file: "vehicules.csv",
+        sheet: "Vehicules",
+        headers: ["Immatriculation", "Type", "Disponibilité"],
+        rows: [["ZZ-200-ZZ", "VSL", "indisponible"]],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
     assert.deepEqual([people.kind, patients.kind, fleet.kind], ["personnel", "patient", "vehicule"]);
     const preview = await previewLomaco([people, patients, fleet], {
       locations: [],
@@ -106,7 +152,10 @@ describe("io / validators", () => {
     });
     assert.equal(preview.personnel.length, 1);
     assert.equal(preview.personnel[0]!.availability, "06:00-17:00");
-    assert.equal(preview.rejected.some((row) => row.reason.includes("déjà")), true);
+    assert.equal(
+      preview.rejected.some((row) => row.reason.includes("déjà")),
+      true,
+    );
     assert.equal(preview.patients[0]!.patient.constraints, "fauteuil, oxygène");
     assert.equal(preview.patients[0]!.patient.mobility, "fauteuil");
     assert.equal(preview.vehicles[0]!.active, false);
@@ -155,16 +204,34 @@ describe("io / validators", () => {
       crews: [],
       patients: [],
       personnel: [{ name: "LEROY Marc", role: "conducteur", availability: "06:00-17:00" }],
-      courses: [{
-        transport,
-        patient: { id: "p-tessier", firstName: "Noémie", lastName: "TESSIER", phone: "", birthYear: 1950, addressId: chu.id },
-        locations: [],
-      }],
+      courses: [
+        {
+          transport,
+          patient: {
+            id: "p-tessier",
+            firstName: "Noémie",
+            lastName: "TESSIER",
+            phone: "",
+            birthYear: 1950,
+            addressId: chu.id,
+          },
+          locations: [],
+        },
+      ],
     });
     assert.equal(next.crews.length, MAX_VEHICLES + 1);
-    assert.equal(next.vehicles.some((item) => item.plate === "ZZ-300-ZZ"), true);
-    assert.equal(next.staff.some((item) => item.name === "LEROY Marc" && item.availability === "06:00-17:00"), true);
-    assert.equal(next.transports.some((item) => item.id === "t-tessier"), true);
+    assert.equal(
+      next.vehicles.some((item) => item.plate === "ZZ-300-ZZ"),
+      true,
+    );
+    assert.equal(
+      next.staff.some((item) => item.name === "LEROY Marc" && item.availability === "06:00-17:00"),
+      true,
+    );
+    assert.equal(
+      next.transports.some((item) => item.id === "t-tessier"),
+      true,
+    );
     assert.match(next.toast?.message ?? "", /transport ajouté/);
   });
 });
@@ -210,30 +277,32 @@ describe("io / exporters", () => {
     };
     const schedule: CrewSchedule = {
       crewId: "c1",
-      legs: [{
-        transportId: "t1",
-        crewId: "c1",
-        departMin: 10 * 60 + 20,
-        arrivePickup: 10 * 60 + 24,
-        endMin: 11 * 60 + 5,
-        deadheadMin: 4,
-        waitMin: 0,
-        loadedMin: 8,
-        pecMin: 5,
-        dropoffMin: 8,
-        deadheadKm: 1,
-        loadedKm: 3,
-        lateMin: 0,
-        deviationMin: 0,
-        outOfTolerance: false,
-        kmEstimated: true,
-        routingPending: false,
-        conflict: false,
-        incompatible: false,
-        fromId: "depot",
-        dropoffId: mathilde.id,
-        segments: [],
-      }],
+      legs: [
+        {
+          transportId: "t1",
+          crewId: "c1",
+          departMin: 10 * 60 + 20,
+          arrivePickup: 10 * 60 + 24,
+          endMin: 11 * 60 + 5,
+          deadheadMin: 4,
+          waitMin: 0,
+          loadedMin: 8,
+          pecMin: 5,
+          dropoffMin: 8,
+          deadheadKm: 1,
+          loadedKm: 3,
+          lateMin: 0,
+          deviationMin: 0,
+          outOfTolerance: false,
+          kmEstimated: true,
+          routingPending: false,
+          conflict: false,
+          incompatible: false,
+          fromId: "depot",
+          dropoffId: mathilde.id,
+          segments: [],
+        },
+      ],
       returnKm: 0,
       returnStart: 0,
       returnEnd: 0,
@@ -242,7 +311,9 @@ describe("io / exporters", () => {
     const matrix = planningMatrix({
       crews: [crew],
       transports: [transport],
-      patients: new Map([["p1", { id: "p1", firstName: "Luc", lastName: "Bernard", phone: "", birthYear: 1950, addressId: chu.id }]]),
+      patients: new Map([
+        ["p1", { id: "p1", firstName: "Luc", lastName: "Bernard", phone: "", birthYear: 1950, addressId: chu.id }],
+      ]),
       locations: new Map([chu, mathilde].map((item) => [item.id, item])),
       schedules: new Map([["c1", schedule]]),
       missionIso: "2026-10-16",

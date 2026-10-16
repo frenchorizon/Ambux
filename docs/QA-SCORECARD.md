@@ -19,57 +19,57 @@ Aucun fichier de `src/components/planning/` n'a été modifié. Dans `schedule.t
 
 ## Contrôles
 
-| # | Contrôle | Résultat | Preuve |
-| --- | --- | --- | --- |
-| 1 | CSV courses : aller et retour acceptés et reliés | PASS | e2e import, téléphone et bureau |
-| 2 | CSV : rejet d'une date hors jour et d'une heure invalide | PASS | e2e import |
-| 3 | XLSX : véhicule, équipage et course acceptés | PASS | e2e import |
-| 4 | XLSX : rejets heure, plaque trop courte, équipage introuvable | PASS | e2e import |
-| 5 | CSV véhicules : rejets plaque et type, ligne acceptée | PASS | e2e import |
-| 6 | CSV équipages : rejet véhicule inconnu, ligne acceptée | PASS | e2e import |
-| 7 | Renommer un patient | PASS | e2e import |
-| 8 | Ajouter un véhicule | PASS | e2e import |
-| 9 | Ajouter un conducteur et l'affecter | PASS | e2e import |
-| 10 | Générer le planning | PASS | e2e règles + journée chargée |
-| 11 | Pause repas 11:00–14:30, 30 min, une par équipage, aucun « Pause repas manquante » | PASS | e2e règles + unitaire |
-| 12 | Amplitude 11 h, prises de poste décalées, bornée 06:00–20:00 | PASS | e2e règles + unitaire |
-| 13 | Réglages : tolérance 20 min, amplitude 11 h, séance 4 h, aucun plafond de charge | PASS | e2e règles |
-| 14 | Tap Gantt : heure prévue = rendez-vous, RDV d'origine visible | PASS | e2e Gantt |
-| 15 | D-pad +5 min sur une course qui reste alignée, puis Annuler, Rétablir, Ctrl+Z | PASS | e2e Gantt |
-| 16 | D-pad : changement de véhicule, puis Annuler | PASS | e2e Gantt |
-| 17 | Refus allongé vers un VSL, au D-pad et au glisser | PASS | e2e Gantt (souris au bureau, pointeur synthétique au téléphone) |
-| 18 | Séance 09:30 + attente 45 min : retour à 10:15, « attente 45 min » dans la demande | PASS | e2e import, téléphone et bureau |
-| 19 | Séries récurrentes ajoutées une seule fois | PASS | e2e séries |
-| 20 | Changement de date, Annuler, Rétablir | PASS | e2e séries |
-| 21 | Reprise du lendemain : Gantt vide, À placer encore proposé | PASS | e2e séries |
-| 22 | Brouillon : date et immatriculation après rechargement | PASS | e2e brouillon |
-| 23 | Export CSV : colonnes, date, statut, patient, cellules repas | PASS | e2e export |
-| 24 | Feuille PDF Lomaco IMPRESSION_STD | PASS | e2e export |
-| 25 | Tuiles OpenStreetMap, sans clé d'API | PASS | e2e carte |
-| 26 | Secours de tuile si `tile.openstreetmap.org` est coupé | PASS | e2e carte, bureau seulement |
-| 27 | Mode sombre, y compris le fond de carte | PASS | e2e carte |
-| 28 | Routage en échec : bandeau « Routage dégradé », tracés estimés | PASS | e2e OSRM muet |
-| 29 | Plus de 80 courses : génération < 20 s, bloc cliquable < 3 s | PASS | e2e journée chargée |
-| 30 | Pas de plafond AMB 15 / VSL 25 : 18 et 28 courses posées, aucune alerte de charge | PASS | unitaire |
-| 31 | Solveur : repas, amplitude, ordre dialyse, journée ≥ 80 courses < 8 s | PASS | unitaire |
-| 32 | L'attente de séance allonge l'occupation et refuse un créneau trop court | PASS | unitaire |
-| 33 | Tolérance : intérieur accepté, extérieur refusé | PASS | unitaire + libellés e2e |
-| 34 | Alignement unitaire sur 5 minutes et refus d'un créneau déjà pris | PASS | unitaire |
-| 35 | Tout départ affiché après un pas D-pad reste un multiple de 5 | FAIL | run OSRM de la session, voir bug 2 |
-| 36 | Le geste accepte une course au-delà de 15 ambulance et de 25 VSL | PASS | unitaire `previewPlacement` |
-| 37 | Ordre aller avant retour bloquant pour une série qui n'est pas une dialyse | PASS | unitaire solveur + synthèse |
-| 38 | Attente de séance lisible sur la timeline en 390×844 | FAIL | infobulle coupée en vue étroite, fichier du lead |
-| 39 | CSV : colonne `attente` optionnelle, elle crée le retour lié | PASS | unitaire |
-| 40 | Meilleur créneau et resserrage utilisent les règles du jour | PASS | unitaire PEC courte |
+| #   | Contrôle                                                                           | Résultat | Preuve                                                          |
+| --- | ---------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------- |
+| 1   | CSV courses : aller et retour acceptés et reliés                                   | PASS     | e2e import, téléphone et bureau                                 |
+| 2   | CSV : rejet d'une date hors jour et d'une heure invalide                           | PASS     | e2e import                                                      |
+| 3   | XLSX : véhicule, équipage et course acceptés                                       | PASS     | e2e import                                                      |
+| 4   | XLSX : rejets heure, plaque trop courte, équipage introuvable                      | PASS     | e2e import                                                      |
+| 5   | CSV véhicules : rejets plaque et type, ligne acceptée                              | PASS     | e2e import                                                      |
+| 6   | CSV équipages : rejet véhicule inconnu, ligne acceptée                             | PASS     | e2e import                                                      |
+| 7   | Renommer un patient                                                                | PASS     | e2e import                                                      |
+| 8   | Ajouter un véhicule                                                                | PASS     | e2e import                                                      |
+| 9   | Ajouter un conducteur et l'affecter                                                | PASS     | e2e import                                                      |
+| 10  | Générer le planning                                                                | PASS     | e2e règles + journée chargée                                    |
+| 11  | Pause repas 11:00–14:30, 30 min, une par équipage, aucun « Pause repas manquante » | PASS     | e2e règles + unitaire                                           |
+| 12  | Amplitude 11 h, prises de poste décalées, bornée 06:00–20:00                       | PASS     | e2e règles + unitaire                                           |
+| 13  | Réglages : tolérance 20 min, amplitude 11 h, séance 4 h, aucun plafond de charge   | PASS     | e2e règles                                                      |
+| 14  | Tap Gantt : heure prévue = rendez-vous, RDV d'origine visible                      | PASS     | e2e Gantt                                                       |
+| 15  | D-pad +5 min sur une course qui reste alignée, puis Annuler, Rétablir, Ctrl+Z      | PASS     | e2e Gantt                                                       |
+| 16  | D-pad : changement de véhicule, puis Annuler                                       | PASS     | e2e Gantt                                                       |
+| 17  | Refus allongé vers un VSL, au D-pad et au glisser                                  | PASS     | e2e Gantt (souris au bureau, pointeur synthétique au téléphone) |
+| 18  | Séance 09:30 + attente 45 min : retour à 10:15, « attente 45 min » dans la demande | PASS     | e2e import, téléphone et bureau                                 |
+| 19  | Séries récurrentes ajoutées une seule fois                                         | PASS     | e2e séries                                                      |
+| 20  | Changement de date, Annuler, Rétablir                                              | PASS     | e2e séries                                                      |
+| 21  | Reprise du lendemain : Gantt vide, À placer encore proposé                         | PASS     | e2e séries                                                      |
+| 22  | Brouillon : date et immatriculation après rechargement                             | PASS     | e2e brouillon                                                   |
+| 23  | Export CSV : colonnes, date, statut, patient, cellules repas                       | PASS     | e2e export                                                      |
+| 24  | Feuille PDF Lomaco IMPRESSION_STD                                                  | PASS     | e2e export                                                      |
+| 25  | Tuiles OpenStreetMap, sans clé d'API                                               | PASS     | e2e carte                                                       |
+| 26  | Secours de tuile si `tile.openstreetmap.org` est coupé                             | PASS     | e2e carte, bureau seulement                                     |
+| 27  | Mode sombre, y compris le fond de carte                                            | PASS     | e2e carte                                                       |
+| 28  | Routage en échec : bandeau « Routage dégradé », tracés estimés                     | PASS     | e2e OSRM muet                                                   |
+| 29  | Plus de 80 courses : génération < 20 s, bloc cliquable < 3 s                       | PASS     | e2e journée chargée                                             |
+| 30  | Pas de plafond AMB 15 / VSL 25 : 18 et 28 courses posées, aucune alerte de charge  | PASS     | unitaire                                                        |
+| 31  | Solveur : repas, amplitude, ordre dialyse, journée ≥ 80 courses < 8 s              | PASS     | unitaire                                                        |
+| 32  | L'attente de séance allonge l'occupation et refuse un créneau trop court           | PASS     | unitaire                                                        |
+| 33  | Tolérance : intérieur accepté, extérieur refusé                                    | PASS     | unitaire + libellés e2e                                         |
+| 34  | Alignement unitaire sur 5 minutes et refus d'un créneau déjà pris                  | PASS     | unitaire                                                        |
+| 35  | Tout départ affiché après un pas D-pad reste un multiple de 5                      | FAIL     | run OSRM de la session, voir bug 2                              |
+| 36  | Le geste accepte une course au-delà de 15 ambulance et de 25 VSL                   | PASS     | unitaire `previewPlacement`                                     |
+| 37  | Ordre aller avant retour bloquant pour une série qui n'est pas une dialyse         | PASS     | unitaire solveur + synthèse                                     |
+| 38  | Attente de séance lisible sur la timeline en 390×844                               | FAIL     | infobulle coupée en vue étroite, fichier du lead                |
+| 39  | CSV : colonne `attente` optionnelle, elle crée le retour lié                       | PASS     | unitaire                                                        |
+| 40  | Meilleur créneau et resserrage utilisent les règles du jour                        | PASS     | unitaire PEC courte                                             |
 
 ## Journée chargée (ce run)
 
 Demande « chargee », 3 ambulances et 3 VSL : **108 courses**.
 
-| Viewport | Clic sur Générer | Solveur (`elapsedMs`) | Après le clic, jusqu'à Appliquer | Mur | Courses posées |
-| --- | --- | --- | --- | --- | --- |
-| 1440×900 | 100 ms | 655 ms, 24 870 évaluations | 770 ms | 870 ms | 90 |
-| 390×844 | 105 ms | 650 ms, 26 272 évaluations | 755 ms | 860 ms | 90 |
+| Viewport | Clic sur Générer | Solveur (`elapsedMs`)      | Après le clic, jusqu'à Appliquer | Mur    | Courses posées |
+| -------- | ---------------- | -------------------------- | -------------------------------- | ------ | -------------- |
+| 1440×900 | 100 ms           | 655 ms, 24 870 évaluations | 770 ms                           | 870 ms | 90             |
+| 390×844  | 105 ms           | 650 ms, 26 272 évaluations | 755 ms                           | 860 ms | 90             |
 
 Le clic téléphone est revenu au même ordre que le bureau (105 ms, budget du test : sous 2 s). Le solveur reste autour de 0,6 s. Le contrôle 29 reste PASS (sous 20 s, premier bloc sous 3 s).
 

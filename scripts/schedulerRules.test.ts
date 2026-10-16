@@ -268,7 +268,10 @@ describe("journée chargée sans plafond de courses", () => {
       ]),
       patients: new Map(),
     });
-    assert.equal(issues.some((issue) => issue.kind === "charge"), false);
+    assert.equal(
+      issues.some((issue) => issue.kind === "charge"),
+      false,
+    );
   });
 
   it("accepte au geste une course au-delà de 15 et de 25", () => {
@@ -293,7 +296,13 @@ describe("journée chargée sans plafond de courses", () => {
     const accepted = previewPlacement(crew(), extra, 16 * 60, onAmb, [], locMap, -1, rules({ maxAmb: 15 }));
     assert.equal(accepted.ok, true);
     const onVsl = Array.from({ length: 25 }, (_, index) =>
-      trip({ id: `vsl-${index}`, crewId: "v1", departMin: 6 * 60 + index * 15, pickupId: depot.id, dropoffId: depot.id }),
+      trip({
+        id: `vsl-${index}`,
+        crewId: "v1",
+        departMin: 6 * 60 + index * 15,
+        pickupId: depot.id,
+        dropoffId: depot.id,
+      }),
     );
     const vsl = crew({ id: "v1", code: "VSL-1", vehicleType: "vsl", dea: false, mate: "" });
     const overVsl = previewPlacement(vsl, extra, 15 * 60, onVsl, [], locMap, -1, rules({ maxVsl: 25 }));
@@ -728,7 +737,14 @@ describe("règles du jour sur le créneau et le resserrage", () => {
   });
 
   it("le resserrage utilise la PEC du jour", () => {
-    const block: TimeBlock = { id: "pause", crewId: "c1", startMin: 9 * 60, endMin: 9 * 60 + 30, kind: "pause", label: "Pause" };
+    const block: TimeBlock = {
+      id: "pause",
+      crewId: "c1",
+      startMin: 9 * 60,
+      endMin: 9 * 60 + 30,
+      kind: "pause",
+      label: "Pause",
+    };
     const state: GameState = {
       ...initialState,
       live: false,
