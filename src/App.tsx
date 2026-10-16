@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CallDock } from "./components/CallDock";
 import { GameDialogs } from "./components/GameDialogs";
 import { PlanningWorkspace } from "./components/planning/PlanningWorkspace";
@@ -30,6 +30,24 @@ export function App() {
   if (phase === "briefing") return <Landing />;
   if (phase === "report") return <Report />;
   return <Dashboard />;
+}
+
+function DataScreen({ children }: { children: ReactNode }) {
+  const { dispatch } = useData();
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-line bg-card px-3">
+        <button
+          type="button"
+          className="inline-flex h-11 items-center text-sm font-semibold text-brand"
+          onClick={() => dispatch({ type: "SET_VIEW", view: "reglages" })}
+        >
+          Retour aux réglages
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">{children}</div>
+    </div>
+  );
 }
 
 function RoutingBanner() {
@@ -84,10 +102,26 @@ function Dashboard() {
           {view === "file" && <UnassignedPanel />}
           {view === "synthese" && <SyntheseView />}
           {view === "reglages" && <ReglagesView />}
-          {view === "tomorrow" && <TomorrowView />}
-          {view === "crews" && <CrewsView />}
-          {view === "vehicles" && <VehiclesView />}
-          {view === "patients" && <PatientsView />}
+          {view === "tomorrow" && (
+            <DataScreen>
+              <TomorrowView />
+            </DataScreen>
+          )}
+          {view === "crews" && (
+            <DataScreen>
+              <CrewsView />
+            </DataScreen>
+          )}
+          {view === "vehicles" && (
+            <DataScreen>
+              <VehiclesView />
+            </DataScreen>
+          )}
+          {view === "patients" && (
+            <DataScreen>
+              <PatientsView />
+            </DataScreen>
+          )}
           {view === "companies" && <CompaniesView />}
           {view === "lomaco" && <LomacoView />}
           {view === "feuille" && <CrewSheet />}

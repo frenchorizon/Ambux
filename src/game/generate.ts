@@ -10,11 +10,11 @@ import {
   VSL_MODELS,
 } from "../data/world";
 import { roadKm } from "../lib/geo";
-import { irand, mulberry32, pick, shuffle } from "../lib/rng";
+import { irand, mulberry32, pick } from "../lib/rng";
 import { clamp } from "../lib/utils";
 import { personName } from "../lib/format";
-import { metricsFromSchedules } from "./scoring";
-import { indexLocations, previewPlacement, scheduleFleet, simulateLeg, travelLoc } from "./schedule";
+import { naiveBaseline } from "./baseline";
+import { indexLocations, simulateLeg, travelLoc } from "./schedule";
 import { shiftForIndex } from "./shifts";
 import type {
   Call,
@@ -126,7 +126,8 @@ export function generateDay(options: {
     const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
     const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
     const dropoff = locMap.get(draft.dropoffId);
-    const motif = draft.motif ?? (draft.kind.startsWith("dialyse") || dropoff?.kind === "dialyse" ? "DIAL" : MOTIFS[irand(rng, 0, MOTIFS.length - 1)]!);
+    const pickupLoc = locMap.get(draft.pickupId);
+    const motif = draft.motif ?? motifFor(rng, pickupLoc, dropoff, draft.kind);
     const service = draft.service ?? (crew.vehicleType === "ambulance" ? "AMB" : rng() < 0.4 ? "TAP" : "VSL");
     const transport: Transport = {
       ...draft,
@@ -158,6 +159,7 @@ export function generateDay(options: {
     let cursor = crew.shiftStart + irand(rng, 4, 14);
     let locId = crew.baseId;
     let forcedLong = false;
+    let mealTaken = false;
     const pending: {
       patient: Patient;
       homeId: string;
@@ -208,6 +210,14 @@ export function generateDay(options: {
     let guard = 0;
     while (transports.filter((item) => item.crewId === crew.id).length < target && guard++ < target + 14) {
       const due = pending[0];
+      const holdMeal = Boolean(due && due.after <= DEFAULT_RULES.mealTo + DEFAULT_RULES.toleranceMin);
+      if (!mealTaken && !holdMeal && cursor + 25 >= DEFAULT_RULES.mealFrom && cursor < DEFAULT_RULES.mealTo) {
+        const mealStart = Math.max(cursor, DEFAULT_RULES.mealFrom);
+        if (mealStart + DEFAULT_RULES.mealMin <= DEFAULT_RULES.mealTo + 0.5) {
+          cursor = mealStart + DEFAULT_RULES.mealMin + DEFAULT_RULES.toleranceMin;
+          mealTaken = true;
+        }
+      }
       if (due && cursor >= due.after) {
         pending.shift();
         const placed = pushJob(crew, cursor, locId, {
@@ -238,32 +248,14 @@ export function generateDay(options: {
       }
 
       const here = locMap.get(locId) ?? depot;
-      let pickup: Location;
-      let dropoff: Location;
-      let kind: TransportKind = "simple";
-      if (!forcedLong && farHomes.length && crewIndex % 2 === 1 && rng() < 0.45) {
-        forcedLong = true;
-        const home = pick(rng, farHomes);
-        const site = pickNear(rng, sites, home);
-        pickup = rng() < 0.5 ? home : site;
-        dropoff = pickup.id === home.id ? site : home;
-        kind = pickup.id === home.id ? "aller" : "retour";
-      } else if (rng() < 0.52) {
-        pickup = pickNear(rng, homes, here);
-        dropoff = pickNear(rng, sites, pickup);
-        kind = "aller";
-      } else if (rng() < 0.9) {
-        pickup = pickNear(rng, sites, here);
-        dropoff = pickNear(rng, homes, pickup);
-        kind = "retour";
-      } else {
-        pickup = pickNear(rng, sites, here);
-        dropoff = different(rng, sites, pickup);
-        kind = "simple";
-      }
+      const leg = chooseLeg(rng, here, crew, homes, farHomes, sites, !forcedLong && crewIndex % 3 === 1);
+      if (!leg) continue;
+      if (leg.far) forcedLong = true;
+      const { pickup, dropoff, kind } = leg;
       if (pickup.id === dropoff.id) continue;
+      const rehab = [pickup.id, dropoff.id].some((id) => id.startsWith("kine") || id.startsWith("radio") || id.startsWith("ortho"));
       const posture: Posture =
-        crew.vehicleType === "ambulance" && rng() < 0.7 ? "allonge" : "assis";
+        crew.vehicleType === "ambulance" && !rehab && rng() < 0.45 ? "allonge" : "assis";
       const patient = nextPatient(
         pickup.kind === "domicile" ? pickup.id : dropoff.kind === "domicile" ? dropoff.id : homes[0]!.id,
         rng() < 0.28 ? pick(rng, NOTES) : undefined,
@@ -282,7 +274,7 @@ export function generateDay(options: {
         priority: "normal",
         note: patient.note,
       });
-      if (!placed) break;
+      if (!placed) continue;
       cursor = placed.cursor;
       locId = placed.locId;
     }
@@ -343,20 +335,15 @@ export function generateDay(options: {
       seriesId: due.seriesId,
       priority: "normal",
       cancelled: false,
+      motif: "DIAL",
       note: "Retour de dialyse",
     });
   }
 
-  const scrambled = scrambleMorning(transports, crews, locMap, rng);
-  const calls = buildCalls(scrambled, patients, crews, locations, rng, nextPatient, nextDossier);
-  const tomorrow = buildTomorrow(scrambled, patients, locations);
+  const calls = buildCalls(transports, patients, crews, locations, rng, nextPatient, nextDossier);
+  const tomorrow = buildTomorrow(transports, patients, locations);
 
-  const metrics = metricsFromSchedules(
-    crews,
-    scheduleFleet(crews, scrambled, [], locMap, "anchored"),
-    scrambled,
-    [],
-  );
+  const naive = naiveBaseline({ crews, transports, blocks: [], locMap, rules: DEFAULT_RULES });
 
   const stats: Stats = {
     moves: 0,
@@ -365,12 +352,12 @@ export function generateDay(options: {
     callsHandled: 0,
     callsMissed: 0,
     lomacoSends: 0,
-    baselineEmptyKm: metrics.emptyKm,
-    baselinePlaced: metrics.placed,
-    baselineTotal: metrics.total,
-    baselineFill: metrics.fillRate,
-    baselineLate: metrics.lateCount,
-    baselineScore: metrics.planScore,
+    baselineEmptyKm: naive.metrics.emptyKm,
+    baselinePlaced: naive.metrics.placed,
+    baselineTotal: naive.metrics.total,
+    baselineFill: naive.metrics.fillRate,
+    baselineLate: naive.metrics.lateCount,
+    baselineScore: naive.metrics.planScore,
   };
 
   return {
@@ -379,7 +366,7 @@ export function generateDay(options: {
     locations,
     patients,
     crews,
-    transports: scrambled,
+    transports,
     blocks: [],
     calls,
     lomaco: [
@@ -426,51 +413,6 @@ function makeCrews(amb: number, vsl: number): Crew[] {
   add("ambulance", amb);
   add("vsl", vsl);
   return crews;
-}
-
-function scrambleMorning(
-  source: Transport[],
-  crews: Crew[],
-  locMap: Map<string, Location>,
-  rng: () => number,
-): Transport[] {
-  let current: Transport[] = source.map((transport) => ({
-    ...transport,
-    crewId: undefined,
-    departMin: undefined,
-  }));
-  const morning = shuffle(
-    rng,
-    current.filter((transport) => transport.windowStart < 11 * 60),
-  );
-  let cursor = 0;
-  for (const transport of morning) {
-    if (rng() < 0.14) continue;
-    const compatible = crews.filter(
-      (crew) => !(transport.posture === "allonge" && crew.vehicleType === "vsl"),
-    );
-    for (let hop = 0; hop < compatible.length; hop++) {
-      const crew = compatible[(cursor + hop) % compatible.length]!;
-      const preview = previewPlacement(
-        crew,
-        transport,
-        transport.windowStart - 8,
-        current,
-        [],
-        locMap,
-        DAY_START,
-      );
-      if (!preview.ok) continue;
-      current = current.map((item) =>
-        item.id === transport.id
-          ? { ...item, crewId: crew.id, departMin: preview.departMin }
-          : item,
-      );
-      cursor += 1;
-      break;
-    }
-  }
-  return current;
 }
 
 function buildCalls(
@@ -774,7 +716,91 @@ function uniqueNames(rng: () => number, count: number): { firstName: string; las
   return names;
 }
 
-const MOTIFS = ["KINE", "CONS", "ORTHO", "RADI"] as const;
+function motifFor(
+  rng: () => number,
+  pickup: Location | undefined,
+  dropoff: Location | undefined,
+  kind: TransportKind,
+): NonNullable<Transport["motif"]> {
+  if (kind.startsWith("dialyse") || pickup?.kind === "dialyse" || dropoff?.kind === "dialyse") return "DIAL";
+  const place = dropoff?.kind === "domicile" ? pickup : dropoff;
+  if (place?.id.startsWith("kine")) return "KINE";
+  if (place?.id.startsWith("radio")) return "RADI";
+  if (place?.id.startsWith("ortho")) return "ORTHO";
+  if (place?.kind === "chu") return rng() < 0.72 ? "CONS" : "RADI";
+  const roll = rng();
+  if (roll < 0.55) return "CONS";
+  if (roll < 0.8) return "ORTHO";
+  return "KINE";
+}
+
+function chooseLeg(
+  rng: () => number,
+  here: Location,
+  crew: Crew,
+  homes: Location[],
+  farHomes: Location[],
+  sites: Location[],
+  allowFar: boolean,
+): { pickup: Location; dropoff: Location; kind: TransportKind; far: boolean } | null {
+  const farIds = new Set(farHomes.map((home) => home.id));
+  const localHomes = homes.filter((home) => !farIds.has(home.id));
+  const kines = sites.filter((site) => site.id.startsWith("kine"));
+  const images = sites.filter((site) => site.id.startsWith("radio") || site.id.startsWith("ortho"));
+  const atCare = here.kind === "chu" || here.kind === "clinique" || here.kind === "dialyse";
+
+  if (allowFar && farHomes.length && rng() < 0.7) {
+    const home = pick(rng, farHomes);
+    const site = pickBand(rng, sites, home, 8, 32) ?? pickNear(rng, sites, home);
+    return { pickup: home, dropoff: site, kind: "aller", far: true };
+  }
+
+  if (atCare && rng() < 0.82) {
+    const dropoff = pickBand(rng, localHomes, here, 5, 13) ?? pickNear(rng, localHomes, here);
+    return { pickup: here, dropoff, kind: "retour", far: false };
+  }
+
+  const pickup =
+    pickBand(rng, localHomes, here, here.kind === "domicile" ? 0.4 : 1, here.kind === "domicile" ? 2.6 : 5.5) ??
+    pickNear(rng, localHomes.length ? localHomes : homes, here);
+  const vsl = crew.vehicleType === "vsl";
+  const roll = rng();
+  let pool = sites;
+  let minKm = 6;
+  let maxKm = 14;
+  if (vsl && kines.length && roll < 0.28) {
+    pool = kines;
+    minKm = 2.2;
+    maxKm = 8;
+  } else if (vsl && images.length && roll < 0.46) {
+    pool = images;
+    minKm = 3;
+    maxKm = 10;
+  }
+  const dropoff = pickBand(rng, pool, pickup, minKm, maxKm) ?? pickNear(rng, sites, pickup);
+  return { pickup, dropoff, kind: "aller", far: false };
+}
+
+function pickBand(rng: () => number, list: Location[], from: Location, minKm: number, maxKm: number): Location | null {
+  let sum = 0;
+  const band = list
+    .map((location) => {
+      if (location.id === from.id) return null;
+      const km = roadKm(from, location);
+      if (km < minKm || km > maxKm) return null;
+      const weight = 1 / (km + 0.5);
+      sum += weight;
+      return { location, weight };
+    })
+    .filter((item): item is { location: Location; weight: number } => Boolean(item));
+  if (!band.length || sum <= 0) return null;
+  let cursor = rng() * sum;
+  for (const item of band) {
+    cursor -= item.weight;
+    if (cursor <= 0) return item.location;
+  }
+  return band[band.length - 1]!.location;
+}
 
 function birthOf(rng: () => number): { birthYear: number; birthDate: string } {
   const birthYear = irand(rng, 1942, 1998);
@@ -803,11 +829,6 @@ function pickNear(rng: () => number, list: Location[], from: Location): Location
     if (cursor <= 0) return list[index]!;
   }
   return list[list.length - 1]!;
-}
-
-function different(rng: () => number, list: Location[], avoid: Location): Location {
-  const pool = list.filter((location) => location.id !== avoid.id);
-  return pick(rng, pool.length ? pool : list);
 }
 
 function fmt(min: number): string {

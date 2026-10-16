@@ -230,13 +230,14 @@ export function scheduleCrew(
     let conflict = mode === "anchored" && depart > (transport.departMin ?? depart) + 1;
     const jumped = jumpBreaks(blocks, crew.id, depart);
     if (jumped > depart + 1) conflict = true;
-    depart = jumped;
+    depart = mode === "anchored" ? alignGrid(jumped) : jumped;
     let leg = simulateLeg(transport, depart, locId, crew, locMap, rules);
     const hit = legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin);
     if (hit) {
       conflict = true;
       const pushed = jumpBreaks(blocks, crew.id, Math.max(depart, hit.endMin));
-      leg = simulateLeg(transport, pushed, locId, crew, locMap, rules);
+      const next = mode === "anchored" ? jumpBreaks(blocks, crew.id, alignGrid(pushed)) : pushed;
+      leg = simulateLeg(transport, next, locId, crew, locMap, rules);
     }
     if (conflict || legHitsBlock(blocks, crew.id, leg.departMin, leg.endMin)) {
       leg = { ...leg, conflict: true };
@@ -415,6 +416,13 @@ export function candidatePlacements(
 /** Créneaux de prise en charge : toujours un multiple de 5 minutes. */
 export function snap5(min: number): number {
   return Math.round(min / 5) * 5;
+}
+
+/** Prochain créneau de 5 minutes, sans reculer une prise en charge déjà calée. */
+function alignGrid(min: number): number {
+  const nearest = Math.round(min / 5) * 5;
+  if (Math.abs(nearest - min) < 0.05) return nearest;
+  return Math.ceil(min / 5) * 5;
 }
 
 export function previewPlacement(

@@ -2,6 +2,16 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## En cours — menu, données, synthèse
+
+Branche `ux/donnees-menu`. Pas de tag.
+
+- Le menu ⋯ ne garde qu'Importer, Feuilles de route, Exporter et Aide. Annuler et rétablir restent dans la barre.
+- Équipages, véhicules, patients et demande de demain sont dans Réglages, rubrique Données. Le mode sombre aussi. La simulation est sous Aide, rubrique Démo.
+- Mention explicite : les données restent dans ce navigateur.
+- Journée type de Rouen : adresses et établissements plausibles (CHU Charles-Nicolle, Becquerel, cliniques, dialyse, kinés), environ 67 courses pour 3 ambulances et 3 VSL, kilomètres à vide autour de 27 %.
+- La synthèse retire le temps de régulation à 00:00 et compare le planning affiché au planning initial : kilomètres à vide, temps de trajet à vide, courses placées.
+
 ## v0.7.0 — 2026-10-16
 
 Tag `v0.7.0`. Branche `feat/v0.7-tactile`.

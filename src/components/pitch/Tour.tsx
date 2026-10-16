@@ -22,8 +22,8 @@ const STEPS = [
   },
   {
     id: "plus",
-    title: "Le reste est dans le menu",
-    body: "Feuilles, export CSV, simulation. L'export télécharge un fichier. Aucun dossier n'est transmis à Lomaco ni à un organisme.",
+    title: "Quatre actions dans le menu",
+    body: "Importer, feuilles de route, exporter, aide. Équipages, véhicules, patients et la demande sont dans Réglages, rubrique Données. L'export télécharge un fichier. Aucun dossier n'est transmis.",
   },
   {
     id: "feuille",

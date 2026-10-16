@@ -92,9 +92,52 @@ export function GameDialogs() {
           <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
           <li>Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en orange. Revenir à l'heure prévue recale le rendez-vous.</li>
           <li>Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est signalée sur la ligne.</li>
-          <li>Exporter vers Lomaco écrit une feuille par équipage (CSV, Excel ou PDF).</li>
-          <li>Simuler la journée rejoue l'horloge et les appels, sans remplacer le planning.</li>
+          <li>Exporter écrit une feuille par équipage (CSV, Excel ou PDF).</li>
+          <li>Équipages, véhicules, patients et demande sont dans Réglages, rubrique Données. Le mode sombre aussi.</li>
         </ol>
+        <div className="mt-4 rounded-xl bg-paper p-3">
+          <p className="text-sm font-semibold">Démo</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            Simuler la journée rejoue l'horloge et les appels. Elle ne remplace pas le planning.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {data.live ? (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    data.dispatch({ type: "SET_LIVE", live: false });
+                    data.dispatch({ type: "CLOSE_MODAL" });
+                  }}
+                >
+                  Quitter la simulation
+                </Button>
+                {data.phase === "playing" && (
+                  <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "closeDay" })}>Clôturer la journée</Button>
+                )}
+              </>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  data.dispatch({ type: "SET_LIVE", live: true });
+                  data.dispatch({ type: "CLOSE_MODAL" });
+                }}
+              >
+                Simuler la journée
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                data.dispatch({ type: "CLOSE_MODAL" });
+                data.dispatch({ type: "SET_VIEW", view: "feuille" });
+              }}
+            >
+              Feuille équipage
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );

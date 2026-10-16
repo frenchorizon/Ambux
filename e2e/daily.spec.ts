@@ -65,8 +65,9 @@ test("la carte charge des rues sans clé", async ({ page }, testInfo) => {
   expect(src).not.toMatch(/apikey/i);
   await page.screenshot({ path: "/opt/cursor/artifacts/phone-carte-rues.png" });
 
-  await page.getByRole("button", { name: "Autres actions" }).click();
+  await page.getByRole("button", { name: "Réglages" }).click();
   await page.getByRole("button", { name: "Mode sombre" }).click();
+  await page.getByRole("button", { name: "Carte" }).click();
   await expect(page.locator(".leaflet-container.basemap-dark")).toBeVisible();
   const darkSrc = (await page.locator("img.leaflet-tile").first().getAttribute("src")) ?? "";
   expect(darkSrc).not.toMatch(/apikey|cartocdn/i);
@@ -275,7 +276,7 @@ async function expectNoOverlap(page: Page) {
 
 async function expectCsvDownload(page: Page) {
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: "Exporter le CSV" }).click();
+  await page.getByRole("group", { name: "Autres actions" }).getByRole("button", { name: "Exporter", exact: true }).click();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Télécharger le CSV" }).click();
   const file = await download;
@@ -297,7 +298,7 @@ async function expectPrintSheet(page: Page) {
     };
   });
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("button", { name: "Feuilles de route" }).click();
+  await page.getByRole("group", { name: "Autres actions" }).getByRole("button", { name: "Feuilles de route" }).click();
   const popup = page.waitForEvent("popup");
   await page.getByRole("button", { name: /Imprimer AMB-/ }).first().click();
   const sheet = await popup;
@@ -315,9 +316,13 @@ async function expectPlate(page: Page, plate: string) {
   await expect.poll(async () => page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value))).toContain(plate);
 }
 
+async function openDonnee(page: Page, name: string) {
+  await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
+  await page.getByRole("button", { name, exact: true }).click();
+}
+
 async function importFleet(page: Page) {
-  await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: "Véhicules", exact: true }).click();
+  await openDonnee(page, "Véhicules");
   const model = page.waitForEvent("download");
   await page.getByRole("button", { name: "Télécharger le modèle" }).click();
   const template = fs.readFileSync((await (await model).path())!, "utf8");
@@ -330,8 +335,7 @@ async function importFleet(page: Page) {
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
   await expectPlate(page, "GR-777-AA");
 
-  await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: "Équipages", exact: true }).click();
+  await openDonnee(page, "Équipages");
   await page.getByLabel("Import CSV des équipages").fill(
     ["immatriculation;conducteur;auxiliaire;dea", "INCONNU;MARTIN Paul;DURAND Lea;oui", "GR-777-AA;MARTIN Paul;DURAND Lea;oui"].join("\n"),
   );
@@ -351,14 +355,12 @@ async function restoreDraft(page: Page) {
   await page.getByRole("button", { name: /courses/ }).first().click();
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-17");
-  await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: "Véhicules", exact: true }).click();
+  await openDonnee(page, "Véhicules");
   await expectPlate(page, "GR-777-AA");
 }
 
 async function emptyDemand(page: Page) {
-  await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: "Demande de demain" }).click();
+  await openDonnee(page, "Demande de demain");
   await page.getByRole("button", { name: "Vider la demande" }).click();
   await expect(page.getByText("Aucune course. Ajoutez-en une ou importez un fichier.")).toBeVisible();
 }

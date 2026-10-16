@@ -212,7 +212,7 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
   const load = frozen + jobs.length;
-  const cost = emptyKm * 3.4 + lateMin * 9 + schedule.idleMin * 0.22 + load * load * 2.4;
+  const cost = emptyKm * 8 + lateMin * 9 + schedule.idleMin * 0.22 + load * load * 1.2;
   return {
     ok: true,
     cost,

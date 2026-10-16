@@ -26,6 +26,9 @@ export function CrewSheet() {
   const frame = (
     <article className="flex h-full min-h-0 flex-col bg-card text-ink" aria-labelledby="feuille-title">
       <header className="border-b border-line px-4 pb-3 pt-4">
+        <button type="button" className="mb-2 text-sm font-semibold text-brand" onClick={() => data.dispatch({ type: "SET_VIEW", view: "gantt" })}>
+          Retour au planning
+        </button>
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Feuille de route · fictif</p>
         <h1 id="feuille-title" className="font-display text-2xl">{crew.code}</h1>
         <p className="text-sm text-muted">

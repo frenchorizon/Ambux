@@ -14,6 +14,15 @@ export function formatKm(km: number, digits = 0): string {
   })} km`;
 }
 
+export function formatDuration(min: number): string {
+  const rounded = Math.max(0, Math.round(Math.abs(min)));
+  const hours = Math.floor(rounded / 60);
+  const minutes = rounded % 60;
+  if (hours <= 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} h`;
+  return `${hours} h ${String(minutes).padStart(2, "0")}`;
+}
+
 export function formatPct(ratio: number): string {
   return `${Math.round(ratio * 100)} %`;
 }

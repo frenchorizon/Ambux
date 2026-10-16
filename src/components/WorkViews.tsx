@@ -1,6 +1,11 @@
-import type { ReactNode } from "react";
+import { ChevronRight, Moon, Sun } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 import { useData } from "../game/context";
-import { formatMin } from "../lib/format";
+import { emptyDriveMin, naiveBaseline } from "../game/baseline";
+import type { ViewId } from "../game/types";
+import { formatDuration, formatKm, formatMin } from "../lib/format";
+import { useRoutingVersion } from "../lib/routing";
+import { toggleTheme, useDark } from "../lib/theme";
 import { KpiBar } from "./KpiBar";
 import { setTimelineSheet } from "./planning/timelineUi";
 
@@ -17,6 +22,7 @@ export function SyntheseView() {
         <div className="mt-4">
           <KpiBar />
         </div>
+        <GainCard />
         <h2 className="mt-6 text-sm font-semibold">À contrôler · {shown.length}</h2>
         <ul className="mt-2 space-y-1">
           {shown.length === 0 && <li className="text-sm text-muted">Rien à signaler hors les kilomètres estimés, s'il y en a.</li>}
@@ -41,8 +47,16 @@ export function SyntheseView() {
   );
 }
 
+const DATA_LINKS: { id: ViewId; label: string; detail: string }[] = [
+  { id: "crews", label: "Équipages", detail: "Conducteurs, auxiliaires, DEA" },
+  { id: "vehicles", label: "Véhicules", detail: "Ambulances et VSL du parc" },
+  { id: "patients", label: "Patients", detail: "Personnes fictives et adresses" },
+  { id: "tomorrow", label: "Demande de demain", detail: "Courses à planifier" },
+];
+
 export function ReglagesView() {
   const { rules, dispatch } = useData();
+  const dark = useDark();
   const set = (patch: Partial<typeof rules>) => dispatch({ type: "SET_RULES", rules: patch });
   return (
     <div className="h-full overflow-auto">
@@ -53,6 +67,38 @@ export function ReglagesView() {
             Règles de la société pour ce navigateur. Elles s'appliquent au planning en cours et au prochain. Ce n'est pas un paramétrage réglementaire certifié.
           </p>
         </div>
+        <section className="flex items-center justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2">
+          <div>
+            <h2 className="text-sm font-semibold">Affichage</h2>
+            <p className="text-xs text-muted">Le choix reste dans ce navigateur.</p>
+          </div>
+          <button type="button" className="inline-flex h-11 items-center gap-2 rounded-xl bg-ice px-3 text-sm font-semibold text-navy" onClick={() => toggleTheme()} aria-pressed={dark}>
+            {dark ? <Sun size={16} /> : <Moon size={16} />}
+            {dark ? "Mode clair" : "Mode sombre"}
+          </button>
+        </section>
+        <section>
+          <h2 className="text-sm font-semibold">Données</h2>
+          <p className="mt-1 text-sm text-muted">Équipages, véhicules, patients et demande du lendemain.</p>
+          <div className="mt-2 overflow-hidden rounded-xl border border-line bg-card">
+            {DATA_LINKS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="flex min-h-12 w-full items-center gap-3 border-b border-line px-3 py-2 text-left last:border-b-0 hover:bg-ice"
+                aria-label={item.label}
+                onClick={() => dispatch({ type: "SET_VIEW", view: item.id })}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{item.label}</span>
+                  <span className="block text-xs text-muted">{item.detail}</span>
+                </span>
+                <ChevronRight size={16} className="shrink-0 text-muted" />
+              </button>
+            ))}
+          </div>
+        </section>
+        <h2 className="text-sm font-semibold">Règles de planification</h2>
         <Field label="Pause repas (minutes)">
           <input type="number" min={0} max={90} value={rules.mealMin} onChange={(event) => set({ mealMin: Number(event.target.value) })} className={input} />
         </Field>
@@ -92,8 +138,80 @@ export function ReglagesView() {
         <Field label="Dépose (min)">
           <input type="number" min={1} max={40} value={rules.dropoffMin} onChange={(event) => set({ dropoffMin: Number(event.target.value) })} className={input} />
         </Field>
-        <p className="text-xs text-muted">Enregistré dans ce navigateur à chaque modification.</p>
+        <p className="text-xs leading-relaxed text-muted">Données stockées uniquement dans ce navigateur.</p>
+        <button type="button" className="h-11 text-left text-sm font-semibold text-brand" onClick={() => dispatch({ type: "REPLAY" })}>
+          Retour à l'accueil
+        </button>
       </form>
+    </div>
+  );
+}
+
+function GainCard() {
+  const data = useData();
+  const version = useRoutingVersion();
+  const gain = useMemo(() => {
+    void version;
+    const baseline = naiveBaseline({
+      crews: data.crews,
+      transports: data.transports,
+      blocks: data.blocks,
+      locMap: data.locMap,
+      rules: data.rules,
+    });
+    return { baseline, driveMin: emptyDriveMin(data.schedules) };
+  }, [data.blocks, data.crews, data.locMap, data.rules, data.schedules, data.transports, version]);
+
+  const base = gain.baseline.metrics;
+  const savedKm = base.emptyKm - data.metrics.emptyKm;
+  const savedMin = gain.baseline.emptyDriveMin - gain.driveMin;
+  const placedDelta = data.metrics.placed - base.placed;
+
+  return (
+    <article className="mt-4 rounded-xl border border-line bg-white px-3 py-3 shadow-sm">
+      <h2 className="text-sm font-semibold">Gain vs planning initial</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Le planning initial pose les courses dans l'ordre des rendez-vous, chacune sur le premier équipage qui peut la prendre. Tolérance, charge, pause et amplitude sont les mêmes.
+      </p>
+      <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+        <GainStat
+          label="Km à vide"
+          value={deltaText(savedKm, formatKm(Math.abs(savedKm)))}
+          detail={`${formatKm(data.metrics.emptyKm)} au lieu de ${formatKm(base.emptyKm)}`}
+        />
+        <GainStat
+          label="Temps de trajet à vide"
+          value={deltaText(savedMin, formatDuration(savedMin))}
+          detail={`${formatDuration(gain.driveMin)} au lieu de ${formatDuration(gain.baseline.emptyDriveMin)}`}
+        />
+        <GainStat
+          label="Courses placées"
+          value={placedText(data.metrics.placed, placedDelta)}
+          detail={`Planning initial : ${base.placed} sur ${base.total}`}
+        />
+      </dl>
+    </article>
+  );
+}
+
+function deltaText(saved: number, amount: string): string {
+  if (saved > 0.5) return `${amount} en moins`;
+  if (saved < -0.5) return `${amount} en plus`;
+  return "Identique";
+}
+
+function placedText(placed: number, delta: number): string {
+  if (delta > 0) return `${placed}, soit ${delta} de plus`;
+  if (delta < 0) return `${placed}, soit ${-delta} de moins`;
+  return `${placed}, comme le planning initial`;
+}
+
+function GainStat({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded-lg bg-paper px-3 py-2">
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
+      <dd className="mt-1 text-base font-semibold tabular-nums text-ink">{value}</dd>
+      <p className="mt-0.5 text-[11px] leading-snug text-muted">{detail}</p>
     </div>
   );
 }
