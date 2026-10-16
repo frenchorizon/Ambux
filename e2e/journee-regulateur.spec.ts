@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("règles du jour : repas, amplitude et plafonds", async ({ page }) => {
+test("règles du jour : repas et amplitude", async ({ page }) => {
   await openPlanning(page);
   const meals = await mealWindows(page);
   const tracks = await page.locator("[data-track]").count();
@@ -40,8 +40,8 @@ test("règles du jour : repas, amplitude et plafonds", async ({ page }) => {
   await expect(page.getByLabel("Pause repas (minutes)")).toHaveValue("30");
   await expect(page.getByLabel("Tolérance autour du rendez-vous (minutes)")).toHaveValue("20");
   await expect(page.getByLabel("Amplitude de vacation (heures)")).toHaveValue("11");
-  await expect(page.getByLabel("Charge max ambulance")).toHaveValue("15");
-  await expect(page.getByLabel("Charge max VSL")).toHaveValue("25");
+  await expect(page.getByLabel("Charge max ambulance")).toHaveCount(0);
+  await expect(page.getByLabel("Charge max VSL")).toHaveCount(0);
   await expect(page.getByLabel("Séance de dialyse (heures)")).toHaveValue("4");
 });
 
@@ -86,8 +86,8 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText("SEANCEQA Ines").first()).toBeVisible();
   await expect(page.getByText("attente 45 min")).toBeVisible();
   const seanceRows = page.locator("div.border-b").filter({ hasText: "SEANCEQA Ines" });
-  await expect(seanceRows.filter({ hasText: "Aller" })).toBeVisible();
-  await expect(seanceRows.filter({ hasText: "Retour" })).toBeVisible();
+  await expect(seanceRows.filter({ hasText: "Aller" })).toContainText("09:30");
+  await expect(seanceRows.filter({ hasText: "Retour" })).toContainText("10:15");
 
   await openMenu(page, "Importer");
   await page.getByLabel("Fichiers Lomaco").setInputFiles({

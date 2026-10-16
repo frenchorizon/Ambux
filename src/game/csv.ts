@@ -1,6 +1,6 @@
 import { geocodeAddress } from "../lib/routing";
 import { MISSION_ISO, type Location, type Patient, type Posture, type Rules, type Transport, type TransportKind } from "./types";
-import type { CrewSchedule } from "./schedule";
+import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew } from "./types";
 import { formatMin } from "../lib/format";
 
@@ -15,7 +15,8 @@ export function csvSpec(iso: string): string {
     "Obligatoire : nom, heure_rdv (HH:MM), adresse_depart, adresse_arrivee, mobilite (assis, allongé ou fauteuil).",
     `date : ${iso}, ${slash}, ou vide. Toute autre date est rejetée.`,
     "sens : aller, retour, simple (vide = simple, indiqué dans l'aperçu), ou ar.",
-    "ar exige heure_retour. attente : minutes entières sur place, 480 maximum, vide si aucune.",
+    "ar exige heure_retour, sauf si attente est renseignée : le retour est alors créé à l'arrivée de l'aller plus l'attente, sur 5 minutes.",
+    "attente : minutes entières, 480 maximum, vide si aucune.",
     "Aucune adresse inconnue n'est remplacée par le CHU.",
     "Un libellé reconnu est affiché dans l'aperçu avant fusion. Une adresse ambiguë est rejetée.",
   ].join(" ");
@@ -243,12 +244,12 @@ async function parseLine(
   if ((record.heure_retour ?? "").trim() && retourClock == null) {
     return { line, raw, reason: `heure_retour invalide « ${record.heure_retour} ».` };
   }
-  if (sens === "ar" && retourClock == null) {
-    return { line, raw, reason: "Aller-retour sans heure_retour : le retour n'est pas inventé." };
-  }
   const stay = parseStay(record.attente);
   if (stay === "bad") {
     return { line, raw, reason: `Attente invalide « ${record.attente} ». Minutes entières, 480 maximum.` };
+  }
+  if (sens === "ar" && retourClock == null && !(stay && stay > 0)) {
+    return { line, raw, reason: "Aller-retour sans heure_retour : le retour n'est pas inventé." };
   }
   if (!record.adresse_depart) return { line, raw, reason: "Adresse de départ manquante." };
   if (!record.adresse_arrivee) return { line, raw, reason: "Adresse d'arrivée manquante." };
@@ -261,7 +262,9 @@ async function parseLine(
   const tolerance = rules.toleranceMin;
   const id = `imp-${line}-${Date.now().toString(36)}`;
   const patientId = `pat-${id}`;
-  const kind: TransportKind = sens === "retour" ? "retour" : sens === "simple" ? "simple" : "aller";
+  const wait = stay && stay > 0 && sens !== "retour" ? stay : 0;
+  const kind: TransportKind = sens === "retour" ? "retour" : sens === "simple" && wait <= 0 ? "simple" : "aller";
+  const seriesId = record.serie || (sens === "ar" || wait > 0 ? id : undefined);
   const transport: Transport = {
     id,
     dossier: record.dossier || `DOS-IMP-${line}`,
@@ -275,11 +278,11 @@ async function parseLine(
     posture,
     serviceMin: posture === "allonge" ? 16 : 10,
     kind,
-    seriesId: record.serie || (sens === "ar" ? id : undefined),
+    seriesId,
     priority: "normal",
     cancelled: false,
     note: record.note || undefined,
-    stayMin: stay && stay > 0 ? stay : undefined,
+    stayMin: wait > 0 ? wait : undefined,
   };
   const patient: Patient = {
     id: patientId,
@@ -292,22 +295,23 @@ async function parseLine(
     note: record.note || undefined,
   };
   let retour: Transport | undefined;
-  if (sens === "ar" && retourClock != null) {
+  const back = wait > 0 ? seanceReturnMin(clock, wait) : retourClock;
+  if (back != null && sens !== "retour") {
     retour = {
       ...transport,
       id: `${id}-r`,
       pickupId: arrivee.location.id,
       dropoffId: depart.location.id,
       kind: "retour",
-      appointmentMin: retourClock,
-      windowStart: retourClock - tolerance,
-      windowEnd: retourClock + tolerance,
+      appointmentMin: back,
+      windowStart: back - tolerance,
+      windowEnd: back + tolerance,
       seriesId: transport.seriesId,
       note: record.note ? `${record.note} · retour` : "Retour",
       stayMin: undefined,
     };
   }
-  const summary = `${lastName} ${firstName} · ${record.heure_rdv} · ${depart.location.short} → ${arrivee.location.short} · ${posture} · ${sens === "simple" && !(record.sens ?? "").trim() ? "simple (colonne vide)" : sens}${stay ? ` · attente ${stay} min` : ""}${retour ? ` · retour ${record.heure_retour}` : ""}`;
+  const summary = `${lastName} ${firstName} · ${record.heure_rdv} · ${depart.location.short} → ${arrivee.location.short} · ${posture} · ${sens === "simple" && !(record.sens ?? "").trim() ? "simple (colonne vide)" : sens}${wait ? ` · attente ${wait} min` : ""}${retour ? ` · retour ${formatMin(retour.appointmentMin ?? back!)}` : ""}`;
   return {
     row: { line, transport, patient, location: depart.created, retour, summary },
     location: depart.created,

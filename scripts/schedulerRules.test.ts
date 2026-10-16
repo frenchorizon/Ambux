@@ -12,6 +12,7 @@ import {
   previewOnGrid,
   previewPlacement,
   scheduleFleet,
+  seanceReturnMin,
   simulateLeg,
   snap5,
   type CrewSchedule,
@@ -152,8 +153,8 @@ describe("amplitude 11 h", () => {
   });
 });
 
-describe("charges AMB 15 et VSL 25", () => {
-  it("ne dépasse pas 15 courses sur l'ambulance", () => {
+describe("journée chargée sans plafond de courses", () => {
+  it("pose plus de 15 courses sur une ambulance si elles tiennent", () => {
     const jobs = Array.from({ length: 18 }, (_, index) => {
       const at = 7 * 60 + index * 20;
       return trip({
@@ -173,15 +174,13 @@ describe("charges AMB 15 et VSL 25", () => {
       locations: [depot],
       nowMin: -1,
       seed: 15,
-      rules: rules({ maxAmb: 15 }),
+      rules: rules({ maxAmb: 15, mealMin: 0 }),
     });
     const placed = plan.stops.filter((stop) => stop.crewId === "c1").length;
-    assert.ok(placed <= 15, `ambulance ${placed}`);
-    assert.ok(placed >= 8, `seulement ${placed}`);
-    assert.ok(plan.unassignedIds.length >= 18 - 15);
+    assert.equal(placed, 18, `ambulance ${placed}`);
   });
 
-  it("ne dépasse pas 25 courses sur le VSL", () => {
+  it("pose plus de 25 courses sur un VSL si elles tiennent", () => {
     const jobs = Array.from({ length: 28 }, (_, index) => {
       const at = 7 * 60 + index * 15;
       return trip({
@@ -202,15 +201,13 @@ describe("charges AMB 15 et VSL 25", () => {
       locations: [depot],
       nowMin: -1,
       seed: 25,
-      rules: rules({ maxVsl: 25 }),
+      rules: rules({ maxVsl: 25, mealMin: 0 }),
     });
     const placed = plan.stops.filter((stop) => stop.crewId === "v1").length;
-    assert.ok(placed <= 25, `vsl ${placed}`);
-    assert.ok(placed >= 10, `seulement ${placed}`);
-    assert.ok(plan.unassignedIds.length >= 3);
+    assert.equal(placed, 28, `vsl ${placed}`);
   });
 
-  it("signale dans la synthèse une ambulance au-dessus du plafond", () => {
+  it("ne signale pas de plafond dans la synthèse", () => {
     const transports = Array.from({ length: 16 }, (_, index) =>
       trip({ id: `over-${index}`, dossier: `DOS-O${index}`, crewId: "c1", departMin: 7 * 60 + index * 20 }),
     );
@@ -222,10 +219,10 @@ describe("charges AMB 15 et VSL 25", () => {
       schedules: new Map([["c1", { crewId: "c1", legs: transports.map((item) => ({ transportId: item.id, departMin: item.departMin!, endMin: item.departMin! + 15, lateMin: 0, outOfTolerance: false, kmEstimated: false })), returnKm: 0, returnStart: 0, returnEnd: 0, idleMin: 0 } as CrewSchedule]]),
       patients: new Map(),
     });
-    assert.ok(issues.some((issue) => issue.kind === "charge" && issue.title.includes("15")));
+    assert.equal(issues.some((issue) => issue.kind === "charge"), false);
   });
 
-  it("refuse au geste la 16e ambulance et la 26e VSL", () => {
+  it("accepte au geste une course au-delà de 15 et de 25", () => {
     const onAmb = Array.from({ length: 15 }, (_, index) =>
       trip({
         id: `amb-${index}`,
@@ -244,27 +241,14 @@ describe("charges AMB 15 et VSL 25", () => {
       windowStart: 16 * 60 - 20,
       windowEnd: 16 * 60 + 20,
     });
-    const refused = previewPlacement(crew(), extra, 16 * 60, onAmb, [], locMap, -1, rules({ maxAmb: 15 }));
-    assert.equal(refused.ok, false);
-    if (!refused.ok) {
-      assert.equal(refused.reason, "charge");
-      assert.match(refused.message, /plafond 15/);
-    }
-    const room = previewPlacement(crew(), extra, 16 * 60, onAmb.slice(0, 14), [], locMap, -1, rules({ maxAmb: 15 }));
-    assert.equal(room.ok, true);
-    const moved = previewPlacement(crew(), onAmb[0]!, 16 * 60, onAmb, [], locMap, -1, rules({ maxAmb: 15 }));
-    assert.equal(moved.ok, true);
-    const cancelled = trip({ id: "gone", crewId: "c1", cancelled: true, departMin: 6 * 60 });
-    const withCancel = previewPlacement(crew(), extra, 16 * 60, [...onAmb.slice(0, 14), cancelled], [], locMap, -1);
-    assert.equal(withCancel.ok, true);
-
+    const accepted = previewPlacement(crew(), extra, 16 * 60, onAmb, [], locMap, -1, rules({ maxAmb: 15 }));
+    assert.equal(accepted.ok, true);
     const onVsl = Array.from({ length: 25 }, (_, index) =>
       trip({ id: `vsl-${index}`, crewId: "v1", departMin: 6 * 60 + index * 15, pickupId: depot.id, dropoffId: depot.id }),
     );
     const vsl = crew({ id: "v1", code: "VSL-1", vehicleType: "vsl", dea: false, mate: "" });
     const overVsl = previewPlacement(vsl, extra, 15 * 60, onVsl, [], locMap, -1, rules({ maxVsl: 25 }));
-    assert.equal(overVsl.ok, false);
-    if (!overVsl.ok) assert.match(overVsl.message, /plafond 25/);
+    assert.equal(overVsl.ok, true);
   });
 });
 
@@ -407,7 +391,51 @@ describe("aller, retour, série et dialyse", () => {
     const retour = preview.accepted.find((row) => row.transport.kind === "retour");
     assert.equal(aller?.transport.stayMin, 45);
     assert.equal(retour?.transport.stayMin, undefined);
+    assert.equal(aller?.retour?.appointmentMin, seanceReturnMin(10 * 60 + 15, 45));
+    assert.equal(aller?.retour?.pickupId, chu.id);
+    assert.equal(aller?.retour?.dropoffId, depot.id);
+    assert.equal(aller?.retour?.seriesId, aller?.transport.seriesId);
     assert.match(aller?.summary ?? "", /attente 45 min/);
+    assert.match(aller?.summary ?? "", /retour 11:00/);
+  });
+
+  it("crée le retour à l'arrivée plus l'attente, calé sur 5 minutes, puis le met à jour", () => {
+    assert.equal(seanceReturnMin(9 * 60 + 30, 45), 10 * 60 + 15);
+    assert.equal(seanceReturnMin(9 * 60 + 2, 45), 9 * 60 + 45);
+    assert.equal(seanceReturnMin(8 * 60, 4 * 60), 12 * 60);
+    assert.equal(seanceReturnMin(10 * 60, 30), 10 * 60 + 30);
+    const base = {
+      ...initialState,
+      live: false,
+      locations: [depot, home, chu],
+      rules: DEFAULT_RULES,
+    };
+    const aller = trip({
+      id: "kine",
+      kind: "aller",
+      seriesId: "kine",
+      pickupId: home.id,
+      dropoffId: chu.id,
+      appointmentMin: 9 * 60 + 30,
+      windowStart: 9 * 60 + 10,
+      windowEnd: 9 * 60 + 50,
+      stayMin: 45,
+    });
+    const created = reducer(base, { type: "ADD_TRANSPORT", transport: aller });
+    const back = created.transports.find((item) => item.kind === "retour");
+    assert.ok(back);
+    assert.equal(back.appointmentMin, 10 * 60 + 15);
+    assert.equal(back.pickupId, chu.id);
+    assert.equal(back.dropoffId, home.id);
+    assert.equal(back.seriesId, "kine");
+    assert.equal(created.transports.filter((item) => item.kind === "retour").length, 1);
+    const updated = reducer(created, {
+      type: "UPDATE_TRANSPORT",
+      transport: { ...aller, stayMin: 4 * 60 },
+    });
+    const shifted = updated.transports.find((item) => item.id === back.id);
+    assert.equal(shifted?.appointmentMin, 13 * 60 + 30);
+    assert.equal(updated.transports.filter((item) => item.kind === "retour").length, 1);
   });
 
   it("refuse de poser le retour d'une série simple avant l'aller", () => {
@@ -507,14 +535,6 @@ describe("journée générée", () => {
     const elapsed = performance.now() - started;
     assert.ok(elapsed < 8000, `${Math.round(elapsed)} ms`);
     assert.ok(plan.stops.length > 40);
-
-    const byCrew = new Map<string, number>();
-    for (const stop of plan.stops) byCrew.set(stop.crewId, (byCrew.get(stop.crewId) ?? 0) + 1);
-    for (const crew of world.crews) {
-      const count = byCrew.get(crew.id) ?? 0;
-      const cap = crew.vehicleType === "ambulance" ? 15 : 25;
-      assert.ok(count <= cap, `${crew.code} ${count} > ${cap}`);
-    }
 
     const transports = world.transports.map((transport) => {
       const stop = plan.stops.find((item) => item.transportId === transport.id);

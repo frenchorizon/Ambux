@@ -8,6 +8,7 @@ import {
   plannedPickup,
   previewPlacement,
   scheduleFleet,
+  seanceReturnMin,
   startedIds,
   suggestCompact,
   travelLoc,
@@ -1000,7 +1001,7 @@ function updatePatient(state: GameState, patient: Patient, location?: Location):
 function updateTransport(state: GameState, transport: Transport): GameState {
   return {
     ...state,
-    transports: state.transports.map((item) => (item.id === transport.id ? { ...item, ...transport } : item)),
+    transports: linkSeance(state.transports.filter((item) => item.id !== transport.id), transport, state.rules.toleranceMin),
   };
 }
 
@@ -1013,10 +1014,47 @@ function addTransport(state: GameState, transport: Transport, patient?: Patient,
     next = { ...next, patients: [...next.patients, patient] };
   }
   return withToast(
-    { ...next, transports: [...next.transports, transport], selectedId: transport.id },
+    {
+      ...next,
+      transports: linkSeance(next.transports, transport, next.rules.toleranceMin),
+      selectedId: transport.id,
+    },
     "Transport ajouté à la demande de demain.",
     "ok",
   );
+}
+
+function linkSeance(transports: readonly Transport[], aller: Transport, tolerance: number): Transport[] {
+  const wait = Math.max(0, aller.stayMin ?? 0);
+  if (wait <= 0 || aller.kind.includes("retour")) return [...transports, aller];
+  const seriesId = aller.seriesId || aller.id;
+  const outbound: Transport = {
+    ...aller,
+    kind: aller.kind === "simple" ? "aller" : aller.kind,
+    seriesId,
+    stayMin: wait,
+  };
+  const arrival = outbound.appointmentMin ?? outbound.windowStart;
+  const back = seanceReturnMin(arrival, wait);
+  const previous = transports.find((item) => item.seriesId === seriesId && item.kind.includes("retour"));
+  const retour: Transport = {
+    ...(previous ?? outbound),
+    id: previous?.id ?? `${outbound.id}-r`,
+    pickupId: outbound.dropoffId,
+    dropoffId: outbound.pickupId,
+    kind: outbound.kind.startsWith("dialyse") ? "dialyse_retour" : "retour",
+    appointmentMin: back,
+    toleranceMin: tolerance,
+    windowStart: back - tolerance,
+    windowEnd: back + tolerance,
+    seriesId,
+    stayMin: undefined,
+    crewId: previous?.crewId,
+    departMin: previous?.departMin,
+    cancelled: false,
+    note: previous?.note ?? (outbound.note ? `${outbound.note} · retour` : "Retour"),
+  };
+  return [...transports.filter((item) => item.id !== retour.id), outbound, retour];
 }
 
 function clearDemand(state: GameState): GameState {

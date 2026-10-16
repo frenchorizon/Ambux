@@ -49,16 +49,6 @@ export function reviewIssues(input: {
   for (const crew of input.crews) {
     const schedule = input.schedules.get(crew.id);
     const count = schedule?.legs.length ?? 0;
-    const cap = crew.vehicleType === "ambulance" ? input.rules.maxAmb : input.rules.maxVsl;
-    if (count > cap) {
-      issues.push({
-        id: `ch-${crew.id}`,
-        kind: "charge",
-        level: "bloquant",
-        title: `${crew.code} : ${count} courses, plafond ${cap}`,
-        crewId: crew.id,
-      });
-    }
     if (crew.vehicleType === "ambulance" && !crew.dea && count > 0) {
       issues.push({
         id: `dea-${crew.id}`,

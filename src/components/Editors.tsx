@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useData } from "../game/context";
+import { seanceReturnMin } from "../game/schedule";
 import { DAY_END, DAY_START, type Posture, type Transport, type VehicleType } from "../game/types";
 import { formatKm, formatMin, kindLabel, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { geocodeAddress } from "../lib/routing";
@@ -386,6 +387,8 @@ function TransportForm({
         const [hours, minutes] = time.split(":").map(Number);
         const appointment = (hours || 9) * 60 + (minutes || 0);
         const tolerance = data.rules.toleranceMin;
+        const wait = Math.max(0, Number(stay) || 0);
+        const wantsReturn = retour || wait > 0;
         const id = `t-new-${Date.now()}`;
         const patientId = `pat-new-${Date.now()}`;
         const transport: Transport = {
@@ -400,12 +403,12 @@ function TransportForm({
           toleranceMin: tolerance,
           posture,
           serviceMin: posture === "allonge" ? 16 : 10,
-          kind: retour ? "aller" : "simple",
-          seriesId: retour ? id : undefined,
+          kind: wantsReturn ? "aller" : "simple",
+          seriesId: wantsReturn ? id : undefined,
           priority: "normal",
           cancelled: false,
           note,
-          stayMin: Math.max(0, Number(stay) || 0) || undefined,
+          stayMin: wait || undefined,
         };
         data.dispatch({
           type: "ADD_TRANSPORT",
@@ -421,7 +424,7 @@ function TransportForm({
             note,
           },
         });
-        if (retour) {
+        if (wantsReturn && wait <= 0) {
           const [rh, rm] = returnTime.split(":").map(Number);
           const back = (rh || 0) * 60 + (rm || 0);
           data.dispatch({
@@ -445,7 +448,17 @@ function TransportForm({
     >
       <input required aria-label="Nom" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Nom" className="h-9 rounded-lg border border-line px-2 text-sm" />
       <input aria-label="Prénom" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Prénom" className="h-9 rounded-lg border border-line px-2 text-sm" />
-      <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm" />
+      <input
+        type="time"
+        value={time}
+        onChange={(event) => {
+          const next = event.target.value;
+          setTime(next);
+          const wait = Math.max(0, Number(stay) || 0);
+          if (wait > 0) setReturnTime(formatMin(seanceReturnMin(clockOf(next), wait)));
+        }}
+        className="h-9 rounded-lg border border-line px-2 text-sm"
+      />
       <select value={homeId} onChange={(event) => setHomeId(event.target.value)} className="h-9 rounded-lg border border-line px-2 text-sm">
         {homes.map((home) => <option key={home.id} value={home.id}>{home.short}</option>)}
       </select>
@@ -483,7 +496,14 @@ function TransportForm({
         min={0}
         max={480}
         value={stay}
-        onChange={(event) => setStay(event.target.value)}
+        onChange={(event) => {
+          const next = event.target.value;
+          setStay(next);
+          const wait = Math.max(0, Number(next) || 0);
+          if (wait <= 0) return;
+          setRetour(true);
+          setReturnTime(formatMin(seanceReturnMin(clockOf(time), wait)));
+        }}
         className="h-9 rounded-lg border border-line px-2 text-sm"
         aria-label="Attente à l'établissement (min)"
         placeholder="Attente min"
@@ -493,6 +513,11 @@ function TransportForm({
       <Button type="submit" size="sm">Enregistrer</Button>
     </form>
   );
+}
+
+function clockOf(value: string): number {
+  const [hours, minutes] = value.split(":").map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
 }
 
 function PageTitle({ title, text }: { title: string; text: string }) {

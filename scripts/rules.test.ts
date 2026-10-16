@@ -123,7 +123,7 @@ describe("règles de planning", () => {
     assert.equal(shift.shiftEnd - shift.shiftStart, 11 * 60);
   });
 
-  it("plafonne la charge ambulance", () => {
+  it("n'arrête pas l'ambulance à un plafond de courses", () => {
     const jobs = [8, 9, 10, 15].map((hour, index) =>
       trip({
         id: `load-${index}`,
@@ -143,9 +143,7 @@ describe("règles de planning", () => {
       rules: { ...DEFAULT_RULES, maxAmb: 2 },
     });
     const placed = plan.stops.length;
-    assert.ok(placed <= 2, `placé ${placed}`);
-    assert.ok(placed >= 1);
-    assert.ok(plan.unassignedIds.length >= 2);
+    assert.ok(placed > 2, `placé ${placed}`);
   });
 });
 
