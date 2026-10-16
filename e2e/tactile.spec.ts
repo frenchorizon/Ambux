@@ -47,7 +47,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
 
     await page.getByRole("button", { name: "Rechercher" }).click();
     for (let i = 0; i < 8; i++) await page.getByRole("button", { name: "Dézoomer", exact: true }).click();
-    await page.getByRole("button", { name: "Fermer" }).first().click();
+    await closeFind(page);
     const narrow = await page.evaluate(() => {
       const blocks = [...document.querySelectorAll<HTMLElement>(".gantt-block")];
       for (const node of blocks) {
@@ -70,7 +70,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       if (Number.parseInt(zoom, 10) >= 320) break;
       await page.getByRole("button", { name: "Zoomer", exact: true }).click();
     }
-    await page.getByRole("button", { name: "Fermer" }).first().click();
+    await closeFind(page);
   });
 
   const sample = (await bars(page)).find((item) => item.depart >= 8 * 60) ?? (await bars(page))[0]!;
@@ -408,6 +408,10 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
   const dragged = await barById(page, from.id);
   if (dragged.depart !== from.depart) expect(dragged.depart % 5).toBe(0);
 });
+
+async function closeFind(page: Page) {
+  await page.getByRole("dialog", { name: "Chercher et afficher" }).locator("h2").locator("..").getByRole("button", { name: "Fermer" }).click();
+}
 
 async function openPlanning(page: Page) {
   await page.goto("/");
