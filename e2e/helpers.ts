@@ -18,7 +18,7 @@ export async function openMenu(page: Page, label: string) {
   }
   const shown = label === "Exporter le CSV" ? "Exporter" : label;
   await page.getByRole("button", { name: "Autres actions" }).click();
-  await page.getByRole("banner").getByRole("button", { name: shown, exact: true }).click();
+  await page.getByRole("group", { name: "Autres actions" }).getByRole("button", { name: shown, exact: true }).click();
 }
 
 export async function showTimeline(page: Page) {

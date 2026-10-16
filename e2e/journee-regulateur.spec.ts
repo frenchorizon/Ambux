@@ -113,8 +113,8 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await expect(page.getByText(/Heure invalide/)).toBeVisible();
   await expect(page.getByText(/trop courte/)).toBeVisible();
   await expect(page.getByText(/introuvable pour l'équipage/)).toBeVisible();
-  await expect(page.getByText("L3 · GR-100-QA · ambulance · Master QA")).toBeVisible();
-  await expect(page.getByText("L3 · GR-100-QA · MARTIN Paul · DURAND Lea")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "GR-100-QA · ambulance · Master QA" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "GR-100-QA · MARTIN Paul · DURAND Lea" })).toBeVisible();
   await page.getByRole("button", { name: "Fusionner" }).click();
   await expect(page.getByText(/\d+ transports? ajouté/)).toBeVisible();
 
