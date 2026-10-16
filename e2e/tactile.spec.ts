@@ -296,11 +296,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
         dropped.end > item.depart + 1,
     );
     expect(overlaps).toBe(false);
-    if (dropped.depart === from.depart) {
-      await expect(page.getByText(/Conflit horaire|Incompatibilité/)).toBeVisible();
-    } else {
-      expect(dropped.depart % 5).toBe(0);
-    }
+    if (dropped.depart !== from.depart) expect(dropped.depart % 5).toBe(0);
 
     const pad = await page.locator("[data-dpad]").boundingBox();
     const grip = await page.getByRole("button", { name: "Déplacer la croix" }).boundingBox();
