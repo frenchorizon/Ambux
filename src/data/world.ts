@@ -247,16 +247,7 @@ export const CREW_PAIRS = [
   ["Camille Roux", "Antoine Perez"],
 ] as const;
 
-export const CREW_COLORS = [
-  "#1d6fe8",
-  "#0f9f6e",
-  "#d97706",
-  "#7c3aed",
-  "#e11d48",
-  "#0891b2",
-  "#c2410c",
-  "#4f46e5",
-];
+export const CREW_COLORS = ["#1d6fe8", "#0f9f6e", "#d97706", "#7c3aed", "#e11d48", "#0891b2", "#c2410c", "#4f46e5"];
 
 export const AMBULANCE_MODELS = ["Renault Master", "Fiat Ducato", "Mercedes Sprinter"];
 export const VSL_MODELS = ["Peugeot Rifter", "Renault Kangoo", "Citroën Berlingo", "Volkswagen Caddy"];
@@ -294,7 +285,10 @@ const POSTAL: Record<string, string> = {
 };
 
 export function postalOf(city: string): string {
-  const key = city.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  const key = city
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
   return POSTAL[key] ?? "";
 }
 

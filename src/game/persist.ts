@@ -52,10 +52,24 @@ function fingerprint(state: GameState): string {
       transport.pinned ? 1 : 0,
     ]),
     d: state.missionIso,
-    c: state.crews.map((crew) => [crew.id, crew.shiftStart, crew.shiftEnd, crew.dea, crew.plate, crew.driverId ?? "", crew.mateId ?? ""]),
+    c: state.crews.map((crew) => [
+      crew.id,
+      crew.shiftStart,
+      crew.shiftEnd,
+      crew.dea,
+      crew.plate,
+      crew.driverId ?? "",
+      crew.mateId ?? "",
+    ]),
     b: state.blocks.map((block) => [block.id, block.startMin, block.endMin, block.crewId]),
     r: state.rules,
-    p: state.patients.map((patient) => [patient.id, patient.lastName, patient.firstName, patient.addressId, patient.mobility ?? ""]),
+    p: state.patients.map((patient) => [
+      patient.id,
+      patient.lastName,
+      patient.firstName,
+      patient.addressId,
+      patient.mobility ?? "",
+    ]),
     v: state.vehicles.map((vehicle) => [vehicle.id, vehicle.plate, vehicle.active]),
   });
 }

@@ -32,7 +32,12 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
   await expect(page.getByLabel("Profil d'import")).toContainText("Lomaco (à confirmer)");
   await expect(page.getByLabel("Colonne Heure RDV")).toHaveValue("heure_rdv");
   await expect(page.getByLabel("Colonne Type")).toHaveValue("type");
-  await page.screenshot({ path: testInfo.project.name === "phone" ? "/opt/cursor/artifacts/v05-import-telephone.png" : "/opt/cursor/artifacts/v05-import-colonnes.png" });
+  await page.screenshot({
+    path:
+      testInfo.project.name === "phone"
+        ? "/opt/cursor/artifacts/v05-import-telephone.png"
+        : "/opt/cursor/artifacts/v05-import-colonnes.png",
+  });
   await page.getByRole("button", { name: "Aperçu" }).click();
   await expect(page.getByText(/BERNARD Luc/)).toBeVisible();
   await expect(page.getByText(/Heure invalide/)).toBeVisible();

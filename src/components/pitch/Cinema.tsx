@@ -54,14 +54,23 @@ export function Cinema({ onClose }: { onClose: () => void }) {
     return () => window.clearInterval(id);
   }, [plan, data.crews.length, reduced]);
 
-  const placed = plan ? Math.round((Math.min(visible, data.crews.length) / Math.max(1, data.crews.length)) * plan.metrics.placed) : 0;
+  const placed = plan
+    ? Math.round((Math.min(visible, data.crews.length) / Math.max(1, data.crews.length)) * plan.metrics.placed)
+    : 0;
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-navy text-white" role="dialog" aria-modal="true" aria-labelledby="cinema-title">
+    <div
+      className="fixed inset-0 z-[70] flex flex-col bg-navy text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cinema-title"
+    >
       <div className="flex items-end justify-between gap-4 px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200">Données fictives · Rouen</p>
-          <h2 id="cinema-title" className="font-display text-3xl sm:text-4xl">Planning de demain</h2>
+          <h2 id="cinema-title" className="font-display text-3xl sm:text-4xl">
+            Planning de demain
+          </h2>
         </div>
         <div className="text-right">
           <div className="font-display text-4xl tabular-nums">{plan ? placed : "…"}</div>
@@ -69,7 +78,13 @@ export function Cinema({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="relative min-h-0 flex-1">
-        <MapContainer center={[49.443, 1.09]} zoom={12} zoomControl={false} className="h-full w-full" attributionControl>
+        <MapContainer
+          center={[49.443, 1.09]}
+          zoom={12}
+          zoomControl={false}
+          className="h-full w-full"
+          attributionControl
+        >
           <Basemap />
           {plan && <Reveal plan={plan} shown={visible} version={version} />}
         </MapContainer>
@@ -81,7 +96,8 @@ export function Cinema({ onClose }: { onClose: () => void }) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <p className="max-w-xl text-xs leading-relaxed text-sky-100/75">
-          {error ?? "Les traits apparaissent équipage par équipage. Kilomètres de ce calcul, estimés tant que le routier n'a pas répondu. Rien n'est facturable."}
+          {error ??
+            "Les traits apparaissent équipage par équipage. Kilomètres de ce calcul, estimés tant que le routier n'a pas répondu. Rien n'est facturable."}
         </p>
         <Button
           disabled={!plan}
@@ -133,7 +149,11 @@ function Reveal({ plan, shown, version }: { plan: PlanResult; shown: number; ver
   return (
     <>
       {lines.map((line) => (
-        <Polyline key={line.id} positions={line.positions} pathOptions={{ color: line.color, weight: 4, opacity: 0.9, className: "route-live" }} />
+        <Polyline
+          key={line.id}
+          positions={line.positions}
+          pathOptions={{ color: line.color, weight: 4, opacity: 0.9, className: "route-live" }}
+        />
       ))}
     </>
   );

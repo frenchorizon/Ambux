@@ -17,14 +17,48 @@ import type { Crew, Location, Patient, Transport } from "../src/game/types.ts";
 import { DEFAULT_RULES } from "../src/game/types.ts";
 import type { CrewSchedule } from "../src/game/schedule.ts";
 
-const chu: Location = { id: "chu", name: "CHU Charles-Nicolle", short: "CHU Nicolle", kind: "chu", lat: 49.44, lng: 1.1, city: "Rouen" };
-const mathilde: Location = { id: "mathilde", name: "Clinique Mathilde, rue de Lessard", short: "Clinique Mathilde", kind: "clinique", lat: 49.42, lng: 1.09, city: "Rouen" };
+const chu: Location = {
+  id: "chu",
+  name: "CHU Charles-Nicolle",
+  short: "CHU Nicolle",
+  kind: "chu",
+  lat: 49.44,
+  lng: 1.1,
+  city: "Rouen",
+};
+const mathilde: Location = {
+  id: "mathilde",
+  name: "Clinique Mathilde, rue de Lessard",
+  short: "Clinique Mathilde",
+  kind: "clinique",
+  lat: 49.42,
+  lng: 1.09,
+  city: "Rouen",
+};
 
 describe("import Lomaco", () => {
   it("reconnaît les en-têtes français du profil à confirmer", () => {
-    const headers = ["N° dossier", "Heure RDV", "Adresse départ", "Adresse d'arrivée", "Type", "Aller/Retour", "Équipage", "Immatriculation"];
+    const headers = [
+      "N° dossier",
+      "Heure RDV",
+      "Adresse départ",
+      "Adresse d'arrivée",
+      "Type",
+      "Aller/Retour",
+      "Équipage",
+      "Immatriculation",
+    ];
     const fields = headers.map((header) => detectField(header, LOMACO_IMPORT_PROFILE));
-    assert.deepEqual(fields, ["dossier", "heure_rdv", "adresse_depart", "adresse_arrivee", "type", "sens", "equipage", "immatriculation"]);
+    assert.deepEqual(fields, [
+      "dossier",
+      "heure_rdv",
+      "adresse_depart",
+      "adresse_arrivee",
+      "type",
+      "sens",
+      "equipage",
+      "immatriculation",
+    ]);
     assert.equal(LOMACO_IMPORT_PROFILE.name, "Lomaco (à confirmer)");
     assert.equal(LOMACO_EXPORT_PROFILE.name, "Lomaco (à confirmer)");
   });
@@ -36,16 +70,63 @@ describe("import Lomaco", () => {
   });
 
   it("prévisualise courses, véhicules et rejets", async () => {
-    const sheet = mapSheet({
-      file: "lomaco.csv",
-      sheet: "Courses",
-      headers: ["Dossier", "Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Sens", "Immatriculation", "Conducteur"],
-      rows: [
-        ["DOS-9", "BERNARD", "Luc", "10:30", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "TAP", "aller", "GR-880-LM", "MARTIN Paul"],
-        ["DOS-10", "MARTIN", "Anne", "99:99", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "VSL", "aller", "GR-881-LM", ""],
-        ["DOS-11", "DURAND", "Léa", "11:00", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "VSL", "allongé", "GR-882-LM", ""],
-      ],
-    }, LOMACO_IMPORT_PROFILE);
+    const sheet = mapSheet(
+      {
+        file: "lomaco.csv",
+        sheet: "Courses",
+        headers: [
+          "Dossier",
+          "Nom",
+          "Prénom",
+          "Heure RDV",
+          "Adresse départ",
+          "Adresse arrivée",
+          "Type",
+          "Sens",
+          "Immatriculation",
+          "Conducteur",
+        ],
+        rows: [
+          [
+            "DOS-9",
+            "BERNARD",
+            "Luc",
+            "10:30",
+            "CHU Charles-Nicolle",
+            "Clinique Mathilde, rue de Lessard",
+            "TAP",
+            "aller",
+            "GR-880-LM",
+            "MARTIN Paul",
+          ],
+          [
+            "DOS-10",
+            "MARTIN",
+            "Anne",
+            "99:99",
+            "CHU Charles-Nicolle",
+            "Clinique Mathilde, rue de Lessard",
+            "VSL",
+            "aller",
+            "GR-881-LM",
+            "",
+          ],
+          [
+            "DOS-11",
+            "DURAND",
+            "Léa",
+            "11:00",
+            "CHU Charles-Nicolle",
+            "Clinique Mathilde, rue de Lessard",
+            "VSL",
+            "allongé",
+            "GR-882-LM",
+            "",
+          ],
+        ],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
     assert.equal(sheet.kind, "transport");
     const preview = await previewLomaco([sheet], {
       locations: [chu, mathilde],
@@ -68,7 +149,10 @@ describe("import Lomaco", () => {
   it("garde les accents d'un csv utf-8", async () => {
     const csv = "Prénom;Heure RDV;Adresse départ;Adresse arrivée\nLuc;10:30;CHU;Clinique\n";
     const bytes = new TextEncoder().encode(csv);
-    const tables = await tablesFromBuffer(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), "accents.csv");
+    const tables = await tablesFromBuffer(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      "accents.csv",
+    );
     assert.deepEqual(tables[0]!.headers, ["Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée"]);
     const fields = tables[0]!.headers.map((header) => detectField(header, LOMACO_IMPORT_PROFILE));
     assert.deepEqual(fields, ["prenom", "heure_rdv", "adresse_depart", "adresse_arrivee"]);
@@ -76,20 +160,31 @@ describe("import Lomaco", () => {
 
   it("lit un classeur xlsx à plusieurs feuilles", async () => {
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-      ["Immatriculation", "Type", "Nom du véhicule"],
-      ["GR-100-AA", "AMB", "Master"],
-    ]), "Vehicules");
-    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-      ["Immatriculation", "Conducteur", "Auxiliaire", "DEA"],
-      ["GR-100-AA", "MARTIN Paul", "DURAND Lea", "oui"],
-    ]), "Equipages");
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Immatriculation", "Type", "Nom du véhicule"],
+        ["GR-100-AA", "AMB", "Master"],
+      ]),
+      "Vehicules",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Immatriculation", "Conducteur", "Auxiliaire", "DEA"],
+        ["GR-100-AA", "MARTIN Paul", "DURAND Lea", "oui"],
+      ]),
+      "Equipages",
+    );
     const bytes = XLSX.write(book, { type: "array", bookType: "xlsx" });
     const buffer = bytes instanceof ArrayBuffer ? bytes : Uint8Array.from(bytes as ArrayLike<number>).buffer;
     const tables = await tablesFromBuffer(buffer, "lomaco.xlsx");
     assert.equal(tables.length, 2);
     const mapped = tables.map((table) => mapSheet(table, LOMACO_IMPORT_PROFILE));
-    assert.deepEqual(mapped.map((sheet) => sheet.kind), ["vehicule", "equipage"]);
+    assert.deepEqual(
+      mapped.map((sheet) => sheet.kind),
+      ["vehicule", "equipage"],
+    );
     const preview = await previewLomaco(mapped, {
       locations: [],
       rules: DEFAULT_RULES,
@@ -121,7 +216,14 @@ describe("export Lomaco", () => {
       delayUntil: 0,
       dea: true,
     };
-    const patient: Patient = { id: "p1", firstName: "Luc", lastName: "Bernard", phone: "", birthYear: 1950, addressId: chu.id };
+    const patient: Patient = {
+      id: "p1",
+      firstName: "Luc",
+      lastName: "Bernard",
+      phone: "",
+      birthYear: 1950,
+      addressId: chu.id,
+    };
     const transport: Transport = {
       id: "t1",
       dossier: "DOS-9",
@@ -140,19 +242,28 @@ describe("export Lomaco", () => {
       departMin: 10 * 60,
       service: "TAP",
     };
-    const loose: Transport = { ...transport, id: "t2", dossier: "DOS-10", crewId: undefined, departMin: undefined, service: "VSL" };
+    const loose: Transport = {
+      ...transport,
+      id: "t2",
+      dossier: "DOS-10",
+      crewId: undefined,
+      departMin: undefined,
+      service: "VSL",
+    };
     const schedule: CrewSchedule = {
       crewId: "c1",
-      legs: [{
-        id: "leg",
-        transportId: "t1",
-        departMin: 10 * 60,
-        arrivePickup: 10 * 60 + 20,
-        endMin: 11 * 60,
-        deadheadKm: 1,
-        loadedKm: 4,
-        kmEstimated: false,
-      }],
+      legs: [
+        {
+          id: "leg",
+          transportId: "t1",
+          departMin: 10 * 60,
+          arrivePickup: 10 * 60 + 20,
+          endMin: 11 * 60,
+          deadheadKm: 1,
+          loadedKm: 4,
+          kmEstimated: false,
+        },
+      ],
       returnKm: 2,
       emptyKm: 3,
     } as CrewSchedule;
@@ -160,12 +271,18 @@ describe("export Lomaco", () => {
       crews: [crew],
       transports: [transport, loose],
       patients: new Map([[patient.id, patient]]),
-      locations: new Map([[chu.id, chu], [mathilde.id, mathilde]]),
+      locations: new Map([
+        [chu.id, chu],
+        [mathilde.id, mathilde],
+      ]),
       schedules: new Map([["c1", schedule]]),
       missionIso: "2026-10-16",
       columns: LOMACO_EXPORT_PROFILE.columns,
     });
-    assert.deepEqual(sheets.map((sheet) => sheet.name), ["AMB-1", "A traiter"]);
+    assert.deepEqual(
+      sheets.map((sheet) => sheet.name),
+      ["AMB-1", "A traiter"],
+    );
     assert.equal(sheets[0]!.rows[0]![2], "Heure RDV");
     assert.equal(sheets[0]!.rows[1]![0], "DOS-9");
     assert.equal(sheets[0]!.rows[1]![5], "TAP");

@@ -72,7 +72,20 @@ const MONTHS = [
   "novembre",
   "décembre",
 ];
-const SHORT_MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const SHORT_MONTHS = [
+  "janv.",
+  "févr.",
+  "mars",
+  "avr.",
+  "mai",
+  "juin",
+  "juil.",
+  "août",
+  "sept.",
+  "oct.",
+  "nov.",
+  "déc.",
+];
 
 export function labelForIso(iso: string): string {
   const [year, month, day] = iso.split("-").map(Number);

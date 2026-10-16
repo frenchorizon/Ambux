@@ -29,18 +29,32 @@ export function CrewSheet() {
     <article className="flex h-full min-h-0 flex-col bg-card text-ink" aria-labelledby="feuille-title">
       <header className="border-b border-line px-4 pb-3 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Feuille de route · fictif</p>
-        <h1 id="feuille-title" className="font-display text-2xl">{crew.code}</h1>
+        <h1 id="feuille-title" className="font-display text-2xl">
+          {crew.code}
+        </h1>
         <p className="text-sm text-muted">
           {vehicleLabel(crew.vehicleType)} {crew.plate} · {crew.driver}
           {crew.mate ? ` · ${crew.mate}` : ""}
         </p>
-        <p className="mt-1 text-xs text-muted">{data.missionLabel} · {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)}</p>
-        <button type="button" className="mt-2 text-sm font-semibold text-brand" onClick={() => printSheets(data, crew.id)}>
+        <p className="mt-1 text-xs text-muted">
+          {data.missionLabel} · {formatMin(crew.shiftStart)}–{formatMin(crew.shiftEnd)}
+        </p>
+        <button
+          type="button"
+          className="mt-2 text-sm font-semibold text-brand"
+          onClick={() => printSheets(data, crew.id)}
+        >
           Imprimer cette feuille
         </button>
         <div className="mt-3 flex flex-wrap gap-2">
           {crew.dea && <Chip>DEA à bord</Chip>}
-          {meal ? <Chip>Repas {formatMin(meal.startMin)}–{formatMin(meal.endMin)}</Chip> : <Chip>Repas non posé</Chip>}
+          {meal ? (
+            <Chip>
+              Repas {formatMin(meal.startMin)}–{formatMin(meal.endMin)}
+            </Chip>
+          ) : (
+            <Chip>Repas non posé</Chip>
+          )}
         </div>
         <label className="mt-3 block text-xs font-semibold text-muted">
           Équipage
@@ -60,7 +74,14 @@ export function CrewSheet() {
         <UnavailabilityControls crewId={crew.id} />
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
-        {focus?.kind === "leg" ? <Hero leg={focus.leg} transport={data.transportById.get(focus.leg.transportId)} data={data} live={data.live} /> : (
+        {focus?.kind === "leg" ? (
+          <Hero
+            leg={focus.leg}
+            transport={data.transportById.get(focus.leg.transportId)}
+            data={data}
+            live={data.live}
+          />
+        ) : (
           <p className="rounded-2xl bg-ice px-4 py-5 text-sm">Aucune course sur cette feuille.</p>
         )}
         <ol className="mt-4 space-y-2">
@@ -87,7 +108,8 @@ export function CrewSheet() {
         </p>
       </div>
       <footer className="border-t border-line px-4 py-3 text-[11px] leading-relaxed text-muted">
-        Aide à la lecture pour l'équipage. Ce n'est pas un bon de transport, ni une pièce à présenter à un organisme. Patients inventés.
+        Aide à la lecture pour l'équipage. Ce n'est pas un bon de transport, ni une pièce à présenter à un organisme.
+        Patients inventés.
       </footer>
       {courseId && <CourseSheet transportId={courseId} onClose={() => setCourseId(null)} />}
     </article>
@@ -96,7 +118,9 @@ export function CrewSheet() {
   if (narrow) return <div className="h-full bg-card">{frame}</div>;
   return (
     <div className="flex h-full items-center justify-center bg-paper p-6">
-      <div className="h-[min(100%,820px)] w-[390px] overflow-hidden rounded-[2rem] border border-line shadow-xl">{frame}</div>
+      <div className="h-[min(100%,820px)] w-[390px] overflow-hidden rounded-[2rem] border border-line shadow-xl">
+        {frame}
+      </div>
     </div>
   );
 }
@@ -117,7 +141,9 @@ function Hero({
   const to = transport ? data.locMap.get(transport.dropoffId) : undefined;
   return (
     <section className="rounded-2xl bg-navy px-4 py-4 text-white">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-200">{live ? "Prochaine course" : "Première prise en charge"}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-200">
+        {live ? "Prochaine course" : "Première prise en charge"}
+      </p>
       <p className="mt-1 font-display text-4xl tabular-nums">{formatMin(leg.departMin)}</p>
       <p className="mt-2 text-lg font-semibold">{patient ? personName(patient) : "Course"}</p>
       <p className="text-sm text-sky-100">{transport ? postureLabel(transport.posture) : ""}</p>
@@ -149,7 +175,10 @@ function LegRow({
     <li className={cn("rounded-xl border px-3 py-2 text-sm", active ? "border-brand bg-ice" : "border-line")}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold tabular-nums">{formatMin(leg.departMin)}</span>
-        <span className="text-xs text-muted">{formatKm(leg.loadedKm, 1)}{leg.kmEstimated ? " · estimé" : ""}</span>
+        <span className="text-xs text-muted">
+          {formatKm(leg.loadedKm, 1)}
+          {leg.kmEstimated ? " · estimé" : ""}
+        </span>
       </div>
       <div>{patient ? personName(patient) : "Course"}</div>
       <div className="text-xs text-muted">{to ? `${to.short}, ${to.city}` : ""}</div>

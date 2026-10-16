@@ -1,5 +1,13 @@
 import { geocodeAddress } from "../lib/routing";
-import { MISSION_ISO, type Location, type Patient, type Posture, type Rules, type Transport, type TransportKind } from "./types";
+import {
+  MISSION_ISO,
+  type Location,
+  type Patient,
+  type Posture,
+  type Rules,
+  type Transport,
+  type TransportKind,
+} from "./types";
 import type { CrewSchedule } from "./schedule";
 import type { Crew } from "./types";
 import { formatMin } from "../lib/format";
@@ -235,7 +243,12 @@ async function parseLine(
     return { line, raw, reason: `Date « ${date} » différente de la mission ${missionIso}.` };
   }
   const posture = parseMobility(record.mobilite ?? "");
-  if (!posture) return { line, raw, reason: `Mobilité « ${record.mobilite || "vide"} » refusée. Valeurs : assis, allongé, fauteuil.` };
+  if (!posture)
+    return {
+      line,
+      raw,
+      reason: `Mobilité « ${record.mobilite || "vide"} » refusée. Valeurs : assis, allongé, fauteuil.`,
+    };
   const sens = parseSens(record.sens ?? "");
   if (!sens) return { line, raw, reason: `Sens « ${record.sens} » inconnu. Valeurs : aller, retour, simple, ar.` };
   const retourClock = (record.heure_retour ?? "").trim() ? parseClock(record.heure_retour ?? "") : null;
@@ -322,7 +335,13 @@ async function resolvePlace(
     return false;
   });
   if (hits.length > 1) {
-    return { ok: false, reason: `Adresse ambiguë « ${query} » : ${hits.map((hit) => hit.short).slice(0, 3).join(", ")}.` };
+    return {
+      ok: false,
+      reason: `Adresse ambiguë « ${query} » : ${hits
+        .map((hit) => hit.short)
+        .slice(0, 3)
+        .join(", ")}.`,
+    };
   }
   if (hits.length === 1) return { ok: true, location: hits[0]! };
   const geo = await geocodeAddress(query.includes("Rouen") ? query : `${query}, Rouen`);
@@ -364,10 +383,27 @@ function dateMatches(value: string, iso: string): boolean {
     `${day}.${month}.${year}`,
   ]);
   if (forms.has(compact)) return true;
-  const months = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+  const months = [
+    "janvier",
+    "fevrier",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "aout",
+    "septembre",
+    "octobre",
+    "novembre",
+    "decembre",
+  ];
   const monthName = months[Number(month) - 1] ?? "";
   const tokens = norm(value).split(" ").filter(Boolean);
-  return tokens.includes(dayNum) && tokens.includes(year) && tokens.some((token) => monthName.startsWith(token) || token.startsWith(monthName.slice(0, 4)));
+  return (
+    tokens.includes(dayNum) &&
+    tokens.includes(year) &&
+    tokens.some((token) => monthName.startsWith(token) || token.startsWith(monthName.slice(0, 4)))
+  );
 }
 
 function parseMobility(value: string): Posture | null {

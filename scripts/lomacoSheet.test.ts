@@ -5,8 +5,26 @@ import { lomacoPlanningHtml, planningDate } from "../src/game/lomacoSheet.ts";
 import type { Leg } from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Patient, type Transport } from "../src/game/types.ts";
 
-const home: Location = { id: "home", name: "12 rue des Lilas", short: "Lilas", kind: "domicile", lat: 49.44, lng: 1.05, city: "Rouen", postalCode: "76000" };
-const chu: Location = { id: "chu", name: "Clinique des Tilleuls", short: "Tilleuls", kind: "clinique", lat: 49.45, lng: 1.1, city: "Rouen", postalCode: "76000" };
+const home: Location = {
+  id: "home",
+  name: "12 rue des Lilas",
+  short: "Lilas",
+  kind: "domicile",
+  lat: 49.44,
+  lng: 1.05,
+  city: "Rouen",
+  postalCode: "76000",
+};
+const chu: Location = {
+  id: "chu",
+  name: "Clinique des Tilleuls",
+  short: "Tilleuls",
+  kind: "clinique",
+  lat: 49.45,
+  lng: 1.1,
+  city: "Rouen",
+  postalCode: "76000",
+};
 
 function crew(): Crew {
   return {
@@ -119,8 +137,14 @@ describe("feuille Planning IMPRESSION_STD", () => {
       crews: [crew()],
       transports: [early, first],
       patients: new Map([[patient.id, patient]]),
-      locations: new Map([[home.id, home], [chu.id, chu]]),
-      legs: new Map([[first.id, leg(first.id, 8 * 60 + 10)], [early.id, leg(early.id, 11 * 60 + 10)]]),
+      locations: new Map([
+        [home.id, home],
+        [chu.id, chu],
+      ]),
+      legs: new Map([
+        [first.id, leg(first.id, 8 * 60 + 10)],
+        [early.id, leg(early.id, 11 * 60 + 10)],
+      ]),
     });
     const earlyAt = html.indexOf("DOS-1") === -1 ? html.indexOf("TAP") : html.indexOf("TAP");
     assert.ok(html.indexOf("TAP") < html.indexOf("KINE - KINE"));
@@ -142,12 +166,37 @@ describe("feuille Planning IMPRESSION_STD", () => {
     assert.match(html, /size: A4 portrait/);
     assert.equal(earlyAt >= 0, true);
 
-    const sheet = mapSheet({
-      file: "courses.csv",
-      sheet: "Courses",
-      headers: ["Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Né(e) le", "Motif", "Série"],
-      rows: [["BERNARD", "Luc", "10:30", "Clinique des Tilleuls", "12 rue des Lilas", "TAP", "14/03/1948", "DIAL - DIALYSE", "Unique"]],
-    }, LOMACO_IMPORT_PROFILE);
+    const sheet = mapSheet(
+      {
+        file: "courses.csv",
+        sheet: "Courses",
+        headers: [
+          "Nom",
+          "Prénom",
+          "Heure RDV",
+          "Adresse départ",
+          "Adresse arrivée",
+          "Type",
+          "Né(e) le",
+          "Motif",
+          "Série",
+        ],
+        rows: [
+          [
+            "BERNARD",
+            "Luc",
+            "10:30",
+            "Clinique des Tilleuls",
+            "12 rue des Lilas",
+            "TAP",
+            "14/03/1948",
+            "DIAL - DIALYSE",
+            "Unique",
+          ],
+        ],
+      },
+      LOMACO_IMPORT_PROFILE,
+    );
     const preview = await previewLomaco([sheet], {
       locations: [home, chu],
       rules: DEFAULT_RULES,
@@ -162,7 +211,15 @@ describe("feuille Planning IMPRESSION_STD", () => {
   });
 
   it("passe à la page 2 et marque une course prise en charge", () => {
-    const patient: Patient = { id: "p", firstName: "Anne", lastName: "Martin", phone: "06 00 00 00 00", birthYear: 1960, birthDate: "1960-01-02", addressId: home.id };
+    const patient: Patient = {
+      id: "p",
+      firstName: "Anne",
+      lastName: "Martin",
+      phone: "06 00 00 00 00",
+      birthYear: 1960,
+      birthDate: "1960-01-02",
+      addressId: home.id,
+    };
     const transports: Transport[] = Array.from({ length: 8 }, (_, index) => ({
       id: `t${index}`,
       dossier: `DOS-${index}`,
@@ -190,7 +247,10 @@ describe("feuille Planning IMPRESSION_STD", () => {
       crews: [crew()],
       transports,
       patients: new Map([["p", patient]]),
-      locations: new Map([[home.id, home], [chu.id, chu]]),
+      locations: new Map([
+        [home.id, home],
+        [chu.id, chu],
+      ]),
       legs,
     });
     assert.match(html, /Page 1\/2/);

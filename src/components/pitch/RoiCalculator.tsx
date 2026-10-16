@@ -27,7 +27,10 @@ export function RoiCalculator() {
         Ce que vos chiffres donneraient
       </h2>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-        Hypothèse de travail, pas une mesure de votre société. Le carburant part des kilomètres à vide que vous indiquez. Le temps part des heures qu'un régulateur passe à monter le lendemain. Sur le jeu fictif 3+3, l'écart contre un dispatch naïf était d'environ 19 % (292 km contre 361). Sur une journée plus pleine, l'écart peut être proche de zéro. Le curseur est à 12 % pour rester en dessous de ce cas favorable.
+        Hypothèse de travail, pas une mesure de votre société. Le carburant part des kilomètres à vide que vous
+        indiquez. Le temps part des heures qu'un régulateur passe à monter le lendemain. Sur le jeu fictif 3+3, l'écart
+        contre un dispatch naïf était d'environ 19 % (292 km contre 361). Sur une journée plus pleine, l'écart peut être
+        proche de zéro. Le curseur est à 12 % pour rester en dessous de ce cas favorable.
       </p>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -49,10 +52,14 @@ export function RoiCalculator() {
             <Row k="Km à vide du mois" v={`${Math.round(result.monthKm).toLocaleString("fr-FR")} km`} />
             <Row k="Km évités dans l'hypothèse" v={`${Math.round(result.savedKm).toLocaleString("fr-FR")} km`} />
             <Row k="Carburant" v={euro(result.fuelEuro)} />
-            <Row k="Heures de préparation" v={`${result.savedHours.toFixed(1).replace(".", ",")} h · ${euro(result.laborEuro)}`} />
+            <Row
+              k="Heures de préparation"
+              v={`${result.savedHours.toFixed(1).replace(".", ",")} h · ${euro(result.laborEuro)}`}
+            />
           </dl>
           <p className="mt-5 text-xs leading-relaxed text-sky-100/70">
-            Aucune de ces sommes n'est un gain garanti, ni un kilomètre opposable à l'Assurance maladie. Changez les curseurs avec vos propres relevés.
+            Aucune de ces sommes n'est un gain garanti, ni un kilomètre opposable à l'Assurance maladie. Changez les
+            curseurs avec vos propres relevés.
           </p>
         </div>
       </div>

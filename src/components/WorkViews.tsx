@@ -19,7 +19,9 @@ export function SyntheseView() {
         </div>
         <h2 className="mt-6 text-sm font-semibold">À contrôler · {shown.length}</h2>
         <ul className="mt-2 space-y-1">
-          {shown.length === 0 && <li className="text-sm text-muted">Rien à signaler hors les kilomètres estimés, s'il y en a.</li>}
+          {shown.length === 0 && (
+            <li className="text-sm text-muted">Rien à signaler hors les kilomètres estimés, s'il y en a.</li>
+          )}
           {shown.slice(0, 12).map((issue) => (
             <li key={issue.id} className="text-sm">
               {issue.title}
@@ -50,47 +52,123 @@ export function ReglagesView() {
         <div>
           <h1 className="text-lg font-semibold">Réglages</h1>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            Règles de la société pour ce navigateur. Elles s'appliquent au planning en cours et au prochain. Ce n'est pas un paramétrage réglementaire certifié.
+            Règles de la société pour ce navigateur. Elles s'appliquent au planning en cours et au prochain. Ce n'est
+            pas un paramétrage réglementaire certifié.
           </p>
         </div>
         <Field label="Pause repas (minutes)">
-          <input type="number" min={0} max={90} value={rules.mealMin} onChange={(event) => set({ mealMin: Number(event.target.value) })} className={input} />
+          <input
+            type="number"
+            min={0}
+            max={90}
+            value={rules.mealMin}
+            onChange={(event) => set({ mealMin: Number(event.target.value) })}
+            className={input}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Repas à partir de">
-            <input type="time" value={formatMin(rules.mealFrom)} onChange={(event) => set({ mealFrom: parseTime(event.target.value) })} className={input} />
+            <input
+              type="time"
+              value={formatMin(rules.mealFrom)}
+              onChange={(event) => set({ mealFrom: parseTime(event.target.value) })}
+              className={input}
+            />
           </Field>
           <Field label="Jusqu'à">
-            <input type="time" value={formatMin(rules.mealTo)} onChange={(event) => set({ mealTo: parseTime(event.target.value) })} className={input} />
+            <input
+              type="time"
+              value={formatMin(rules.mealTo)}
+              onChange={(event) => set({ mealTo: parseTime(event.target.value) })}
+              className={input}
+            />
           </Field>
         </div>
         <Field label="Tolérance autour du rendez-vous (minutes)">
-          <input type="number" min={5} max={60} value={rules.toleranceMin} onChange={(event) => set({ toleranceMin: Number(event.target.value) })} className={input} />
+          <input
+            type="number"
+            min={5}
+            max={60}
+            value={rules.toleranceMin}
+            onChange={(event) => set({ toleranceMin: Number(event.target.value) })}
+            className={input}
+          />
         </Field>
         <Field label="Amplitude de vacation (heures)">
-          <input type="number" min={8} max={14} step={0.5} value={rules.amplitudeMin / 60} onChange={(event) => set({ amplitudeMin: Math.round(Number(event.target.value) * 60) })} className={input} />
+          <input
+            type="number"
+            min={8}
+            max={14}
+            step={0.5}
+            value={rules.amplitudeMin / 60}
+            onChange={(event) => set({ amplitudeMin: Math.round(Number(event.target.value) * 60) })}
+            className={input}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Charge max ambulance">
-            <input type="number" min={1} max={40} value={rules.maxAmb} onChange={(event) => set({ maxAmb: Number(event.target.value) })} className={input} />
+            <input
+              type="number"
+              min={1}
+              max={40}
+              value={rules.maxAmb}
+              onChange={(event) => set({ maxAmb: Number(event.target.value) })}
+              className={input}
+            />
           </Field>
           <Field label="Charge max VSL">
-            <input type="number" min={1} max={40} value={rules.maxVsl} onChange={(event) => set({ maxVsl: Number(event.target.value) })} className={input} />
+            <input
+              type="number"
+              min={1}
+              max={40}
+              value={rules.maxVsl}
+              onChange={(event) => set({ maxVsl: Number(event.target.value) })}
+              className={input}
+            />
           </Field>
         </div>
         <Field label="Séance de dialyse (heures)">
-          <input type="number" min={1} max={8} step={0.5} value={rules.sessionMin / 60} onChange={(event) => set({ sessionMin: Math.round(Number(event.target.value) * 60) })} className={input} />
+          <input
+            type="number"
+            min={1}
+            max={8}
+            step={0.5}
+            value={rules.sessionMin / 60}
+            onChange={(event) => set({ sessionMin: Math.round(Number(event.target.value) * 60) })}
+            className={input}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Prise en charge ambulance (min)">
-            <input type="number" min={1} max={40} value={rules.pecAmbMin} onChange={(event) => set({ pecAmbMin: Number(event.target.value) })} className={input} />
+            <input
+              type="number"
+              min={1}
+              max={40}
+              value={rules.pecAmbMin}
+              onChange={(event) => set({ pecAmbMin: Number(event.target.value) })}
+              className={input}
+            />
           </Field>
           <Field label="Prise en charge VSL (min)">
-            <input type="number" min={1} max={40} value={rules.pecVslMin} onChange={(event) => set({ pecVslMin: Number(event.target.value) })} className={input} />
+            <input
+              type="number"
+              min={1}
+              max={40}
+              value={rules.pecVslMin}
+              onChange={(event) => set({ pecVslMin: Number(event.target.value) })}
+              className={input}
+            />
           </Field>
         </div>
         <Field label="Dépose (min)">
-          <input type="number" min={1} max={40} value={rules.dropoffMin} onChange={(event) => set({ dropoffMin: Number(event.target.value) })} className={input} />
+          <input
+            type="number"
+            min={1}
+            max={40}
+            value={rules.dropoffMin}
+            onChange={(event) => set({ dropoffMin: Number(event.target.value) })}
+            className={input}
+          />
         </Field>
         <p className="text-xs text-muted">Enregistré dans ce navigateur à chaque modification.</p>
       </form>

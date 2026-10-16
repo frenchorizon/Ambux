@@ -1,7 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import * as XLSX from "xlsx";
-import { barById, bars, center, mealWindows, minutes, openMenu, openPlanning, shiftSpans, showTimeline, touch } from "./helpers";
+import {
+  barById,
+  bars,
+  center,
+  mealWindows,
+  minutes,
+  openMenu,
+  openPlanning,
+  shiftSpans,
+  showTimeline,
+  touch,
+} from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -109,20 +120,41 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await page.getByPlaceholder("Renault Master").fill("Master QA");
   await page.getByRole("button", { name: "Ajouter" }).click();
   await expect(page.getByText(/GR-404-QA est en ligne/)).toBeVisible();
-  await expect.poll(async () => page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value))).toContain("GR-404-QA");
-  await page.getByLabel("Import CSV des véhicules").fill(
-    ["immatriculation;type;nom", "ZZ;ambulance;Court", "GR-777-AA;voiture;Inconnu", "GR-777-AA;ambulance;Master test"].join("\n"),
-  );
+  await expect
+    .poll(async () =>
+      page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value)),
+    )
+    .toContain("GR-404-QA");
+  await page
+    .getByLabel("Import CSV des véhicules")
+    .fill(
+      [
+        "immatriculation;type;nom",
+        "ZZ;ambulance;Court",
+        "GR-777-AA;voiture;Inconnu",
+        "GR-777-AA;ambulance;Master test",
+      ].join("\n"),
+    );
   await page.getByRole("button", { name: "Prévisualiser" }).click();
   await expect(page.getByText(/Immatriculation « ZZ » trop courte/)).toBeVisible();
   await expect(page.getByText(/Type « voiture » inconnu/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
-  await expect.poll(async () => page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value))).toContain("GR-777-AA");
+  await expect
+    .poll(async () =>
+      page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value)),
+    )
+    .toContain("GR-777-AA");
 
   await openMenu(page, "Équipages");
-  await page.getByLabel("Import CSV des équipages").fill(
-    ["immatriculation;conducteur;auxiliaire;dea", "INCONNU;MARTIN Paul;DURAND Lea;oui", "GR-777-AA;MARTIN Paul;DURAND Lea;oui"].join("\n"),
-  );
+  await page
+    .getByLabel("Import CSV des équipages")
+    .fill(
+      [
+        "immatriculation;conducteur;auxiliaire;dea",
+        "INCONNU;MARTIN Paul;DURAND Lea;oui",
+        "GR-777-AA;MARTIN Paul;DURAND Lea;oui",
+      ].join("\n"),
+    );
   await page.getByRole("button", { name: "Prévisualiser" }).click();
   await expect(page.getByText(/Véhicule « INCONNU » introuvable/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
@@ -130,9 +162,14 @@ test("import CSV et XLSX, rejets, puis édition patient véhicule équipage", as
   await page.getByPlaceholder("Nom Prénom").fill("Noam Testeur");
   await page.locator("select").first().selectOption("conducteur");
   await page.getByRole("button", { name: "Ajouter" }).click();
-  const driver = page.locator("select").filter({ has: page.locator("option", { hasText: "Noam Testeur" }) }).first();
+  const driver = page
+    .locator("select")
+    .filter({ has: page.locator("option", { hasText: "Noam Testeur" }) })
+    .first();
   await driver.selectOption({ label: "Noam Testeur" });
-  await expect.poll(async () => driver.evaluate((node) => (node as HTMLSelectElement).selectedOptions[0]?.textContent ?? "")).toContain("Noam Testeur");
+  await expect
+    .poll(async () => driver.evaluate((node) => (node as HTMLSelectElement).selectedOptions[0]?.textContent ?? ""))
+    .toContain("Noam Testeur");
 });
 
 test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ page }, testInfo) => {
@@ -180,7 +217,9 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   const parked = (await bars(page)).find((item) => item.posture === "assis")!;
   await center(page, parked.id);
   await page.locator(`[data-transport-id="${parked.id}"]`).click();
-  const patient = await page.locator("[data-pickup-times]").evaluate((node) => node.parentElement?.querySelector(".truncate")?.textContent?.trim() ?? "");
+  const patient = await page
+    .locator("[data-pickup-times]")
+    .evaluate((node) => node.parentElement?.querySelector(".truncate")?.textContent?.trim() ?? "");
   expect(patient.length).toBeGreaterThan(3);
   await page.getByRole("button", { name: "Retirer" }).click();
   await expect(page.locator(`[data-transport-id="${parked.id}"]`)).toHaveCount(0);
@@ -234,17 +273,26 @@ test("le brouillon survit au rechargement", async ({ page }) => {
   await page.waitForFunction(() => localStorage.getItem("ambux-drafts-v1")?.includes("QA-181-ZZ") === true);
   await page.reload();
   await page.goto("/#demo");
-  await page.getByRole("button", { name: /courses/ }).first().click();
+  await page
+    .getByRole("button", { name: /courses/ })
+    .first()
+    .click();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-18");
   await openMenu(page, "Véhicules");
-  await expect.poll(async () => page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value))).toContain("QA-181-ZZ");
+  await expect
+    .poll(async () =>
+      page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value)),
+    )
+    .toContain("QA-181-ZZ");
 });
 
 test("CSV et feuille de route Lomaco IMPRESSION_STD", async ({ page }) => {
   test.setTimeout(120_000);
   await openPlanning(page);
   await page.locator("[data-transport-id]").first().click();
-  const patient = await page.locator("[data-pickup-times]").evaluate((node) => node.parentElement?.querySelector(".truncate")?.textContent?.trim() ?? "");
+  const patient = await page
+    .locator("[data-pickup-times]")
+    .evaluate((node) => node.parentElement?.querySelector(".truncate")?.textContent?.trim() ?? "");
   expect(patient).toMatch(/\S+ \S+/);
 
   await openMenu(page, "Exporter le CSV");
@@ -253,7 +301,19 @@ test("CSV et feuille de route Lomaco IMPRESSION_STD", async ({ page }) => {
   const file = await download;
   const csv = fs.readFileSync((await file.path())!, "utf8").replace(/^\uFEFF/, "");
   const header = csv.split("\n")[0] ?? "";
-  for (const column of ["dossier", "date", "statut", "equipage", "patient", "heure_rdv", "depart", "prise_en_charge", "mobilite", "sens", "repas"]) {
+  for (const column of [
+    "dossier",
+    "date",
+    "statut",
+    "equipage",
+    "patient",
+    "heure_rdv",
+    "depart",
+    "prise_en_charge",
+    "mobilite",
+    "sens",
+    "repas",
+  ]) {
     expect(header).toContain(column);
   }
   expect(csv).toContain("2026-10-16");
@@ -262,7 +322,10 @@ test("CSV et feuille de route Lomaco IMPRESSION_STD", async ({ page }) => {
   const rows = csv.trim().split("\n");
   const mealIndex = (rows[0] ?? "").split(";").indexOf("repas");
   expect(mealIndex).toBeGreaterThan(0);
-  const mealCells = rows.slice(1).map((line) => line.split(";")[mealIndex] ?? "").filter((cell) => /\d{2}:\d{2}-\d{2}:\d{2}/.test(cell));
+  const mealCells = rows
+    .slice(1)
+    .map((line) => line.split(";")[mealIndex] ?? "")
+    .filter((cell) => /\d{2}:\d{2}-\d{2}:\d{2}/.test(cell));
   expect(mealCells.length).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Fermer" }).click();
 
@@ -277,7 +340,10 @@ test("CSV et feuille de route Lomaco IMPRESSION_STD", async ({ page }) => {
   await openMenu(page, "Feuilles de route");
   await expect(page.getByText(/repas/).first()).toBeVisible();
   const popup = page.waitForEvent("popup");
-  await page.getByRole("button", { name: /Imprimer AMB-/ }).first().click();
+  await page
+    .getByRole("button", { name: /Imprimer AMB-/ })
+    .first()
+    .click();
   const sheet = await popup;
   await expect(sheet.getByText("Choix IMPRESSION_STD").first()).toBeVisible();
   await expect(sheet.getByText("Personne transportée").first()).toBeVisible();
@@ -298,7 +364,9 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
   });
   await openPlanning(page);
   await page.getByRole("button", { name: "Carte" }).click();
-  await expect.poll(() => tiles.filter((url) => /openstreetmap/.test(url)).length, { timeout: 20_000 }).toBeGreaterThan(0);
+  await expect
+    .poll(() => tiles.filter((url) => /openstreetmap/.test(url)).length, { timeout: 20_000 })
+    .toBeGreaterThan(0);
   expect(tiles.join("\n")).not.toMatch(/apikey|cartocdn|basemaps\.carto/i);
   const tile = page.locator("img.leaflet-tile").first();
   await expect(tile).toBeVisible();
@@ -322,7 +390,9 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
     await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
     await page.getByRole("button", { name: "Ouvrir le planning" }).click();
     await page.getByRole("button", { name: "Carte" }).click();
-    await expect.poll(() => seen.some((url) => url.includes("openstreetmap.de") || url.includes("openstreetmap.fr"))).toBeTruthy();
+    await expect
+      .poll(() => seen.some((url) => url.includes("openstreetmap.de") || url.includes("openstreetmap.fr")))
+      .toBeTruthy();
     expect(seen.join("\n")).not.toMatch(/apikey|cartocdn/i);
   }
 });
@@ -370,21 +440,33 @@ function clock(min: number): string {
 
 function workbook(): Buffer {
   const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-    ["Immatriculation", "Type", "Nom du véhicule"],
-    ["ZZ", "AMB", "Court"],
-    ["GR-100-QA", "AMB", "Master QA"],
-  ]), "Vehicules");
-  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-    ["Immatriculation", "Conducteur", "Auxiliaire", "DEA"],
-    ["INCONNU", "PETIT Jean", "DURAND Lea", "oui"],
-    ["GR-100-QA", "MARTIN Paul", "DURAND Lea", "oui"],
-  ]), "Equipages");
-  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
-    ["Dossier", "Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Sens"],
-    ["DOS-X1", "BERNARD", "Luc", "10:30", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "TAP", "aller"],
-    ["DOS-X2", "MARTIN", "Anne", "99:99", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "VSL", "aller"],
-  ]), "Courses");
+  XLSX.utils.book_append_sheet(
+    book,
+    XLSX.utils.aoa_to_sheet([
+      ["Immatriculation", "Type", "Nom du véhicule"],
+      ["ZZ", "AMB", "Court"],
+      ["GR-100-QA", "AMB", "Master QA"],
+    ]),
+    "Vehicules",
+  );
+  XLSX.utils.book_append_sheet(
+    book,
+    XLSX.utils.aoa_to_sheet([
+      ["Immatriculation", "Conducteur", "Auxiliaire", "DEA"],
+      ["INCONNU", "PETIT Jean", "DURAND Lea", "oui"],
+      ["GR-100-QA", "MARTIN Paul", "DURAND Lea", "oui"],
+    ]),
+    "Equipages",
+  );
+  XLSX.utils.book_append_sheet(
+    book,
+    XLSX.utils.aoa_to_sheet([
+      ["Dossier", "Nom", "Prénom", "Heure RDV", "Adresse départ", "Adresse arrivée", "Type", "Sens"],
+      ["DOS-X1", "BERNARD", "Luc", "10:30", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "TAP", "aller"],
+      ["DOS-X2", "MARTIN", "Anne", "99:99", "CHU Charles-Nicolle", "Clinique Mathilde, rue de Lessard", "VSL", "aller"],
+    ]),
+    "Courses",
+  );
   return XLSX.write(book, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }
 
@@ -416,12 +498,20 @@ async function changeVehicle(page: Page): Promise<{ id: string; before: string; 
 }
 
 async function pushAllongeTowardVsl(page: Page, id: string): Promise<{ before: string; crew: string }> {
-  const tracks = await page.locator("[data-track]").evaluateAll((nodes) =>
-    nodes.map((node) => ({ id: node.getAttribute("data-crew-id") ?? "", vehicle: node.getAttribute("data-vehicle") ?? "" })),
+  const tracks = await page
+    .locator("[data-track]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        id: node.getAttribute("data-crew-id") ?? "",
+        vehicle: node.getAttribute("data-vehicle") ?? "",
+      })),
+    );
+  const boundary = tracks.findIndex(
+    (track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl",
   );
-  const boundary = tracks.findIndex((track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl");
   const startCrew = (await barById(page, id)).crew;
-  const direction = tracks.findIndex((track) => track.id === startCrew) <= boundary ? "Véhicule suivant" : "Véhicule précédent";
+  const direction =
+    tracks.findIndex((track) => track.id === startCrew) <= boundary ? "Véhicule suivant" : "Véhicule précédent";
   for (let step = 0; step < 8; step++) {
     const now = await barById(page, id);
     const index = tracks.findIndex((track) => track.id === now.crew);

@@ -15,14 +15,7 @@ import {
   toleranceOf,
   type Leg,
 } from "./schedule";
-import {
-  DEFAULT_RULES,
-  type Crew,
-  type Location,
-  type Rules,
-  type TimeBlock,
-  type Transport,
-} from "./types";
+import { DEFAULT_RULES, type Crew, type Location, type Rules, type TimeBlock, type Transport } from "./types";
 
 export interface CourseChange {
   transportId: string;
@@ -41,8 +34,7 @@ export interface RippleShift {
 }
 
 export type RipplePlan =
-  | { ok: true; departMin: number; shifts: RippleShift[]; warning?: string }
-  | { ok: false; message: string };
+  { ok: true; departMin: number; shifts: RippleShift[]; warning?: string } | { ok: false; message: string };
 
 export interface StablePlan {
   transports: Transport[];
@@ -176,7 +168,9 @@ export function planRipple(input: {
   for (const follower of followers) {
     const currentDepart = follower.departMin!;
     const stayed =
-      currentDepart >= cursor - 0.4 ? fitLeg(follower, currentDepart, cursor, locId, crew, blocks, locMap, rules) : null;
+      currentDepart >= cursor - 0.4
+        ? fitLeg(follower, currentDepart, cursor, locId, crew, blocks, locMap, rules)
+        : null;
     if (stayed) {
       cursor = stayed.endMin;
       locId = follower.dropoffId;
@@ -265,7 +259,11 @@ export function applyUnavailability(input: {
   if (input.replace) {
     const queue = transports
       .filter((transport) => released.has(transport.id))
-      .sort((a, b) => (a.appointmentMin ?? a.windowStart) - (b.appointmentMin ?? b.windowStart) || a.dossier.localeCompare(b.dossier));
+      .sort(
+        (a, b) =>
+          (a.appointmentMin ?? a.windowStart) - (b.appointmentMin ?? b.windowStart) ||
+          a.dossier.localeCompare(b.dossier),
+      );
     for (const transport of queue) {
       const slot = placeTransport(transport, input.crews, transports, blocks, locMap, input.nowMin, rules);
       if (!slot) continue;
@@ -335,7 +333,9 @@ export function reoptimizeStable(input: {
         (a.appointmentMin ?? a.windowStart) - (b.appointmentMin ?? b.windowStart) || a.dossier.localeCompare(b.dossier),
     );
   let transports = input.transports.map((transport) =>
-    locked.has(transport.id) || transport.cancelled ? transport : { ...transport, crewId: undefined, departMin: undefined },
+    locked.has(transport.id) || transport.cancelled
+      ? transport
+      : { ...transport, crewId: undefined, departMin: undefined },
   );
   for (const transport of pool) {
     const slot = placeTransport(transport, input.crews, transports, input.blocks, locMap, input.nowMin, rules, {
@@ -349,7 +349,12 @@ export function reoptimizeStable(input: {
       Math.abs(slot.departMin - transport.departMin) <= 5;
     transports = transports.map((item) =>
       item.id === transport.id
-        ? { ...item, crewId: slot.crewId, departMin: keepExact ? transport.departMin : slot.departMin, pinned: item.pinned }
+        ? {
+            ...item,
+            crewId: slot.crewId,
+            departMin: keepExact ? transport.departMin : slot.departMin,
+            pinned: item.pinned,
+          }
         : item,
     );
   }
@@ -358,7 +363,9 @@ export function reoptimizeStable(input: {
     transports,
     changes: planChanges(input.transports, transports, labelOf),
     lockedIds: [...locked],
-    unassignedIds: transports.filter((transport) => !transport.cancelled && !transport.crewId).map((transport) => transport.id),
+    unassignedIds: transports
+      .filter((transport) => !transport.cancelled && !transport.crewId)
+      .map((transport) => transport.id),
   };
 }
 
@@ -466,6 +473,9 @@ function unavailabilityMessage(
   if (placed) parts.push(`${placed} course${placed > 1 ? "s" : ""} replacée${placed > 1 ? "s" : ""}.`);
   if (parked) parts.push(`${parked} course${parked > 1 ? "s" : ""} dans À placer.`);
   if (!placed && !parked) parts.push("Aucune course à retirer.");
-  if (engaged) parts.push(`${engaged} course${engaged > 1 ? "s" : ""} déjà engagée${engaged > 1 ? "s" : ""} reste${engaged > 1 ? "nt" : ""} sur la feuille.`);
+  if (engaged)
+    parts.push(
+      `${engaged} course${engaged > 1 ? "s" : ""} déjà engagée${engaged > 1 ? "s" : ""} reste${engaged > 1 ? "nt" : ""} sur la feuille.`,
+    );
   return parts.join(" ");
 }

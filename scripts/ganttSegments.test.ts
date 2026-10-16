@@ -5,8 +5,24 @@ import { ganttEdgeDelta, previewCacheKey, sameAssignment } from "../src/componen
 import { previewOnGrid, scheduleCrew, scheduleFleet, simulateLeg, snap5, visualParts } from "../src/game/schedule.ts";
 import { DEFAULT_RULES, type Crew, type Location, type Transport } from "../src/game/types.ts";
 
-const depot: Location = { id: "g-depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
-const home: Location = { id: "g-home", name: "Maison", short: "Maison", kind: "domicile", lat: 49.44, lng: 1.1, city: "Rouen" };
+const depot: Location = {
+  id: "g-depot",
+  name: "Depot",
+  short: "Depot",
+  kind: "depot",
+  lat: 49.41,
+  lng: 1.05,
+  city: "Rouen",
+};
+const home: Location = {
+  id: "g-home",
+  name: "Maison",
+  short: "Maison",
+  kind: "domicile",
+  lat: 49.44,
+  lng: 1.1,
+  city: "Rouen",
+};
 const chu: Location = { id: "g-chu", name: "Chu", short: "Chu", kind: "chu", lat: 49.46, lng: 1.12, city: "Rouen" };
 const locMap = new Map([depot, home, chu].map((location) => [location.id, location]));
 

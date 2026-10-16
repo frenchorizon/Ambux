@@ -38,7 +38,8 @@ function RoutingBanner() {
   if (source !== "estimate") return null;
   return (
     <div className="bg-rose-700 px-3 py-1.5 text-sm font-semibold text-white">
-      Routage dégradé : durées et kilomètres estimés, non opposables. Les courses concernées portent la mention « km estimé ».
+      Routage dégradé : durées et kilomètres estimés, non opposables. Les courses concernées portent la mention « km
+      estimé ».
     </div>
   );
 }
@@ -124,8 +125,8 @@ function tourSeen(): boolean {
 
 function claimEntry(): { cinema: boolean; tour: boolean } {
   if (entryLatch) return entryLatch;
-  let cinema = false;
-  let tour = false;
+  let cinema: boolean;
+  let tour: boolean;
   try {
     cinema = sessionStorage.getItem("ambux.cinema") === "1";
     tour = sessionStorage.getItem("ambux.tour") === "1";

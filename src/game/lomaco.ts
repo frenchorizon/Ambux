@@ -84,12 +84,38 @@ export const IMPORT_FIELD_LABELS: { id: ImportField; label: string }[] = [
 ];
 
 const SYNONYMS: { field: ImportField; phrases: string[] }[] = [
-  { field: "heure_rdv", phrases: ["heure rdv", "heure du rdv", "horaire rdv", "heure rendez vous", "h rdv", "rdv", "heure de rdv"] },
+  {
+    field: "heure_rdv",
+    phrases: ["heure rdv", "heure du rdv", "horaire rdv", "heure rendez vous", "h rdv", "rdv", "heure de rdv"],
+  },
   { field: "heure_retour", phrases: ["heure retour", "horaire retour", "retour prevu", "h retour"] },
-  { field: "adresse_depart", phrases: ["adresse depart", "adresse de depart", "lieu depart", "lieu de depart", "adresse prise en charge", "adresse pec", "prise en charge", "origine"] },
+  {
+    field: "adresse_depart",
+    phrases: [
+      "adresse depart",
+      "adresse de depart",
+      "lieu depart",
+      "lieu de depart",
+      "adresse prise en charge",
+      "adresse pec",
+      "prise en charge",
+      "origine",
+    ],
+  },
   { field: "cp_depart", phrases: ["cp depart", "code postal depart", "cp pec"] },
   { field: "ville_depart", phrases: ["ville depart", "commune depart"] },
-  { field: "adresse_arrivee", phrases: ["adresse arrivee", "adresse d arrivee", "lieu arrivee", "lieu d arrivee", "destination", "adresse depose", "adresse destination"] },
+  {
+    field: "adresse_arrivee",
+    phrases: [
+      "adresse arrivee",
+      "adresse d arrivee",
+      "lieu arrivee",
+      "lieu d arrivee",
+      "destination",
+      "adresse depose",
+      "adresse destination",
+    ],
+  },
   { field: "cp_arrivee", phrases: ["cp arrivee", "code postal arrivee", "cp destination"] },
   { field: "ville_arrivee", phrases: ["ville arrivee", "commune arrivee", "ville destination"] },
   { field: "immatriculation", phrases: ["immatriculation", "immat", "plaque", "n vehicule", "numero vehicule"] },
@@ -98,7 +124,18 @@ const SYNONYMS: { field: ImportField; phrases: string[] }[] = [
   { field: "auxiliaire", phrases: ["auxiliaire", "equipier", "second", "coequipier"] },
   { field: "equipage", phrases: ["equipage", "code equipage", "equipe"] },
   { field: "mobilite", phrases: ["mobilite", "position", "mode transport"] },
-  { field: "type", phrases: ["type transport", "type de transport", "type vehicule", "type de vehicule", "prestation", "categorie", "type"] },
+  {
+    field: "type",
+    phrases: [
+      "type transport",
+      "type de transport",
+      "type vehicule",
+      "type de vehicule",
+      "prestation",
+      "categorie",
+      "type",
+    ],
+  },
   { field: "sens", phrases: ["aller retour", "sens", "nature trajet", "trajet"] },
   { field: "dossier", phrases: ["n dossier", "numero dossier", "num dossier", "dossier", "n mission", "reference"] },
   { field: "prenom", phrases: ["prenom", "prenom patient"] },
@@ -226,7 +263,20 @@ export interface ExportProfile {
 export const LOMACO_EXPORT_PROFILE: ExportProfile = {
   id: LOMACO_EXPORT_ID,
   name: "Lomaco (à confirmer)",
-  columns: ["dossier", "patient", "heure_rdv", "adresse_depart", "adresse_arrivee", "type", "sens", "equipage", "immatriculation", "depart", "fin", "note"],
+  columns: [
+    "dossier",
+    "patient",
+    "heure_rdv",
+    "adresse_depart",
+    "adresse_arrivee",
+    "type",
+    "sens",
+    "equipage",
+    "immatriculation",
+    "depart",
+    "fin",
+    "note",
+  ],
 };
 
 const IMPORT_KEY = "ambux.lomaco.importProfiles";
@@ -255,7 +305,8 @@ export function detectField(header: string, profile: ImportProfile = LOMACO_IMPO
   for (const entry of SYNONYMS) {
     for (const phrase of entry.phrases) {
       if (phrase.length < 5) continue;
-      if (key.includes(phrase) && (!best || phrase.length > best.length)) best = { field: entry.field, length: phrase.length };
+      if (key.includes(phrase) && (!best || phrase.length > best.length))
+        best = { field: entry.field, length: phrase.length };
     }
   }
   return best?.field ?? "ignore";
@@ -263,7 +314,12 @@ export function detectField(header: string, profile: ImportProfile = LOMACO_IMPO
 
 export function detectKind(fields: readonly ImportField[]): SheetKind {
   const set = new Set(fields);
-  if (set.has("heure_rdv") || set.has("adresse_depart") || (set.has("nom") && set.has("adresse_arrivee")) || set.has("patient")) {
+  if (
+    set.has("heure_rdv") ||
+    set.has("adresse_depart") ||
+    (set.has("nom") && set.has("adresse_arrivee")) ||
+    set.has("patient")
+  ) {
     return "transport";
   }
   if (set.has("conducteur")) return "equipage";
@@ -271,7 +327,11 @@ export function detectKind(fields: readonly ImportField[]): SheetKind {
   return "ignorer";
 }
 
-export function mapSheet(raw: RawSheet, profile: ImportProfile, patch?: { fields?: ImportField[]; kind?: SheetKind; kindLocked?: boolean }): SourceSheet {
+export function mapSheet(
+  raw: RawSheet,
+  profile: ImportProfile,
+  patch?: { fields?: ImportField[]; kind?: SheetKind; kindLocked?: boolean },
+): SourceSheet {
   const fields = patch?.fields ?? raw.headers.map((header) => detectField(header, profile));
   const kind = patch?.kind ?? detectKind(fields);
   return { ...raw, fields, kind, kindLocked: patch?.kindLocked ?? false };
@@ -307,7 +367,12 @@ export async function previewLomaco(
   for (const sheet of sheets) {
     if (sheet.kind === "ignorer") {
       if (sheet.rows.length) {
-        rejected.push({ file: sheet.file, sheet: sheet.sheet, line: 1, reason: "Feuille non reconnue. Choisissez courses, équipages ou véhicules." });
+        rejected.push({
+          file: sheet.file,
+          sheet: sheet.sheet,
+          line: 1,
+          reason: "Feuille non reconnue. Choisissez courses, équipages ou véhicules.",
+        });
       }
       continue;
     }
@@ -337,7 +402,8 @@ export async function previewLomaco(
       transports.push(parsed);
       const vehicle = vehicleFromTransport(record, line, sheet, plates, types);
       if (vehicle && "reason" in vehicle) {
-        if (!vehicle.reason.includes("déjà")) rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: vehicle.reason });
+        if (!vehicle.reason.includes("déjà"))
+          rejected.push({ file: sheet.file, sheet: sheet.sheet, line, reason: vehicle.reason });
       } else if (vehicle) vehicles.push(vehicle);
       const crew = crewFromTransport(record, line, sheet, types);
       if (crew && !("reason" in crew)) crews.push(crew);
@@ -371,10 +437,16 @@ export function routeSheets(input: {
     const rows = input.transports
       .filter((transport) => !transport.cancelled && transport.crewId === crew.id)
       .slice()
-      .sort((a, b) => (a.departMin ?? a.appointmentMin ?? a.windowStart) - (b.departMin ?? b.appointmentMin ?? b.windowStart));
+      .sort(
+        (a, b) =>
+          (a.departMin ?? a.appointmentMin ?? a.windowStart) - (b.departMin ?? b.appointmentMin ?? b.windowStart),
+      );
     if (!rows.length) continue;
     for (const transport of rows) placed.add(transport.id);
-    sheets.push({ name: crew.code, rows: [header, ...rows.map((transport) => exportRow(transport, crew, input, columns))] });
+    sheets.push({
+      name: crew.code,
+      rows: [header, ...rows.map((transport) => exportRow(transport, crew, input, columns))],
+    });
   }
   const pending = input.transports
     .filter((transport) => !transport.cancelled && !placed.has(transport.id))
@@ -449,11 +521,16 @@ export function zipTexts(files: readonly { name: string; text: string }[]): Uint
 
 export function loadImportProfiles(): ImportProfile[] {
   const saved = readStore<ImportProfile[]>(IMPORT_KEY) ?? [];
-  return [LOMACO_IMPORT_PROFILE, ...saved.filter((item) => item.id && item.id !== LOMACO_IMPORT_ID && item.name && item.map)];
+  return [
+    LOMACO_IMPORT_PROFILE,
+    ...saved.filter((item) => item.id && item.id !== LOMACO_IMPORT_ID && item.name && item.map),
+  ];
 }
 
 export function saveImportProfile(profile: ImportProfile): ImportProfile[] {
-  const saved = (readStore<ImportProfile[]>(IMPORT_KEY) ?? []).filter((item) => item.id !== profile.id && item.id !== LOMACO_IMPORT_ID);
+  const saved = (readStore<ImportProfile[]>(IMPORT_KEY) ?? []).filter(
+    (item) => item.id !== profile.id && item.id !== LOMACO_IMPORT_ID,
+  );
   const next = [...saved, profile];
   writeStore(IMPORT_KEY, next);
   return [LOMACO_IMPORT_PROFILE, ...next];
@@ -461,11 +538,16 @@ export function saveImportProfile(profile: ImportProfile): ImportProfile[] {
 
 export function loadExportProfiles(): ExportProfile[] {
   const saved = readStore<ExportProfile[]>(EXPORT_KEY) ?? [];
-  return [LOMACO_EXPORT_PROFILE, ...saved.filter((item) => item.id && item.id !== LOMACO_EXPORT_ID && item.name && item.columns?.length)];
+  return [
+    LOMACO_EXPORT_PROFILE,
+    ...saved.filter((item) => item.id && item.id !== LOMACO_EXPORT_ID && item.name && item.columns?.length),
+  ];
 }
 
 export function saveExportProfile(profile: ExportProfile): ExportProfile[] {
-  const saved = (readStore<ExportProfile[]>(EXPORT_KEY) ?? []).filter((item) => item.id !== profile.id && item.id !== LOMACO_EXPORT_ID);
+  const saved = (readStore<ExportProfile[]>(EXPORT_KEY) ?? []).filter(
+    (item) => item.id !== profile.id && item.id !== LOMACO_EXPORT_ID,
+  );
   const next = [...saved, profile];
   writeStore(EXPORT_KEY, next);
   return [LOMACO_EXPORT_PROFILE, ...next];
@@ -558,7 +640,8 @@ function parseVehicle(
   if (plates.has(plate)) return { reason: `${plate} est déjà dans la flotte ou dans le fichier.` };
   plates.add(plate);
   types.set(plate, type);
-  const name = (record.nom_vehicule ?? "").trim() || (service === "TAP" ? "TAP" : type === "ambulance" ? "Ambulance" : "VSL");
+  const name =
+    (record.nom_vehicule ?? "").trim() || (service === "TAP" ? "TAP" : type === "ambulance" ? "Ambulance" : "VSL");
   const vehicleCode = (record.code_vehicule ?? "").trim() || undefined;
   return {
     line,
@@ -597,7 +680,8 @@ function parseCrew(
   if (driver.length < 3) return { reason: "Conducteur manquant." };
   if (kind === "ambulance" && mate.length < 3) return { reason: "Ambulance : auxiliaire manquant." };
   const dea = oui(record.dea ?? "") || kind === "ambulance";
-  if (kind === "ambulance" && record.dea && !oui(record.dea)) return { reason: "Ambulance : la colonne DEA doit être oui." };
+  if (kind === "ambulance" && record.dea && !oui(record.dea))
+    return { reason: "Ambulance : la colonne DEA doit être oui." };
   if (kind === "vsl" && mate) return { reason: "Un VSL ou un TAP part avec un conducteur seul." };
   return {
     line,
@@ -635,7 +719,8 @@ async function parseTransport(
   const clock = parseClock(record.heure_rdv ?? "");
   if (clock == null) return { reason: `Heure invalide « ${record.heure_rdv || "vide"} ». Format HH:MM.` };
   const date = record.date ?? "";
-  if (date && !dateMatches(date, missionIso)) return { reason: `Date « ${date} » différente de la mission ${missionIso}.` };
+  if (date && !dateMatches(date, missionIso))
+    return { reason: `Date « ${date} » différente de la mission ${missionIso}.` };
   const service = parseService(record.type ?? "");
   if ((record.type ?? "").trim() && !service && !parseMobility(record.mobilite ?? "")) {
     return { reason: `Type « ${record.type} » inconnu. Valeurs : AMB, VSL, TAP.` };
@@ -648,7 +733,8 @@ async function parseTransport(
   const sens = parseSens(record.sens ?? "");
   if (!sens) return { reason: `Sens « ${record.sens} » inconnu. Valeurs : aller, retour, simple, A/R.` };
   const retourClock = (record.heure_retour ?? "").trim() ? parseClock(record.heure_retour ?? "") : null;
-  if ((record.heure_retour ?? "").trim() && retourClock == null) return { reason: `Heure retour invalide « ${record.heure_retour} ».` };
+  if ((record.heure_retour ?? "").trim() && retourClock == null)
+    return { reason: `Heure retour invalide « ${record.heure_retour} ».` };
   if (sens === "ar" && retourClock == null) return { reason: "Aller-retour sans heure de retour." };
   const departLabel = joinAddress(record, "depart");
   const arriveeLabel = joinAddress(record, "arrivee");
@@ -711,7 +797,7 @@ async function parseTransport(
     };
   }
   const created = [depart.created, arrivee.created].filter((place): place is Location => Boolean(place));
-  const typeLabel = service === "TAP" ? "TAP (VSL)" : service ?? posture;
+  const typeLabel = service === "TAP" ? "TAP (VSL)" : (service ?? posture);
   const summary = `${names.last} ${names.first} · ${formatMin(clock)} · ${depart.location.short} → ${arrivee.location.short} · ${typeLabel} · ${sens}${record.equipage ? ` · équipage ${record.equipage}` : ""}`;
   return { line, file: sheet.file, sheet: sheet.sheet, summary, transport, patient, locations: created, retour };
 }
@@ -758,10 +844,14 @@ function personName(record: Partial<Record<ImportField, string>>): { last: strin
 }
 
 function joinAddress(record: Partial<Record<ImportField, string>>, side: "depart" | "arrivee"): string {
-  const parts = side === "depart"
-    ? [record.adresse_depart, record.cp_depart, record.ville_depart]
-    : [record.adresse_arrivee, record.cp_arrivee, record.ville_arrivee];
-  return parts.map((part) => (part ?? "").trim()).filter(Boolean).join(" ");
+  const parts =
+    side === "depart"
+      ? [record.adresse_depart, record.cp_depart, record.ville_depart]
+      : [record.adresse_arrivee, record.cp_arrivee, record.ville_arrivee];
+  return parts
+    .map((part) => (part ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
 }
 
 function parseService(value: string): "AMB" | "VSL" | "TAP" | null {
@@ -839,7 +929,10 @@ function parseBirth(value: string): { iso: string; year: number } | null {
 }
 
 function parseClock(value: string): number | null {
-  const text = value.trim().toLowerCase().replace(/(\d)\s*h\s*/g, "$1:");
+  const text = value
+    .trim()
+    .toLowerCase()
+    .replace(/(\d)\s*h\s*/g, "$1:");
   const match = /(\d{1,2}):(\d{2})/.exec(text);
   if (!match) return null;
   const hours = Number(match[1]);
@@ -860,10 +953,27 @@ function dateMatches(value: string, iso: string): boolean {
     `${String(Number(day))}${String(Number(month))}${year.slice(2)}`,
   ]);
   if (forms.has(digits)) return true;
-  const months = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+  const months = [
+    "janvier",
+    "fevrier",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "aout",
+    "septembre",
+    "octobre",
+    "novembre",
+    "decembre",
+  ];
   const monthName = months[Number(month) - 1] ?? "";
   const tokens = normKey(value).split(" ").filter(Boolean);
-  return tokens.includes(String(Number(day))) && tokens.includes(year) && tokens.some((token) => monthName.startsWith(token) || token.startsWith(monthName.slice(0, 4)));
+  return (
+    tokens.includes(String(Number(day))) &&
+    tokens.includes(year) &&
+    tokens.some((token) => monthName.startsWith(token) || token.startsWith(monthName.slice(0, 4)))
+  );
 }
 
 function oui(value: string): boolean {

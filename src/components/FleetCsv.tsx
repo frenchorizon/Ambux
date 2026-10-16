@@ -19,7 +19,10 @@ export function VehicleCsvImport() {
   const [accepted, setAccepted] = useState<VehicleCsvRow[] | null>(null);
   const [rejected, setRejected] = useState<CsvReject[]>([]);
   const run = (raw: string) => {
-    const preview = previewVehicles(raw, data.vehicles.map((vehicle) => vehicle.plate));
+    const preview = previewVehicles(
+      raw,
+      data.vehicles.map((vehicle) => vehicle.plate),
+    );
     setAccepted(preview.accepted);
     setRejected(preview.rejected);
   };
@@ -151,17 +154,25 @@ function FleetBox({
       </Button>
       {accepted && (
         <div className="mt-3 space-y-2">
-          <h4 className="text-sm font-semibold">{accepted.length} ligne{accepted.length > 1 ? "s" : ""} acceptée{accepted.length > 1 ? "s" : ""}</h4>
+          <h4 className="text-sm font-semibold">
+            {accepted.length} ligne{accepted.length > 1 ? "s" : ""} acceptée{accepted.length > 1 ? "s" : ""}
+          </h4>
           <ul className="max-h-32 space-y-1 overflow-auto text-xs">
             {accepted.map((row) => (
-              <li key={row.line} className="rounded-lg bg-paper px-2 py-1">L{row.line} · {row.summary}</li>
+              <li key={row.line} className="rounded-lg bg-paper px-2 py-1">
+                L{row.line} · {row.summary}
+              </li>
             ))}
             {accepted.length === 0 && <li className="text-muted">Aucune ligne retenue.</li>}
           </ul>
-          <h4 className="text-sm font-semibold text-rose-800">{rejected.length} rejet{rejected.length > 1 ? "s" : ""}</h4>
+          <h4 className="text-sm font-semibold text-rose-800">
+            {rejected.length} rejet{rejected.length > 1 ? "s" : ""}
+          </h4>
           <ul className="max-h-32 space-y-1 overflow-auto text-xs">
             {rejected.map((row) => (
-              <li key={`${row.line}-${row.reason}`} className="rounded-lg bg-rose-50 px-2 py-1 text-rose-900">L{row.line} · {row.reason}</li>
+              <li key={`${row.line}-${row.reason}`} className="rounded-lg bg-rose-50 px-2 py-1 text-rose-900">
+                L{row.line} · {row.reason}
+              </li>
             ))}
             {rejected.length === 0 && <li className="text-muted">Aucun rejet.</li>}
           </ul>

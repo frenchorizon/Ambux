@@ -74,14 +74,7 @@ export interface Vehicle {
   vehicleCode?: string;
   active: boolean;
 }
-export type CallKind =
-  | "ajout"
-  | "annulation"
-  | "deplacement"
-  | "retard"
-  | "panne"
-  | "pause"
-  | "urgent";
+export type CallKind = "ajout" | "annulation" | "deplacement" | "retard" | "panne" | "pause" | "urgent";
 
 export interface Location {
   id: string;

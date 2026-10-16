@@ -10,16 +10,26 @@ import { initialState, reducer, type Action } from "../src/game/reducer.ts";
 import { scheduleFleet, simulateLeg, type CrewSchedule } from "../src/game/schedule.ts";
 import { shiftForIndex } from "../src/game/shifts.ts";
 import { labelForIso } from "../src/lib/format.ts";
-import {
-  DEFAULT_RULES,
-  type Crew,
-  type GameState,
-  type Location,
-  type Transport,
-} from "../src/game/types.ts";
+import { DEFAULT_RULES, type Crew, type GameState, type Location, type Transport } from "../src/game/types.ts";
 
-const depot: Location = { id: "depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
-const home: Location = { id: "home", name: "Maison", short: "Maison", kind: "domicile", lat: 49.44, lng: 1.08, city: "Rouen" };
+const depot: Location = {
+  id: "depot",
+  name: "Depot",
+  short: "Depot",
+  kind: "depot",
+  lat: 49.41,
+  lng: 1.05,
+  city: "Rouen",
+};
+const home: Location = {
+  id: "home",
+  name: "Maison",
+  short: "Maison",
+  kind: "domicile",
+  lat: 49.44,
+  lng: 1.08,
+  city: "Rouen",
+};
 const chu: Location = { id: "chu", name: "Chu", short: "Chu", kind: "chu", lat: 49.445, lng: 1.1, city: "Rouen" };
 const locMap = new Map([depot, home, chu].map((location) => [location.id, location]));
 
@@ -69,7 +79,13 @@ describe("règles de planning", () => {
 
   it("refuse l'allongé en VSL et l'ambulance sans DEA", () => {
     const base = trip();
-    const vsl = simulateLeg({ ...base, posture: "allonge" }, 7 * 60 + 40, depot.id, crew({ vehicleType: "vsl", dea: false, mate: "" }), locMap);
+    const vsl = simulateLeg(
+      { ...base, posture: "allonge" },
+      7 * 60 + 40,
+      depot.id,
+      crew({ vehicleType: "vsl", dea: false, mate: "" }),
+      locMap,
+    );
     assert.equal(vsl.incompatible, true);
     const bare = simulateLeg(base, 7 * 60 + 40, depot.id, crew({ dea: false }), locMap);
     assert.equal(bare.incompatible, true);
@@ -112,7 +128,15 @@ describe("règles de planning", () => {
 
   it("marque un chevauchement", () => {
     const first = trip({ id: "a", departMin: 8 * 60, crewId: "c1" });
-    const second = trip({ id: "b", dossier: "DOS-2", departMin: 8 * 60 + 10, crewId: "c1", appointmentMin: 8 * 60 + 20, windowStart: 8 * 60, windowEnd: 9 * 60 });
+    const second = trip({
+      id: "b",
+      dossier: "DOS-2",
+      departMin: 8 * 60 + 10,
+      crewId: "c1",
+      appointmentMin: 8 * 60 + 20,
+      windowStart: 8 * 60,
+      windowEnd: 9 * 60,
+    });
     const legs = scheduleFleet([crew()], [first, second], [], locMap).get("c1")?.legs ?? [];
     assert.equal(legs.length, 2);
     assert.ok(legs.some((leg) => leg.conflict));
@@ -152,14 +176,26 @@ describe("règles de planning", () => {
 describe("journée du régulateur", () => {
   it("importe véhicules et équipages, et rejette les lignes fausses", () => {
     const vehicles = previewVehicles(
-      ["immatriculation;type;nom", "ZZ;ambulance;Court", "GR-777-AA;voiture;Inconnu", "GR-777-AA;ambulance;Master", "GR-777-AA;vsl;Doublon"].join("\n"),
+      [
+        "immatriculation;type;nom",
+        "ZZ;ambulance;Court",
+        "GR-777-AA;voiture;Inconnu",
+        "GR-777-AA;ambulance;Master",
+        "GR-777-AA;vsl;Doublon",
+      ].join("\n"),
       ["AB-123-CD"],
     );
     assert.equal(vehicles.accepted.length, 1);
     assert.equal(vehicles.accepted[0]?.plate, "GR-777-AA");
     assert.equal(vehicles.rejected.length, 3);
     const crews = previewCrews(
-      ["immatriculation;conducteur;auxiliaire;dea", "INCONNU;MARTIN Paul;DURAND Lea;oui", "GR-777-AA;MARTIN Paul;DURAND Lea;non", "GR-777-AA;MARTIN Paul;;non", "GR-200-BB;PETIT Jean;DURAND Lea;non"].join("\n"),
+      [
+        "immatriculation;conducteur;auxiliaire;dea",
+        "INCONNU;MARTIN Paul;DURAND Lea;oui",
+        "GR-777-AA;MARTIN Paul;DURAND Lea;non",
+        "GR-777-AA;MARTIN Paul;;non",
+        "GR-200-BB;PETIT Jean;DURAND Lea;non",
+      ].join("\n"),
       [
         { plate: "GR-777-AA", vehicleType: "ambulance" },
         { plate: "GR-200-BB", vehicleType: "vsl" },
@@ -167,7 +203,9 @@ describe("journée du régulateur", () => {
     );
     assert.equal(crews.rejected.length, 4);
     assert.equal(crews.accepted.length, 0);
-    const ok = previewCrews("GR-777-AA;MARTIN Paul;DURAND Lea;oui\n", [{ plate: "GR-777-AA", vehicleType: "ambulance" }]);
+    const ok = previewCrews("GR-777-AA;MARTIN Paul;DURAND Lea;oui\n", [
+      { plate: "GR-777-AA", vehicleType: "ambulance" },
+    ]);
     assert.equal(ok.accepted.length, 1);
     assert.equal(ok.accepted[0]?.dea, true);
   });
@@ -190,7 +228,11 @@ describe("journée du régulateur", () => {
   });
 
   it("change la date, reprend le lendemain et annule", () => {
-    const bundle = { state: reducer(initialState, { type: "START", amb: 2, vsl: 1, density: "normale", seed: 4 }), past: [] as GameState[], future: [] as GameState[] };
+    const bundle = {
+      state: reducer(initialState, { type: "START", amb: 2, vsl: 1, density: "normale", seed: 4 }),
+      past: [] as GameState[],
+      future: [] as GameState[],
+    };
     bundle.past = recordHistory([], [], initialState, "START").past;
     const step = (action: Action) => {
       const recorded = recordHistory(bundle.past, bundle.future, bundle.state, action.type);
@@ -227,8 +269,14 @@ describe("journée du régulateur", () => {
 
     step({ type: "ROLL_DAY" });
     assert.equal(bundle.state.missionIso, "2026-10-18");
-    assert.equal(bundle.state.transports.some((transport) => transport.crewId), false);
-    assert.equal(bundle.state.blocks.some((block) => block.kind === "repas"), false);
+    assert.equal(
+      bundle.state.transports.some((transport) => transport.crewId),
+      false,
+    );
+    assert.equal(
+      bundle.state.blocks.some((block) => block.kind === "repas"),
+      false,
+    );
   });
 
   it("place une grosse journée en moins de 8 s", () => {

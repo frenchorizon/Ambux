@@ -60,12 +60,7 @@ export function rememberTravel(fromId: string, toId: string, travel: Travel): vo
   });
 }
 
-export function travelBetween(
-  fromId: string,
-  toId: string,
-  from: LatLng,
-  to: LatLng,
-): Travel {
+export function travelBetween(fromId: string, toId: string, from: LatLng, to: LatLng): Travel {
   if (fromId === toId) return { km: 0, min: 0, source: "osrm" };
   const known = travelById.get(idKey(fromId, toId));
   if (known) return known;
@@ -266,7 +261,12 @@ async function orsLeg(from: LatLng, to: LatLng): Promise<{ km: number; min: numb
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ coordinates: [[from.lng, from.lat], [to.lng, to.lat]] }),
+      body: JSON.stringify({
+        coordinates: [
+          [from.lng, from.lat],
+          [to.lng, to.lat],
+        ],
+      }),
     });
     if (!response.ok) return null;
     const data = (await response.json()) as {
@@ -383,7 +383,10 @@ export async function geocodeAddress(query: string): Promise<{ lat: number; lng:
     const response = await fetch(url);
     if (!response.ok) return null;
     const data = (await response.json()) as {
-      features?: { geometry?: { coordinates?: [number, number] }; properties?: { name?: string; street?: string; city?: string; postcode?: string } }[];
+      features?: {
+        geometry?: { coordinates?: [number, number] };
+        properties?: { name?: string; street?: string; city?: string; postcode?: string };
+      }[];
     };
     const feature = data.features?.[0];
     const coordinates = feature?.geometry?.coordinates;

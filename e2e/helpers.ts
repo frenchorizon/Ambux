@@ -56,7 +56,9 @@ export async function barById(page: Page, id: string): Promise<Bar> {
 }
 
 export async function center(page: Page, id: string) {
-  await page.locator(`[data-transport-id="${id}"]`).evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
+  await page
+    .locator(`[data-transport-id="${id}"]`)
+    .evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
 }
 
 export async function mealWindows(page: Page): Promise<{ start: number; end: number }[]> {

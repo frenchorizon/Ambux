@@ -4,7 +4,20 @@ import type { Leg } from "./schedule";
 import { DEMO_REGULATOR, type Crew, type Location, type Patient, type Transport, type TransportKind } from "./types";
 
 const WEEKDAYS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const MONTHS = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
 
 const MOTIF_LABEL = {
   DIAL: "DIAL - DIALYSE",
@@ -115,11 +128,7 @@ function crewPages(crew: Crew, input: SheetInput): string {
     .join("");
 }
 
-function zipRows(
-  page: { transport: Transport; leg: Leg | undefined }[],
-  crew: Crew,
-  input: SheetInput,
-): string {
+function zipRows(page: { transport: Transport; leg: Leg | undefined }[], crew: Crew, input: SheetInput): string {
   if (!page.length) return `<tr><td colspan="6">Aucune course</td></tr>`;
   return page
     .map((unit) => {

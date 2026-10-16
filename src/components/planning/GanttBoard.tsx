@@ -53,7 +53,9 @@ export function GanttBoard({
 
   const tipTransport = tip ? data.transportById.get(tip.transportId) : undefined;
   const tipLeg = tipTransport
-    ? [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((leg) => leg.transportId === tipTransport.id)
+    ? [...data.schedules.values()]
+        .flatMap((schedule) => schedule.legs)
+        .find((leg) => leg.transportId === tipTransport.id)
     : undefined;
 
   return (
@@ -82,19 +84,19 @@ export function GanttBoard({
           {data.crews
             .filter((crew) => !data.crewFilter || crew.id === data.crewFilter)
             .map((crew) => (
-            <CrewRow
-              key={crew.id}
-              crew={crew}
-              width={width}
-              label={label}
-              pxPerMin={pxPerMin}
-              query={query}
-              drag={drag}
-              pendingId={pendingId}
-              onStart={onStart}
-              onTip={(next) => setTip(next)}
-            />
-          ))}
+              <CrewRow
+                key={crew.id}
+                crew={crew}
+                width={width}
+                label={label}
+                pxPerMin={pxPerMin}
+                query={query}
+                drag={drag}
+                pendingId={pendingId}
+                onStart={onStart}
+                onTip={(next) => setTip(next)}
+              />
+            ))}
           {data.live && (
             <div
               className="pointer-events-none absolute bottom-0 z-20 w-px bg-rose-500"
@@ -110,7 +112,10 @@ export function GanttBoard({
       {tip && tipTransport && !drag?.moved && !narrow && (
         <div
           className="pointer-events-none fixed z-[60] w-64 rounded-xl border border-line bg-white p-3 text-xs shadow-xl"
-          style={{ left: Math.min(tip.x + 12, window.innerWidth - 280), top: Math.min(tip.y + 12, window.innerHeight - 180) }}
+          style={{
+            left: Math.min(tip.x + 12, window.innerWidth - 280),
+            top: Math.min(tip.y + 12, window.innerHeight - 180),
+          }}
         >
           <TipBody transport={tipTransport} leg={tipLeg} />
         </div>
@@ -236,84 +241,91 @@ function CrewRow({
           const name = patient?.lastName.toUpperCase() ?? "Course";
           return (
             <span key={leg.transportId} className="contents">
-            <button
-              type="button"
-              draggable={false}
-              className={cn(
-                "gantt-block absolute rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
-                pending && "gantt-pending",
-                dragging && "gantt-dragging",
-                leg.conflict || leg.incompatible ? "ring-2 ring-rose-600" : leg.lateMin >= 1 ? "ring-2 ring-amber-500" : "",
-                selected && "outline outline-2 outline-offset-1 outline-navy",
-              )}
-              style={{
-                left,
-                width: bar,
-                top: barTop,
-                height: barH,
-                background: "color-mix(in srgb, var(--crew) 16%, transparent)",
-                ["--crew" as string]: crew.color,
-                transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px) scale(1.045)` : undefined,
-                zIndex: dragging ? 25 : undefined,
-              }}
-              data-armed={dragging && !drag.moved ? "1" : undefined}
-              onContextMenu={(event) => event.preventDefault()}
-              onDragStart={(event) => event.preventDefault()}
-              data-transport-id={transport.id}
-              data-posture={transport.posture}
-              data-depart={displayedDepart(leg.departMin)}
-              data-end={Math.round(leg.endMin)}
-              data-appointment={Math.round(transport.appointmentMin ?? transport.windowStart)}
-              onPointerDown={(event) => onStart(transport.id, event)}
-              onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
-              onMouseLeave={() => onTip(null)}
-            >
-              <span className="gantt-hit" aria-hidden />
-              <span className="gantt-block-clip">
-              {parts.map((part) => {
-                const minutes = part.end - part.start;
-                const wide = minutes * pxPerMin > 42;
-                return (
-                  <span
-                    key={part.kind}
-                    data-seg={part.kind}
-                    data-minutes={Math.round(minutes)}
-                    className={cn(
-                      "absolute inset-y-0 overflow-hidden",
-                      part.kind === "vide" && "seg-vide",
-                      part.kind === "pec" && "seg-pec",
-                      part.kind === "charge" && "seg-charge",
-                    )}
-                    style={{
-                      left: `${((part.start - leg.departMin) / span) * 100}%`,
-                      width: `${(minutes / span) * 100}%`,
-                    }}
-                  >
-                    {part.kind === "charge" && wide && (
-                      <span className="pointer-events-none absolute inset-0 flex items-center px-1">
-                        <span className="truncate">{name}{transport.priority === "urgent" ? " · URG" : ""}</span>
-                      </span>
-                    )}
-                  </span>
-                );
-              })}
-              {leg.kmEstimated && (
-                <span
-                  title="Durée estimée : le routage n'a pas répondu"
-                  className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-600"
-                />
-              )}
-              </span>
-            </button>
-            {off && (
-              <span
-                key={`dev-${leg.transportId}`}
-                className="pointer-events-none absolute z-10 rounded bg-amber-500 px-1 text-[10px] font-bold leading-4 text-white"
-                style={{ left: left + Math.max(0, bar - 42), top: 2 }}
+              <button
+                type="button"
+                draggable={false}
+                className={cn(
+                  "gantt-block absolute rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
+                  pending && "gantt-pending",
+                  dragging && "gantt-dragging",
+                  leg.conflict || leg.incompatible
+                    ? "ring-2 ring-rose-600"
+                    : leg.lateMin >= 1
+                      ? "ring-2 ring-amber-500"
+                      : "",
+                  selected && "outline outline-2 outline-offset-1 outline-navy",
+                )}
+                style={{
+                  left,
+                  width: bar,
+                  top: barTop,
+                  height: barH,
+                  background: "color-mix(in srgb, var(--crew) 16%, transparent)",
+                  ["--crew" as string]: crew.color,
+                  transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px) scale(1.045)` : undefined,
+                  zIndex: dragging ? 25 : undefined,
+                }}
+                data-armed={dragging && !drag.moved ? "1" : undefined}
+                onContextMenu={(event) => event.preventDefault()}
+                onDragStart={(event) => event.preventDefault()}
+                data-transport-id={transport.id}
+                data-posture={transport.posture}
+                data-depart={displayedDepart(leg.departMin)}
+                data-end={Math.round(leg.endMin)}
+                data-appointment={Math.round(transport.appointmentMin ?? transport.windowStart)}
+                onPointerDown={(event) => onStart(transport.id, event)}
+                onMouseEnter={(event) => onTip({ x: event.clientX, y: event.clientY, transportId: transport.id })}
+                onMouseLeave={() => onTip(null)}
               >
-                {deviationLabel(leg.deviationMin)}
-              </span>
-            )}
+                <span className="gantt-hit" aria-hidden />
+                <span className="gantt-block-clip">
+                  {parts.map((part) => {
+                    const minutes = part.end - part.start;
+                    const wide = minutes * pxPerMin > 42;
+                    return (
+                      <span
+                        key={part.kind}
+                        data-seg={part.kind}
+                        data-minutes={Math.round(minutes)}
+                        className={cn(
+                          "absolute inset-y-0 overflow-hidden",
+                          part.kind === "vide" && "seg-vide",
+                          part.kind === "pec" && "seg-pec",
+                          part.kind === "charge" && "seg-charge",
+                        )}
+                        style={{
+                          left: `${((part.start - leg.departMin) / span) * 100}%`,
+                          width: `${(minutes / span) * 100}%`,
+                        }}
+                      >
+                        {part.kind === "charge" && wide && (
+                          <span className="pointer-events-none absolute inset-0 flex items-center px-1">
+                            <span className="truncate">
+                              {name}
+                              {transport.priority === "urgent" ? " · URG" : ""}
+                            </span>
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                  {leg.kmEstimated && (
+                    <span
+                      title="Durée estimée : le routage n'a pas répondu"
+                      className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-600"
+                    />
+                  )}
+                </span>
+              </button>
+              {off && (
+                <span
+                  key={`dev-${leg.transportId}`}
+                  className="pointer-events-none absolute z-10 rounded bg-amber-500 px-1 text-[10px] font-bold leading-4 text-white"
+                  style={{ left: left + Math.max(0, bar - 42), top: 2 }}
+                >
+                  {deviationLabel(leg.deviationMin)}
+                </span>
+              )}
             </span>
           );
         })}
@@ -379,12 +391,14 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
         {from?.short ?? "Départ"} → {to?.short ?? "Arrivée"}
       </div>
       <div className="mt-1 text-muted">
-        Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±{transport.toleranceMin ?? 20} min
+        Rendez-vous {formatMin(transport.appointmentMin ?? transport.windowStart)} · tolérance ±
+        {transport.toleranceMin ?? 20} min
         {(transport.stayMin ?? 0) > 0 ? ` · attente établissement ${transport.stayMin} min` : ""}
       </div>
       {leg && (
         <div className="mt-1 text-ink">
-          vide {leg.deadheadMin} min / PEC {leg.pecMin} min / trajet {leg.loadedMin} min / dépose {leg.dropoffMin} min · {formatKm(leg.deadheadKm + leg.loadedKm, 1)}
+          vide {leg.deadheadMin} min / PEC {leg.pecMin} min / trajet {leg.loadedMin} min / dépose {leg.dropoffMin} min ·{" "}
+          {formatKm(leg.deadheadKm + leg.loadedKm, 1)}
           {leg.kmEstimated ? " · estimé" : ""}
         </div>
       )}

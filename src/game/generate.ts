@@ -51,22 +51,13 @@ export function quotas(density: Density): { amb: number; vsl: number } {
   return density === "chargee" ? { amb: 14, vsl: 22 } : { amb: 9, vsl: 13 };
 }
 
-export function generateDay(options: {
-  amb: number;
-  vsl: number;
-  density: Density;
-  seed: number;
-}): GeneratedFields {
+export function generateDay(options: { amb: number; vsl: number; density: Density; seed: number }): GeneratedFields {
   const rng = mulberry32(options.seed);
   const locations = LOCATIONS;
   const locMap = indexLocations(locations);
   const homes = locations.filter((location) => location.kind === "domicile");
-  const farHomes = homes.filter((location) =>
-    ["dom-barentin", "dom-elbeuf", "dom-caudebec"].includes(location.id),
-  );
-  const sites = locations.filter((location) =>
-    ["chu", "clinique", "dialyse"].includes(location.kind),
-  );
+  const farHomes = homes.filter((location) => ["dom-barentin", "dom-elbeuf", "dom-caudebec"].includes(location.id));
+  const sites = locations.filter((location) => ["chu", "clinique", "dialyse"].includes(location.kind));
   const dialyse = locations.filter((location) => location.kind === "dialyse");
   const depot = locMap.get(DEPOT_ID)!;
   const quota = quotas(options.density);
@@ -126,7 +117,11 @@ export function generateDay(options: {
     const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
     const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
     const dropoff = locMap.get(draft.dropoffId);
-    const motif = draft.motif ?? (draft.kind.startsWith("dialyse") || dropoff?.kind === "dialyse" ? "DIAL" : MOTIFS[irand(rng, 0, MOTIFS.length - 1)]!);
+    const motif =
+      draft.motif ??
+      (draft.kind.startsWith("dialyse") || dropoff?.kind === "dialyse"
+        ? "DIAL"
+        : MOTIFS[irand(rng, 0, MOTIFS.length - 1)]!);
     const service = draft.service ?? (crew.vehicleType === "ambulance" ? "AMB" : rng() < 0.4 ? "TAP" : "VSL");
     const transport: Transport = {
       ...draft,
@@ -173,8 +168,7 @@ export function generateDay(options: {
       const center = pick(rng, dialyse);
       const patient = nextPatient(home.id, "Dialyse 4 h");
       const seriesId = `serie-${crew.id}-${patient.id}`;
-      const posture: Posture =
-        crew.vehicleType === "ambulance" && rng() < 0.28 ? "allonge" : "assis";
+      const posture: Posture = crew.vehicleType === "ambulance" && rng() < 0.28 ? "allonge" : "assis";
       const placed = pushJob(crew, cursor, locId, {
         id: `t-${options.seed.toString(36)}-${transports.length + 1}`,
         dossier: nextDossier(),
@@ -240,7 +234,7 @@ export function generateDay(options: {
       const here = locMap.get(locId) ?? depot;
       let pickup: Location;
       let dropoff: Location;
-      let kind: TransportKind = "simple";
+      let kind: TransportKind;
       if (!forcedLong && farHomes.length && crewIndex % 2 === 1 && rng() < 0.45) {
         forcedLong = true;
         const home = pick(rng, farHomes);
@@ -262,8 +256,7 @@ export function generateDay(options: {
         kind = "simple";
       }
       if (pickup.id === dropoff.id) continue;
-      const posture: Posture =
-        crew.vehicleType === "ambulance" && rng() < 0.7 ? "allonge" : "assis";
+      const posture: Posture = crew.vehicleType === "ambulance" && rng() < 0.7 ? "allonge" : "assis";
       const patient = nextPatient(
         pickup.kind === "domicile" ? pickup.id : dropoff.kind === "domicile" ? dropoff.id : homes[0]!.id,
         rng() < 0.28 ? pick(rng, NOTES) : undefined,
@@ -324,7 +317,8 @@ export function generateDay(options: {
     after: number;
     centerArrive: number;
   }): void {
-    if (transports.some((transport) => transport.seriesId === due.seriesId && transport.kind === "dialyse_retour")) return;
+    if (transports.some((transport) => transport.seriesId === due.seriesId && transport.kind === "dialyse_retour"))
+      return;
     const toleranceMin = 20;
     transports.push({
       id: `t-${options.seed.toString(36)}-${transports.length + 1}`,
@@ -351,12 +345,7 @@ export function generateDay(options: {
   const calls = buildCalls(scrambled, patients, crews, locations, rng, nextPatient, nextDossier);
   const tomorrow = buildTomorrow(scrambled, patients, locations);
 
-  const metrics = metricsFromSchedules(
-    crews,
-    scheduleFleet(crews, scrambled, [], locMap, "anchored"),
-    scrambled,
-    [],
-  );
+  const metrics = metricsFromSchedules(crews, scheduleFleet(crews, scrambled, [], locMap, "anchored"), scrambled, []);
 
   const stats: Stats = {
     moves: 0,
@@ -400,7 +389,7 @@ function makeCrews(amb: number, vsl: number): Crew[] {
   const crews: Crew[] = [];
   const add = (type: VehicleType, count: number) => {
     for (let index = 0; index < count; index++) {
-      const pair = CREW_PAIRS[(crews.length) % CREW_PAIRS.length]!;
+      const pair = CREW_PAIRS[crews.length % CREW_PAIRS.length]!;
       const n = index + 1;
       const park = 101 + crews.length;
       crews.push({
@@ -446,25 +435,13 @@ function scrambleMorning(
   let cursor = 0;
   for (const transport of morning) {
     if (rng() < 0.14) continue;
-    const compatible = crews.filter(
-      (crew) => !(transport.posture === "allonge" && crew.vehicleType === "vsl"),
-    );
+    const compatible = crews.filter((crew) => !(transport.posture === "allonge" && crew.vehicleType === "vsl"));
     for (let hop = 0; hop < compatible.length; hop++) {
       const crew = compatible[(cursor + hop) % compatible.length]!;
-      const preview = previewPlacement(
-        crew,
-        transport,
-        transport.windowStart - 8,
-        current,
-        [],
-        locMap,
-        DAY_START,
-      );
+      const preview = previewPlacement(crew, transport, transport.windowStart - 8, current, [], locMap, DAY_START);
       if (!preview.ok) continue;
       current = current.map((item) =>
-        item.id === transport.id
-          ? { ...item, crewId: crew.id, departMin: preview.departMin }
-          : item,
+        item.id === transport.id ? { ...item, crewId: crew.id, departMin: preview.departMin } : item,
       );
       cursor += 1;
       break;
@@ -521,17 +498,19 @@ function buildCalls(
     });
   }
 
-  calls.push(draftCall({
-    id: "call-ajout-matin",
-    triggerMin: 8 * 60 + 10,
-    kind: "ajout",
-    rng,
-    locations,
-    nextPatient,
-    nextDossier,
-    posture: "assis",
-    urgent: false,
-  }));
+  calls.push(
+    draftCall({
+      id: "call-ajout-matin",
+      triggerMin: 8 * 60 + 10,
+      kind: "ajout",
+      rng,
+      locations,
+      nextPatient,
+      nextDossier,
+      posture: "assis",
+      urgent: false,
+    }),
+  );
 
   const delayedCrew = crews[0];
   if (delayedCrew) {
@@ -551,9 +530,7 @@ function buildCalls(
     });
   }
 
-  const move = take(
-    (transport) => transport.windowStart >= 10 * 60 + 30 && transport.windowStart <= 15 * 60,
-  );
+  const move = take((transport) => transport.windowStart >= 10 * 60 + 30 && transport.windowStart <= 15 * 60);
   if (move) {
     const start = clamp(move.windowStart + 40, DAY_START, DAY_END - 50);
     const end = clamp(move.windowEnd + 40, start + 25, DAY_END - 8);
@@ -574,17 +551,19 @@ function buildCalls(
     });
   }
 
-  calls.push(draftCall({
-    id: "call-urgent-midi",
-    triggerMin: 11 * 60 + 20,
-    kind: "urgent",
-    rng,
-    locations,
-    nextPatient,
-    nextDossier,
-    posture: "allonge",
-    urgent: true,
-  }));
+  calls.push(
+    draftCall({
+      id: "call-urgent-midi",
+      triggerMin: 11 * 60 + 20,
+      kind: "urgent",
+      rng,
+      locations,
+      nextPatient,
+      nextDossier,
+      posture: "allonge",
+      urgent: true,
+    }),
+  );
 
   const pauseCrew = crews[Math.min(1, crews.length - 1)];
   if (pauseCrew) {
@@ -604,17 +583,19 @@ function buildCalls(
     });
   }
 
-  calls.push(draftCall({
-    id: "call-ajout-apres",
-    triggerMin: 13 * 60 + 40,
-    kind: "ajout",
-    rng,
-    locations,
-    nextPatient,
-    nextDossier,
-    posture: "assis",
-    urgent: false,
-  }));
+  calls.push(
+    draftCall({
+      id: "call-ajout-apres",
+      triggerMin: 13 * 60 + 40,
+      kind: "ajout",
+      rng,
+      locations,
+      nextPatient,
+      nextDossier,
+      posture: "assis",
+      urgent: false,
+    }),
+  );
 
   const broken = crews[Math.min(2, crews.length - 1)];
   if (broken) {
@@ -655,17 +636,19 @@ function buildCalls(
     });
   }
 
-  calls.push(draftCall({
-    id: "call-urgent-soir",
-    triggerMin: 17 * 60 + 10,
-    kind: "urgent",
-    rng,
-    locations,
-    nextPatient,
-    nextDossier,
-    posture: rng() < 0.5 ? "allonge" : "assis",
-    urgent: true,
-  }));
+  calls.push(
+    draftCall({
+      id: "call-urgent-soir",
+      triggerMin: 17 * 60 + 10,
+      kind: "urgent",
+      rng,
+      locations,
+      nextPatient,
+      nextDossier,
+      posture: rng() < 0.5 ? "allonge" : "assis",
+      urgent: true,
+    }),
+  );
 
   return calls.sort((a, b) => a.triggerMin - b.triggerMin);
 }
@@ -681,7 +664,9 @@ function draftCall(input: {
   posture: Posture;
   urgent: boolean;
 }): Call {
-  const homes = input.locations.filter((location) => location.kind === "domicile" && !location.id.includes("elbeuf") && !location.id.includes("barentin"));
+  const homes = input.locations.filter(
+    (location) => location.kind === "domicile" && !location.id.includes("elbeuf") && !location.id.includes("barentin"),
+  );
   const chu = input.locations.find((location) => location.id === "chu-nicolle")!;
   const clinic = input.locations.find((location) => location.id === "mathilde")!;
   const home = pick(input.rng, homes);
@@ -727,7 +712,8 @@ function buildTomorrow(transports: Transport[], patients: Patient[], locations: 
   const locOf = new Map(locations.map((location) => [location.id, location]));
   const recurring = transports.filter((transport) => transport.kind.startsWith("dialyse"));
   const filler = transports.filter(
-    (transport) => transport.posture === "assis" && transport.kind !== "simple" && !transport.kind.startsWith("dialyse"),
+    (transport) =>
+      transport.posture === "assis" && transport.kind !== "simple" && !transport.kind.startsWith("dialyse"),
   );
   const chosen = [...recurring, ...filler].slice(0, 14);
   const items: TomorrowItem[] = [];

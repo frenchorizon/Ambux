@@ -124,7 +124,9 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
   });
 
   await test.step("l'appui long suit le doigt et n'écrit qu'au relâchement", async () => {
-    const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
+    const candidates = (await bars(page)).filter(
+      (item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60,
+    );
     let moved = false;
     for (const candidate of candidates.slice(0, 6)) {
       await center(page, candidate.id);
@@ -194,7 +196,9 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
 
   await test.step("la croix décale de 5 minutes, refuse, et groupe le maintien", async () => {
     await page.screenshot({ path: "/opt/cursor/artifacts/v070-dpad-phone.png" });
-    const seated = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
+    const seated = (await bars(page)).filter(
+      (item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60,
+    );
     let separate = false;
     for (const candidate of seated.slice(0, 6)) {
       await center(page, candidate.id);
@@ -244,13 +248,16 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
         vehicle: node.getAttribute("data-vehicle") ?? "",
       })),
     );
-    const boundary = tracks.findIndex((track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl");
+    const boundary = tracks.findIndex(
+      (track, index) => track.vehicle === "ambulance" && tracks[index + 1]?.vehicle === "vsl",
+    );
     const allonge = (await bars(page)).find((item) => item.posture === "allonge");
     expect(boundary).toBeGreaterThanOrEqual(0);
     expect(allonge).toBeTruthy();
     await center(page, allonge!.id);
     await page.locator(`[data-transport-id="${allonge!.id}"]`).click();
-    const toward = tracks.findIndex((track) => track.id === allonge!.crew) < boundary ? "Véhicule suivant" : "Véhicule précédent";
+    const toward =
+      tracks.findIndex((track) => track.id === allonge!.crew) < boundary ? "Véhicule suivant" : "Véhicule précédent";
     for (let step = 0; step < 6; step++) {
       const now = await barById(page, allonge!.id);
       if (tracks.findIndex((track) => track.id === now.crew) === boundary) break;
@@ -267,7 +274,9 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     expect(tracks.find((track) => track.id === afterVsl.crew)?.vehicle).not.toBe("vsl");
 
     const crowded = await bars(page);
-    const pair = crowded.find((item) => item.depart >= 8 * 60 && crowded.some((other) => other.crew === item.crew && other.id !== item.id));
+    const pair = crowded.find(
+      (item) => item.depart >= 8 * 60 && crowded.some((other) => other.crew === item.crew && other.id !== item.id),
+    );
     expect(pair).toBeTruthy();
     const neighbor = crowded.find((item) => item.crew === pair!.crew && item.id !== pair!.id)!;
     await center(page, pair!.id);
@@ -280,7 +289,11 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     const dropped = await barById(page, pair!.id);
     const after = await bars(page);
     const overlaps = after.some(
-      (item) => item.id !== dropped.id && item.crew === dropped.crew && dropped.depart < item.end - 1 && dropped.end > item.depart + 1,
+      (item) =>
+        item.id !== dropped.id &&
+        item.crew === dropped.crew &&
+        dropped.depart < item.end - 1 &&
+        dropped.end > item.depart + 1,
     );
     expect(overlaps).toBe(false);
     if (dropped.depart === from.depart) {
@@ -305,7 +318,9 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
   });
 
   await test.step("reposer au même créneau n'ajoute pas d'annulation", async () => {
-    const candidates = (await bars(page)).filter((item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60);
+    const candidates = (await bars(page)).filter(
+      (item) => item.posture === "assis" && item.vehicle === "ambulance" && item.depart >= 8 * 60,
+    );
     let proved = false;
     for (const candidate of candidates.slice(0, 6)) {
       await center(page, candidate.id);
@@ -424,7 +439,12 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
 });
 
 async function closeFind(page: Page) {
-  await page.getByRole("dialog", { name: "Chercher et afficher" }).locator("h2").locator("..").getByRole("button", { name: "Fermer" }).click();
+  await page
+    .getByRole("dialog", { name: "Chercher et afficher" })
+    .locator("h2")
+    .locator("..")
+    .getByRole("button", { name: "Fermer" })
+    .click();
 }
 
 async function openPlanning(page: Page) {
@@ -435,7 +455,16 @@ async function openPlanning(page: Page) {
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
 }
 
-type Bar = { id: string; crew: string; vehicle: string; posture: string; depart: number; end: number; x: number; y: number };
+type Bar = {
+  id: string;
+  crew: string;
+  vehicle: string;
+  posture: string;
+  depart: number;
+  end: number;
+  x: number;
+  y: number;
+};
 
 async function bars(page: Page): Promise<Bar[]> {
   return page.locator("[data-transport-id]").evaluateAll((nodes) =>
@@ -463,14 +492,22 @@ async function barById(page: Page, id: string): Promise<Bar> {
 }
 
 async function center(page: Page, id: string) {
-  await page.locator(`[data-transport-id="${id}"]`).evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
+  await page
+    .locator(`[data-transport-id="${id}"]`)
+    .evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
 }
 
 async function frame(page: Page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-async function touch(page: Page, type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, pointerId = 7) {
+async function touch(
+  page: Page,
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  x: number,
+  y: number,
+  pointerId = 7,
+) {
   await page.evaluate(
     ({ type, x, y, pointerId }) => {
       const target = type === "pointerdown" ? document.elementFromPoint(x, y) : window;

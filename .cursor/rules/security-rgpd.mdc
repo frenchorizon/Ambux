@@ -1,0 +1,9 @@
+---
+description: Sécurité et données fictives
+alwaysApply: true
+---
+
+- Aucun nom, téléphone, adresse ou dossier de patient réel. Les jeux de tests utilisent des noms inventés.
+- Pas de clé d'API en dur. Une clé de routage éventuelle reste dans ce navigateur.
+- Pas d'envoi réseau de la demande de démo : elle reste locale.
+- Ne pas élargir les permissions ni ajouter un service d'auth pour la démo.

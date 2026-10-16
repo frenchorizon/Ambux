@@ -19,7 +19,8 @@ export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
       .filter((transport) => {
         if (!needle) return true;
         const patient = patientById.get(transport.patientId);
-        const blob = `${patient?.lastName ?? ""} ${patient?.firstName ?? ""} ${locMap.get(transport.pickupId)?.short ?? ""} ${locMap.get(transport.dropoffId)?.short ?? ""}`.toLowerCase();
+        const blob =
+          `${patient?.lastName ?? ""} ${patient?.firstName ?? ""} ${locMap.get(transport.pickupId)?.short ?? ""} ${locMap.get(transport.dropoffId)?.short ?? ""}`.toLowerCase();
         return blob.includes(needle);
       })
       .sort((a, b) => a.windowStart - b.windowStart || a.dossier.localeCompare(b.dossier));
@@ -52,7 +53,12 @@ export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
           placeholder="Patient, adresse…"
           className="mt-2 h-12 w-full rounded-xl border border-line bg-white px-3 text-base outline-none focus:ring-2 focus:ring-brand/30"
         />
-        <Button type="button" variant="secondary" className="mt-2 h-11 w-full" onClick={() => setLate((value) => !value)}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-2 h-11 w-full"
+          onClick={() => setLate((value) => !value)}
+        >
           Appel tardif
         </Button>
         <ReoptButton />
@@ -89,7 +95,11 @@ export function UnassignedPanel({ drag }: { drag?: DragState | null }) {
                           {formatMin(transport.windowStart)} – {formatMin(transport.windowEnd)}
                         </div>
                       </div>
-                      <Badge className={transport.posture === "allonge" ? "bg-rose-50 text-rose-700" : "bg-sky-50 text-sky-800"}>
+                      <Badge
+                        className={
+                          transport.posture === "allonge" ? "bg-rose-50 text-rose-700" : "bg-sky-50 text-sky-800"
+                        }
+                      >
                         {transport.posture === "allonge" ? <BedDouble size={11} /> : <Armchair size={11} />}
                         {transport.posture === "allonge" ? "Allongé" : "Assis"}
                       </Badge>

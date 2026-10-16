@@ -1,0 +1,13 @@
+---
+description: Contexte Ambux et règles d'équipe
+alwaysApply: true
+---
+
+Ambux est une démo de régulation sanitaire, tout dans le navigateur, données fictives de Rouen.
+
+- Ne jamais pousser `stable` ni déplacer un tag existant.
+- Pas de donnée patient réelle. Pas de nouvelle dépendance lourde si le dépôt sait déjà faire.
+- Interface mobile d'abord, courte, sans texte de remplissage.
+- Ne pas déclarer un test réussi sans l'avoir exécuté.
+- Les comptes rendus sont en français.
+- Les PR vers `main` passent l'intégration continue avant fusion.

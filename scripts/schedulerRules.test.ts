@@ -27,8 +27,24 @@ import {
   type Transport,
 } from "../src/game/types.ts";
 
-const depot: Location = { id: "depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
-const home: Location = { id: "home", name: "Maison", short: "Maison", kind: "domicile", lat: 49.44, lng: 1.08, city: "Rouen" };
+const depot: Location = {
+  id: "depot",
+  name: "Depot",
+  short: "Depot",
+  kind: "depot",
+  lat: 49.41,
+  lng: 1.05,
+  city: "Rouen",
+};
+const home: Location = {
+  id: "home",
+  name: "Maison",
+  short: "Maison",
+  kind: "domicile",
+  lat: 49.44,
+  lng: 1.08,
+  city: "Rouen",
+};
 const chu: Location = { id: "chu", name: "Chu", short: "Chu", kind: "chu", lat: 49.445, lng: 1.1, city: "Rouen" };
 const locMap = new Map([depot, home, chu].map((location) => [location.id, location]));
 
@@ -106,9 +122,23 @@ describe("repas 11:00–14:30", () => {
   });
 
   it("signale un repas qui déborde de la fenêtre", () => {
-    const early: TimeBlock = { id: "r", crewId: "c1", startMin: 10 * 60 + 30, endMin: 11 * 60, kind: "repas", label: "Repas" };
+    const early: TimeBlock = {
+      id: "r",
+      crewId: "c1",
+      startMin: 10 * 60 + 30,
+      endMin: 11 * 60,
+      kind: "repas",
+      label: "Repas",
+    };
     assert.equal(mealIssue(early, DEFAULT_RULES), "Repas hors fenêtre");
-    const late: TimeBlock = { id: "r2", crewId: "c1", startMin: 14 * 60 + 15, endMin: 14 * 60 + 45, kind: "repas", label: "Repas" };
+    const late: TimeBlock = {
+      id: "r2",
+      crewId: "c1",
+      startMin: 14 * 60 + 15,
+      endMin: 14 * 60 + 45,
+      kind: "repas",
+      label: "Repas",
+    };
     assert.equal(mealIssue(late, DEFAULT_RULES), "Repas hors fenêtre");
   });
 });
@@ -217,7 +247,26 @@ describe("charges AMB 15 et VSL 25", () => {
       transports,
       blocks: [],
       rules: DEFAULT_RULES,
-      schedules: new Map([["c1", { crewId: "c1", legs: transports.map((item) => ({ transportId: item.id, departMin: item.departMin!, endMin: item.departMin! + 15, lateMin: 0, outOfTolerance: false, kmEstimated: false })), returnKm: 0, returnStart: 0, returnEnd: 0, idleMin: 0 } as CrewSchedule]]),
+      schedules: new Map([
+        [
+          "c1",
+          {
+            crewId: "c1",
+            legs: transports.map((item) => ({
+              transportId: item.id,
+              departMin: item.departMin!,
+              endMin: item.departMin! + 15,
+              lateMin: 0,
+              outOfTolerance: false,
+              kmEstimated: false,
+            })),
+            returnKm: 0,
+            returnStart: 0,
+            returnEnd: 0,
+            idleMin: 0,
+          } as CrewSchedule,
+        ],
+      ]),
       patients: new Map(),
     });
     assert.ok(issues.some((issue) => issue.kind === "charge" && issue.title.includes("15")));
@@ -250,9 +299,27 @@ describe("tolérance, geste et contraintes", () => {
     const packed = crew({ shiftStart: 8 * 60, shiftEnd: 8 * 60 + 20 });
     const clash = previewOnGrid(
       packed,
-      trip({ id: "move", pickupId: depot.id, dropoffId: depot.id, appointmentMin: 8 * 60, windowStart: 7 * 60, windowEnd: 9 * 60 }),
+      trip({
+        id: "move",
+        pickupId: depot.id,
+        dropoffId: depot.id,
+        appointmentMin: 8 * 60,
+        windowStart: 7 * 60,
+        windowEnd: 9 * 60,
+      }),
       8 * 60,
-      [trip({ id: "keep", crewId: "c1", departMin: 8 * 60, pickupId: depot.id, dropoffId: depot.id, appointmentMin: 8 * 60, windowStart: 7 * 60, windowEnd: 9 * 60 })],
+      [
+        trip({
+          id: "keep",
+          crewId: "c1",
+          departMin: 8 * 60,
+          pickupId: depot.id,
+          dropoffId: depot.id,
+          appointmentMin: 8 * 60,
+          windowStart: 7 * 60,
+          windowEnd: 9 * 60,
+        }),
+      ],
       [],
       locMap,
       -1,
@@ -273,7 +340,13 @@ describe("tolérance, geste et contraintes", () => {
   it("accepte l'intérieur de la tolérance et refuse l'extérieur", () => {
     const inside = simulateLeg(trip(), 7 * 60 + 50, depot.id, crew(), locMap);
     assert.equal(inside.outOfTolerance, false);
-    const edge = simulateLeg(trip({ appointmentMin: 8 * 60, toleranceMin: 20, windowStart: 8 * 60 - 20, windowEnd: 8 * 60 + 20 }), 8 * 60, depot.id, crew(), locMap);
+    const edge = simulateLeg(
+      trip({ appointmentMin: 8 * 60, toleranceMin: 20, windowStart: 8 * 60 - 20, windowEnd: 8 * 60 + 20 }),
+      8 * 60,
+      depot.id,
+      crew(),
+      locMap,
+    );
     assert.equal(edge.outOfTolerance, false);
     const late = simulateLeg(trip(), 10 * 60, depot.id, crew(), locMap);
     assert.equal(late.outOfTolerance, true);
@@ -282,7 +355,13 @@ describe("tolérance, geste et contraintes", () => {
 
   it("compte l'attente de séance dans l'occupation du véhicule", () => {
     const plain = simulateLeg(trip({ pickupId: depot.id, dropoffId: depot.id }), 9 * 60, depot.id, crew(), locMap);
-    const stayed = simulateLeg(trip({ pickupId: depot.id, dropoffId: depot.id, stayMin: 45 }), 9 * 60, depot.id, crew(), locMap);
+    const stayed = simulateLeg(
+      trip({ pickupId: depot.id, dropoffId: depot.id, stayMin: 45 }),
+      9 * 60,
+      depot.id,
+      crew(),
+      locMap,
+    );
     assert.equal(stayed.endMin - plain.endMin, 45);
     const stay = trip({
       id: "stay",
@@ -305,13 +384,28 @@ describe("tolérance, geste et contraintes", () => {
       windowStart: plain.endMin - 10,
       windowEnd: plain.endMin + 40,
     });
-    const duringStay = previewOnGrid(crew({ shiftStart: 9 * 60, shiftEnd: stayLeg.endMin + 2 }), next, plain.endMin + 10, [stay], [], locMap, -1);
+    const duringStay = previewOnGrid(
+      crew({ shiftStart: 9 * 60, shiftEnd: stayLeg.endMin + 2 }),
+      next,
+      plain.endMin + 10,
+      [stay],
+      [],
+      locMap,
+      -1,
+    );
     assert.equal(duringStay.ok, false);
     if (!duringStay.ok) assert.match(duringStay.message, /Conflit horaire/);
   });
 
   it("ne pose pas une course sur la pause repas", () => {
-    const meal: TimeBlock = { id: "repas-c1", crewId: "c1", startMin: 12 * 60, endMin: 12 * 60 + 30, kind: "repas", label: "Repas" };
+    const meal: TimeBlock = {
+      id: "repas-c1",
+      crewId: "c1",
+      startMin: 12 * 60,
+      endMin: 12 * 60 + 30,
+      kind: "repas",
+      label: "Repas",
+    };
     const lunch = trip({
       id: "lunch",
       appointmentMin: 12 * 60 + 10,
@@ -320,7 +414,15 @@ describe("tolérance, geste et contraintes", () => {
       pickupId: depot.id,
       dropoffId: depot.id,
     });
-    const blocked = previewOnGrid(crew({ shiftStart: 12 * 60, shiftEnd: 12 * 60 + 40 }), lunch, 12 * 60 + 10, [], [meal], locMap, -1);
+    const blocked = previewOnGrid(
+      crew({ shiftStart: 12 * 60, shiftEnd: 12 * 60 + 40 }),
+      lunch,
+      12 * 60 + 10,
+      [],
+      [meal],
+      locMap,
+      -1,
+    );
     assert.equal(blocked.ok, false);
     const around = previewOnGrid(crew(), lunch, 12 * 60 + 10, [], [meal], locMap, -1);
     assert.equal(around.ok, true);
@@ -359,13 +461,21 @@ describe("aller, retour, série et dialyse", () => {
     assert.equal(again.transports.length, imported.transports.length);
     const rolled = reducer(imported, { type: "ROLL_DAY" });
     assert.notEqual(rolled.missionIso, imported.missionIso);
-    assert.equal(rolled.transports.some((transport) => transport.crewId), false);
-    assert.equal(rolled.blocks.some((block) => block.kind === "repas"), false);
+    assert.equal(
+      rolled.transports.some((transport) => transport.crewId),
+      false,
+    );
+    assert.equal(
+      rolled.blocks.some((block) => block.kind === "repas"),
+      false,
+    );
   });
 
   it("décale le retour de dialyse quand la séance change", () => {
     const started = reducer(initialState, { type: "START", amb: 1, vsl: 1, density: "normale", seed: 3 });
-    const retour = started.transports.find((transport) => transport.kind === "dialyse_retour" && transport.centerArriveMin != null);
+    const retour = started.transports.find(
+      (transport) => transport.kind === "dialyse_retour" && transport.centerArriveMin != null,
+    );
     assert.ok(retour);
     const next = reducer(started, { type: "SET_RULES", rules: { sessionMin: 5 * 60 } });
     const updated = next.transports.find((transport) => transport.id === retour.id);

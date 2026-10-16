@@ -1,13 +1,7 @@
 import { CREW_COLORS } from "../data/world";
 import { pickMealSlot } from "./breaks";
 import { generateDay } from "./generate";
-import {
-  applyUnavailability,
-  placeTransport,
-  planRipple,
-  reoptimizeStable,
-  rippleMessage,
-} from "./imprevus";
+import { applyUnavailability, placeTransport, planRipple, reoptimizeStable, rippleMessage } from "./imprevus";
 import {
   bestSlotFor,
   findPauseStart,
@@ -60,7 +54,14 @@ export type Action =
   | { type: "UNASSIGN"; transportId: string }
   | { type: "PIN"; transportId: string }
   | { type: "UNPIN"; transportId: string }
-  | { type: "SET_UNAVAILABILITY"; crewId: string; fromMin: number; toMin: number; reason: "absence" | "panne"; replace: boolean }
+  | {
+      type: "SET_UNAVAILABILITY";
+      crewId: string;
+      fromMin: number;
+      toMin: number;
+      reason: "absence" | "panne";
+      replace: boolean;
+    }
   | { type: "ADD_LATE"; transport: Transport; patient?: Patient; location?: Location }
   | { type: "APPLY_REOPT" }
   | { type: "BEST_SLOT"; transportId: string }
@@ -81,7 +82,13 @@ export type Action =
   | { type: "ADD_TRANSPORT"; transport: Transport; patient?: Patient; location?: Location }
   | {
       type: "IMPORT_BATCH";
-      rows: { transport: Transport; patient: Patient; location?: Location; locations?: Location[]; retour?: Transport }[];
+      rows: {
+        transport: Transport;
+        patient: Patient;
+        location?: Location;
+        locations?: Location[];
+        retour?: Transport;
+      }[];
     }
   | { type: "RESTORE"; snapshot: DraftSnapshot }
   | { type: "NOTE_EXPORT"; message?: string }
@@ -361,7 +368,16 @@ function assign(state: GameState, transportId: string, crewId: string, departMin
   const locMap = indexLocations(state.locations);
   const now = horizon(state);
   if (ripple) return assignRipple(state, transport, crew, departMin, locMap, now);
-  const preview = previewPlacement(crew, transport, departMin, state.transports, state.blocks, locMap, now, state.rules);
+  const preview = previewPlacement(
+    crew,
+    transport,
+    departMin,
+    state.transports,
+    state.blocks,
+    locMap,
+    now,
+    state.rules,
+  );
   if (!preview.ok) return withToast(state, preview.message, "warn");
   const moved = transport.crewId !== crew.id || Math.abs((transport.departMin ?? Number.NaN) - preview.departMin) > 0.5;
   return {
@@ -435,10 +451,7 @@ function pin(state: GameState, transportId: string, pinned: boolean): GameState 
   );
 }
 
-function setUnavailability(
-  state: GameState,
-  action: Extract<Action, { type: "SET_UNAVAILABILITY" }>,
-): GameState {
+function setUnavailability(state: GameState, action: Extract<Action, { type: "SET_UNAVAILABILITY" }>): GameState {
   const result = applyUnavailability({
     crews: state.crews,
     transports: state.transports,
@@ -467,9 +480,23 @@ function addLate(state: GameState, transport: Transport, patient?: Patient, loca
   if (location && !locations.some((item) => item.id === location.id)) locations = [...locations, location];
   if (patient && !patients.some((item) => item.id === patient.id)) patients = [...patients, patient];
   const draft: Transport = { ...transport, cancelled: false, crewId: undefined, departMin: undefined, pinned: false };
-  const withDraft: GameState = { ...state, locations, patients, transports: [...state.transports, draft], selectedId: draft.id };
+  const withDraft: GameState = {
+    ...state,
+    locations,
+    patients,
+    transports: [...state.transports, draft],
+    selectedId: draft.id,
+  };
   const locMap = indexLocations(withDraft.locations);
-  const slot = placeTransport(draft, withDraft.crews, withDraft.transports, withDraft.blocks, locMap, horizon(state), state.rules);
+  const slot = placeTransport(
+    draft,
+    withDraft.crews,
+    withDraft.transports,
+    withDraft.blocks,
+    locMap,
+    horizon(state),
+    state.rules,
+  );
   if (!slot) return withToast(withDraft, "Course ajoutée dans À placer : aucun créneau libre.", "warn");
   const crew = state.crews.find((item) => item.id === slot.crewId);
   return withToast(
@@ -544,9 +571,7 @@ function compact(state: GameState): GameState {
   });
   return withToast(
     { ...state, transports },
-    saved > 1
-      ? `Recalcul terminé — ${Math.round(saved)} min d'attente resserrées.`
-      : "Feuilles de route recalculées.",
+    saved > 1 ? `Recalcul terminé — ${Math.round(saved)} min d'attente resserrées.` : "Feuilles de route recalculées.",
     "ok",
   );
 }
@@ -676,9 +701,7 @@ function addDraft(state: GameState, call: Call, expired: boolean): GameState {
   const transport: Transport = { ...call.draft.transport, cancelled: false };
   const known = new Set(state.patients.map((patient) => patient.id));
   const patients =
-    call.draft.patient && !known.has(call.draft.patient.id)
-      ? [...state.patients, call.draft.patient]
-      : state.patients;
+    call.draft.patient && !known.has(call.draft.patient.id) ? [...state.patients, call.draft.patient] : state.patients;
   return withToast(
     { ...state, patients, transports: [...state.transports, transport] },
     expired
@@ -705,9 +728,7 @@ function cancelTransport(state: GameState, call: Call, expired: boolean): GameSt
     {
       ...state,
       transports: state.transports.map((item) =>
-        item.id === transport.id
-          ? { ...item, cancelled: true, crewId: undefined, departMin: undefined }
-          : item,
+        item.id === transport.id ? { ...item, cancelled: true, crewId: undefined, departMin: undefined } : item,
       ),
     },
     expired ? `Appel manqué — ${call.caller} est annulé d'office.` : `Course annulée — ${call.caller}.`,
@@ -745,13 +766,13 @@ function delayCrew(state: GameState, call: Call, expired: boolean): GameState {
     }
     return { ...item, departMin: item.departMin + delta };
   });
-  const heldNote = held ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} reste${held > 1 ? "nt" : ""} en place.` : "";
+  const heldNote = held
+    ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} reste${held > 1 ? "nt" : ""} en place.`
+    : "";
   return withToast(
     {
       ...state,
-      crews: state.crews.map((item) =>
-        item.id === call.crewId ? { ...item, delayUntil: state.nowMin + 50 } : item,
-      ),
+      crews: state.crews.map((item) => (item.id === call.crewId ? { ...item, delayUntil: state.nowMin + 50 } : item)),
       transports,
     },
     expired
@@ -761,12 +782,7 @@ function delayCrew(state: GameState, call: Call, expired: boolean): GameState {
   );
 }
 
-function breakCrew(
-  state: GameState,
-  call: Call,
-  kind: "pause" | "panne",
-  expired: boolean,
-): GameState {
+function breakCrew(state: GameState, call: Call, kind: "pause" | "panne", expired: boolean): GameState {
   if (!call.crewId) return state;
   const crew = state.crews.find((item) => item.id === call.crewId);
   if (!crew) return state;
@@ -802,8 +818,12 @@ function breakCrew(
     return { ...transport, crewId: undefined, departMin: undefined, pinned: false };
   });
   const label = kind === "panne" ? "Panne enregistrée" : "Pause posée";
-  const extra = released ? ` ${released} course${released > 1 ? "s" : ""} remise${released > 1 ? "s" : ""} au standard.` : "";
-  const heldNote = held ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} laissée${held > 1 ? "s" : ""} en place.` : "";
+  const extra = released
+    ? ` ${released} course${released > 1 ? "s" : ""} remise${released > 1 ? "s" : ""} au standard.`
+    : "";
+  const heldNote = held
+    ? ` ${held} course${held > 1 ? "s" : ""} épinglée${held > 1 ? "s" : ""} laissée${held > 1 ? "s" : ""} en place.`
+    : "";
   return withToast(
     {
       ...state,
@@ -813,7 +833,9 @@ function breakCrew(
         item.id === crew.id ? { ...item, delayUntil: kind === "panne" ? block.endMin : item.delayUntil } : item,
       ),
     },
-    expired ? `${label} automatiquement sur ${crew.code}.${extra}${heldNote}` : `${label} sur ${crew.code}.${extra}${heldNote}`,
+    expired
+      ? `${label} automatiquement sur ${crew.code}.${extra}${heldNote}`
+      : `${label} sur ${crew.code}.${extra}${heldNote}`,
     kind === "panne" ? "bad" : "info",
   );
 }
@@ -834,12 +856,16 @@ function sendLomaco(state: GameState): GameState {
     {
       ...state,
       modal: null,
-      lomaco: [...state.lomaco, ...lines, {
-        id: `lomaco-ok-${state.toastSeq}`,
-        atMin: state.nowMin,
-        message: "Accusé Lomaco : synchronisation terminée (démo).",
-        ok: true,
-      }],
+      lomaco: [
+        ...state.lomaco,
+        ...lines,
+        {
+          id: `lomaco-ok-${state.toastSeq}`,
+          atMin: state.nowMin,
+          message: "Accusé Lomaco : synchronisation terminée (démo).",
+          ok: true,
+        },
+      ],
       stats: { ...state.stats, lomacoSends: state.stats.lomacoSends + 1 },
     },
     `${state.crews.length} feuilles de route envoyées vers Lomaco.`,
@@ -930,7 +956,14 @@ function snapBack(state: GameState, transportId: string): GameState {
   }
   const crew = state.crews.find((item) => item.id === transport.crewId);
   if (!crew) return state;
-  const schedule = scheduleFleet([crew], state.transports.filter((item) => item.id !== transport.id), state.blocks, locMap, "anchored", state.rules).get(crew.id);
+  const schedule = scheduleFleet(
+    [crew],
+    state.transports.filter((item) => item.id !== transport.id),
+    state.blocks,
+    locMap,
+    "anchored",
+    state.rules,
+  ).get(crew.id);
   let fromId = crew.baseId;
   let earliest = crew.shiftStart;
   for (const leg of schedule?.legs ?? []) {
@@ -941,7 +974,16 @@ function snapBack(state: GameState, transportId: string): GameState {
   }
   const travel = travelLoc(fromId, transport.pickupId, locMap);
   const depart = Math.max(earliest, appointment - travel.min);
-  const preview = previewPlacement(crew, transport, depart, state.transports, state.blocks, locMap, horizon(state), state.rules);
+  const preview = previewPlacement(
+    crew,
+    transport,
+    depart,
+    state.transports,
+    state.blocks,
+    locMap,
+    horizon(state),
+    state.rules,
+  );
   if (!preview.ok) return withToast(state, preview.message, "warn");
   const current = scheduleFleet([crew], state.transports, state.blocks, locMap, "anchored", state.rules)
     .get(crew.id)
@@ -992,7 +1034,11 @@ function importBatch(
     if (row.retour) transports = [...transports, row.retour];
   }
   const count = rows.reduce((sum, row) => sum + (row.retour ? 2 : 1), 0);
-  return withToast({ ...state, locations, patients, transports }, `${count} transport${count > 1 ? "s" : ""} ajouté${count > 1 ? "s" : ""}.`, "ok");
+  return withToast(
+    { ...state, locations, patients, transports },
+    `${count} transport${count > 1 ? "s" : ""} ajouté${count > 1 ? "s" : ""}.`,
+    "ok",
+  );
 }
 
 function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
@@ -1018,19 +1064,37 @@ function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
   );
 }
 
-function addVehicle(state: GameState, plate: string, vehicleType: VehicleType, name: string, vehicleCode?: string): GameState {
+function addVehicle(
+  state: GameState,
+  plate: string,
+  vehicleType: VehicleType,
+  name: string,
+  vehicleCode?: string,
+): GameState {
   const clean = plate.trim().toUpperCase();
   if (clean.length < 4) return withToast(state, "Immatriculation trop courte.", "warn");
   if (state.crews.length >= MAX_VEHICLES) return withToast(state, `Plafond de ${MAX_VEHICLES} véhicules.`, "warn");
   const id = `veh-${state.toastSeq}`;
   const code = vehicleCode?.trim() || undefined;
-  const vehicle: Vehicle = { id, plate: clean, vehicleType, name: name.trim() || (vehicleType === "ambulance" ? "Ambulance" : "VSL"), vehicleCode: code, active: true };
+  const vehicle: Vehicle = {
+    id,
+    plate: clean,
+    vehicleType,
+    name: name.trim() || (vehicleType === "ambulance" ? "Ambulance" : "VSL"),
+    vehicleCode: code,
+    active: true,
+  };
   const index = state.crews.length;
   const crewId = `crew-${state.toastSeq}`;
-  const driver = state.staff.find((member) => member.role === "conducteur" && !state.crews.some((crew) => crew.driverId === member.id));
-  const mate = vehicleType === "ambulance"
-    ? state.staff.find((member) => member.dea && member.id !== driver?.id && !state.crews.some((crew) => crew.mateId === member.id))
-    : undefined;
+  const driver = state.staff.find(
+    (member) => member.role === "conducteur" && !state.crews.some((crew) => crew.driverId === member.id),
+  );
+  const mate =
+    vehicleType === "ambulance"
+      ? state.staff.find(
+          (member) => member.dea && member.id !== driver?.id && !state.crews.some((crew) => crew.mateId === member.id),
+        )
+      : undefined;
   const crew = {
     id: crewId,
     code: vehicleType === "ambulance" ? `AMB-${index + 1}` : `VSL-${index + 1}`,
@@ -1125,9 +1189,7 @@ function setCrewStaff(state: GameState, crewId: string, driverId: string, mateId
   return {
     ...state,
     crews: state.crews.map((item) =>
-      item.id === crewId
-        ? { ...item, driverId, mateId, driver: driver.name, mate: mate?.name ?? "", dea }
-        : item,
+      item.id === crewId ? { ...item, driverId, mateId, driver: driver.name, mate: mate?.name ?? "", dea } : item,
     ),
   };
 }
@@ -1233,17 +1295,25 @@ function ensureStaff(
   role: StaffMember["role"],
   dea: boolean,
 ): { state: GameState; id: string } {
-  const found = state.staff.find((member) => member.role === role && member.name.localeCompare(name, "fr", { sensitivity: "accent" }) === 0);
+  const found = state.staff.find(
+    (member) => member.role === role && member.name.localeCompare(name, "fr", { sensitivity: "accent" }) === 0,
+  );
   if (found) {
     if (dea && !found.dea) {
       return {
         id: found.id,
-        state: { ...state, staff: state.staff.map((member) => (member.id === found.id ? { ...member, dea: true } : member)) },
+        state: {
+          ...state,
+          staff: state.staff.map((member) => (member.id === found.id ? { ...member, dea: true } : member)),
+        },
       };
     }
     return { state, id: found.id };
   }
-  const id = `st-${role}-${state.staff.length + 1}-${name.toLowerCase().replace(/[^a-z0-9]+/gi, "").slice(0, 12)}`;
+  const id = `st-${role}-${state.staff.length + 1}-${name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "")
+    .slice(0, 12)}`;
   return { state: { ...state, staff: [...state.staff, { id, name, role, dea }] }, id };
 }
 

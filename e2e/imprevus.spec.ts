@@ -23,7 +23,11 @@ test("absence, épingle, régénération et appel tardif", async ({ page }, test
   await page.getByRole("button", { name: "Détail" }).first().click();
   const course = page.getByRole("dialog");
   await expect(course.getByRole("button", { name: "Poser ce créneau" })).toBeVisible();
-  await expect(course.getByText(/Aucune course suivante décalée|→|ne bouge pas|Conflit horaire|Hors tolérance|indisponibilité/).first()).toBeVisible();
+  await expect(
+    course
+      .getByText(/Aucune course suivante décalée|→|ne bouge pas|Conflit horaire|Hors tolérance|indisponibilité/)
+      .first(),
+  ).toBeVisible();
   await course.getByRole("button", { name: "Épingler" }).click();
   await expect(course.getByRole("button", { name: "Retirer l'épingle" })).toBeVisible();
   await course.getByRole("button", { name: "Fermer" }).click();
@@ -72,7 +76,9 @@ async function openPlanning(page: Page) {
 
 async function pickCrewWithCourse(page: Page) {
   const select = page.getByLabel("Équipage");
-  const values = await select.locator("option").evaluateAll((nodes) => nodes.map((node) => (node as HTMLOptionElement).value));
+  const values = await select
+    .locator("option")
+    .evaluateAll((nodes) => nodes.map((node) => (node as HTMLOptionElement).value));
   for (const value of values) {
     await select.selectOption(value);
     if ((await page.getByRole("button", { name: "Détail" }).count()) > 0) return;
@@ -80,6 +86,8 @@ async function pickCrewWithCourse(page: Page) {
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
-  const fits = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+  const fits = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+  );
   expect(fits).toBe(true);
 }

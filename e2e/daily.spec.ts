@@ -40,7 +40,9 @@ test("le gantt découpe chaque course", async ({ page }, testInfo) => {
     expect(label.trim()).not.toBe("de");
   }
   await block.click();
-  await expect(page.getByRole("paragraph").filter({ hasText: /vide \d+ min \/ PEC \d+ min \/ trajet \d+ min \/ dépose \d+ min/ })).toBeVisible();
+  await expect(
+    page.getByRole("paragraph").filter({ hasText: /vide \d+ min \/ PEC \d+ min \/ trajet \d+ min \/ dépose \d+ min/ }),
+  ).toBeVisible();
   await page.screenshot({ path: "/opt/cursor/artifacts/v060-gantt-phone.png" });
 });
 
@@ -152,7 +154,9 @@ async function barById(page: Page, id: string): Promise<Bar> {
 }
 
 async function center(page: Page, id: string) {
-  await page.locator(`[data-transport-id="${id}"]`).evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
+  await page
+    .locator(`[data-transport-id="${id}"]`)
+    .evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
 }
 
 async function mouseRejectsOverlap(page: Page) {
@@ -254,7 +258,9 @@ async function restorePlannedTime(page: Page) {
   const before = await barById(page, target!.id);
   await page.getByRole("button", { name: "Heure prévue" }).click();
   const after = await barById(page, target!.id);
-  expect(Math.abs(after.depart - after.appointment)).toBeLessThanOrEqual(Math.abs(before.depart - before.appointment) + 2);
+  expect(Math.abs(after.depart - after.appointment)).toBeLessThanOrEqual(
+    Math.abs(before.depart - before.appointment) + 2,
+  );
 }
 
 async function expectNoOverlap(page: Page) {
@@ -299,7 +305,10 @@ async function expectPrintSheet(page: Page) {
   await page.getByRole("button", { name: "Autres actions" }).click();
   await page.getByRole("button", { name: "Feuilles de route" }).click();
   const popup = page.waitForEvent("popup");
-  await page.getByRole("button", { name: /Imprimer AMB-/ }).first().click();
+  await page
+    .getByRole("button", { name: /Imprimer AMB-/ })
+    .first()
+    .click();
   const sheet = await popup;
   await expect(sheet.getByText("Choix IMPRESSION_STD").first()).toBeVisible();
   await expect(sheet.getByText("Personne transportée").first()).toBeVisible();
@@ -312,7 +321,11 @@ async function expectPrintSheet(page: Page) {
 }
 
 async function expectPlate(page: Page, plate: string) {
-  await expect.poll(async () => page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value))).toContain(plate);
+  await expect
+    .poll(async () =>
+      page.locator("input").evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value)),
+    )
+    .toContain(plate);
 }
 
 async function importFleet(page: Page) {
@@ -323,7 +336,14 @@ async function importFleet(page: Page) {
   const template = fs.readFileSync((await (await model).path())!, "utf8");
   expect(template).toContain("immatriculation;type;nom");
   const box = page.getByLabel("Import CSV des véhicules");
-  await box.fill(["immatriculation;type;nom", "ZZ;ambulance;Court", "GR-777-AA;voiture;Inconnu", "GR-777-AA;ambulance;Master test"].join("\n"));
+  await box.fill(
+    [
+      "immatriculation;type;nom",
+      "ZZ;ambulance;Court",
+      "GR-777-AA;voiture;Inconnu",
+      "GR-777-AA;ambulance;Master test",
+    ].join("\n"),
+  );
   await page.getByRole("button", { name: "Prévisualiser" }).click();
   await expect(page.getByText(/Immatriculation « ZZ » trop courte/)).toBeVisible();
   await expect(page.getByText(/Type « voiture » inconnu/)).toBeVisible();
@@ -332,9 +352,15 @@ async function importFleet(page: Page) {
 
   await page.getByRole("button", { name: "Autres actions" }).click();
   await page.getByRole("banner").getByRole("button", { name: "Équipages", exact: true }).click();
-  await page.getByLabel("Import CSV des équipages").fill(
-    ["immatriculation;conducteur;auxiliaire;dea", "INCONNU;MARTIN Paul;DURAND Lea;oui", "GR-777-AA;MARTIN Paul;DURAND Lea;oui"].join("\n"),
-  );
+  await page
+    .getByLabel("Import CSV des équipages")
+    .fill(
+      [
+        "immatriculation;conducteur;auxiliaire;dea",
+        "INCONNU;MARTIN Paul;DURAND Lea;oui",
+        "GR-777-AA;MARTIN Paul;DURAND Lea;oui",
+      ].join("\n"),
+    );
   await page.getByRole("button", { name: "Prévisualiser" }).click();
   await expect(page.getByText(/Véhicule « INCONNU » introuvable/)).toBeVisible();
   await page.getByRole("button", { name: "Fusionner les lignes acceptées" }).click();
@@ -348,7 +374,10 @@ async function restoreDraft(page: Page) {
   await page.waitForTimeout(300);
   await page.reload();
   await page.goto("/#demo");
-  await page.getByRole("button", { name: /courses/ }).first().click();
+  await page
+    .getByRole("button", { name: /courses/ })
+    .first()
+    .click();
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-17");
   await page.getByRole("button", { name: "Autres actions" }).click();

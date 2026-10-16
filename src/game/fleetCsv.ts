@@ -45,11 +45,19 @@ export function previewVehicles(
     const type = vehicleTypeOf(cells[1] ?? "");
     const name = (cells[2] ?? "").trim();
     if (plate.length < 4) {
-      rejected.push({ line: index + 1, raw: rawLine, reason: `Immatriculation « ${cells[0] || "vide"} » trop courte.` });
+      rejected.push({
+        line: index + 1,
+        raw: rawLine,
+        reason: `Immatriculation « ${cells[0] || "vide"} » trop courte.`,
+      });
       continue;
     }
     if (!type) {
-      rejected.push({ line: index + 1, raw: rawLine, reason: `Type « ${cells[1] || "vide"} » inconnu. Valeurs : ambulance, vsl.` });
+      rejected.push({
+        line: index + 1,
+        raw: rawLine,
+        reason: `Type « ${cells[1] || "vide"} » inconnu. Valeurs : ambulance, vsl.`,
+      });
       continue;
     }
     if (seen.has(plate)) {

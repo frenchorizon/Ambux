@@ -281,7 +281,9 @@ export function PlanningWorkspace() {
   }, []);
 
   const start = (transportId: string, event: ReactPointerEvent<HTMLElement>) => {
-    const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === transportId);
+    const leg = [...data.schedules.values()]
+      .flatMap((schedule) => schedule.legs)
+      .find((item) => item.transportId === transportId);
     if (leg && leg.departMin <= clock.nowMin) {
       data.dispatch({ type: "TOAST", message: "Course déjà engagée : l'équipage est parti.", tone: "warn" });
       data.dispatch({ type: "SELECT", id: transportId });
@@ -319,7 +321,8 @@ export function PlanningWorkspace() {
     ? [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((leg) => leg.transportId === selected.id)
     : undefined;
   const plannedMin = selected ? (selected.appointmentMin ?? selected.windowStart) : undefined;
-  const draggingSelection = drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
+  const draggingSelection =
+    drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
   const liveDepart = draggingSelection ? draggingSelection.departMin : selectedLeg?.departMin;
   const dragged = drag?.moved ? data.transportById.get(drag.transportId) : undefined;
   const draggedPlan = dragged ? (dragged.appointmentMin ?? dragged.windowStart) : undefined;
@@ -330,13 +333,18 @@ export function PlanningWorkspace() {
       {selected && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold">{selectedPatient ? personName(selectedPatient) : "Course"}</div>
+            <div className="truncate text-sm font-semibold">
+              {selectedPatient ? personName(selectedPatient) : "Course"}
+            </div>
             <div className="truncate text-xs text-muted">
               {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
             </div>
             {selectedLeg && (
               <p className="text-[12px] leading-snug text-ink">
-                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min / dépose {selectedLeg.dropoffMin} min{(selected.stayMin ?? 0) > 0 ? ` / attente ${selected.stayMin} min` : ""} · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
+                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min /
+                dépose {selectedLeg.dropoffMin} min
+                {(selected.stayMin ?? 0) > 0 ? ` / attente ${selected.stayMin} min` : ""} ·{" "}
+                {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
                 {selectedLeg.kmEstimated ? " · estimé" : ""}
               </p>
             )}
@@ -346,13 +354,28 @@ export function PlanningWorkspace() {
               </p>
             )}
           </div>
-          <Button size="sm" className="h-11" variant="secondary" onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}>
+          <Button
+            size="sm"
+            className="h-11"
+            variant="secondary"
+            onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}
+          >
             Heure prévue
           </Button>
-          <Button size="sm" className="h-11" variant="secondary" onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}>
+          <Button
+            size="sm"
+            className="h-11"
+            variant="secondary"
+            onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}
+          >
             Meilleur créneau
           </Button>
-          <Button size="sm" className="h-11" variant="ghost" onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}>
+          <Button
+            size="sm"
+            className="h-11"
+            variant="ghost"
+            onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}
+          >
             Retirer
           </Button>
         </div>
@@ -387,22 +410,39 @@ export function PlanningWorkspace() {
           <div className="mt-4 flex items-center justify-between gap-3">
             <span className="text-sm font-semibold">Zoom</span>
             <div className="flex items-center gap-2">
-              <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line" onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.35))} aria-label="Dézoomer">
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line"
+                onClick={() => setPxPerMin((value) => Math.max(1.05, value - 0.35))}
+                aria-label="Dézoomer"
+              >
                 <Minus size={18} />
               </button>
               <span className="w-12 text-center text-sm font-semibold tabular-nums">{Math.round(pxPerMin * 100)}%</span>
-              <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line" onClick={() => setPxPerMin((value) => Math.min(6, value + 0.35))} aria-label="Zoomer">
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line"
+                onClick={() => setPxPerMin((value) => Math.min(6, value + 0.35))}
+                aria-label="Zoomer"
+              >
                 <Plus size={18} />
               </button>
             </div>
           </div>
           {data.live && (
-            <Button className="mt-4 w-full" variant={data.followNow ? "navy" : "secondary"} onClick={() => data.dispatch({ type: "TOGGLE_FOLLOW" })}>
+            <Button
+              className="mt-4 w-full"
+              variant={data.followNow ? "navy" : "secondary"}
+              onClick={() => data.dispatch({ type: "TOGGLE_FOLLOW" })}
+            >
               {data.followNow ? "Le planning suit l'heure" : "Suivre l'heure"}
             </Button>
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le planning défile si le doigt part avant, et au bord pendant le glisser. Un créneau refusé reste en rose avec la raison. Reposer au même endroit n'est pas une modification. Échap annule. Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
+            Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le
+            planning défile si le doigt part avant, et au bord pendant le glisser. Un créneau refusé reste en rose avec
+            la raison. Reposer au même endroit n'est pas une modification. Échap annule. Les flèches décalent de 5
+            minutes ou changent de véhicule. La pastille marine est l'heure prévue.
           </p>
         </Sheet>
       )}
@@ -470,7 +510,12 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-navy/40 sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-navy/40 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <button type="button" className="absolute inset-0" aria-label="Fermer" onClick={onClose} />
       <div className="relative max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-3xl bg-card p-4 shadow-2xl sm:rounded-3xl">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -495,7 +540,11 @@ function labelFor(
   return patient ? personName(patient) : "Course";
 }
 
-function readHover(x: number, y: number, pxPerMin: number): { hoverCrewId?: string; hoverMinute?: number; overUnassigned: boolean } {
+function readHover(
+  x: number,
+  y: number,
+  pxPerMin: number,
+): { hoverCrewId?: string; hoverMinute?: number; overUnassigned: boolean } {
   const elements = document.elementsFromPoint(x, y);
   for (const element of elements) {
     if (!(element instanceof HTMLElement)) continue;
@@ -532,8 +581,17 @@ function commit(
   }
   if (drag.preview?.ok && drag.hoverCrewId && drag.preview.departMin % 5 === 0) {
     const transport = data.transportById.get(drag.transportId);
-    const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === drag.transportId);
-    if (sameAssignment(transport?.crewId, leg?.departMin ?? transport?.departMin, drag.hoverCrewId, drag.preview.departMin)) {
+    const leg = [...data.schedules.values()]
+      .flatMap((schedule) => schedule.legs)
+      .find((item) => item.transportId === drag.transportId);
+    if (
+      sameAssignment(
+        transport?.crewId,
+        leg?.departMin ?? transport?.departMin,
+        drag.hoverCrewId,
+        drag.preview.departMin,
+      )
+    ) {
       data.dispatch({ type: "SELECT", id: drag.transportId });
       return;
     }

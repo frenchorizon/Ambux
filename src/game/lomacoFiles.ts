@@ -23,7 +23,9 @@ export async function tablesFromBuffer(data: ArrayBuffer, filename: string): Pro
     if (headerIndex < 0) return [];
     const headers = matrix[headerIndex] ?? [];
     const width = headers.length;
-    const rows = matrix.slice(headerIndex + 1).map((row) => Array.from({ length: width }, (_, index) => row[index] ?? ""));
+    const rows = matrix
+      .slice(headerIndex + 1)
+      .map((row) => Array.from({ length: width }, (_, index) => row[index] ?? ""));
     if (!headers.some(Boolean)) return [];
     return [{ file: filename, sheet, headers, rows }];
   });
@@ -34,7 +36,11 @@ export async function sheetsToXlsx(sheets: { name: string; rows: string[][] }[])
   const book = XLSX.utils.book_new();
   const used = new Set<string>();
   for (const sheet of sheets) {
-    let name = sheet.name.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || "Feuille";
+    let name =
+      sheet.name
+        .replace(/[\\/?*[\]:]/g, " ")
+        .trim()
+        .slice(0, 31) || "Feuille";
     while (used.has(name)) name = `${name.slice(0, 28)}-${used.size}`;
     used.add(name);
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(sheet.rows), name);

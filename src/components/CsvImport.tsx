@@ -56,14 +56,23 @@ export function CsvImport() {
         className="mt-2 w-full rounded-xl border border-line p-2 font-mono text-xs"
         placeholder={`${CSV_COLUMNS}\nDOS-1;BERNARD;Luc;2026-10-16;10:30;Rue Saint-Nicolas, Rouen;CHU Charles-Nicolle;fauteuil;aller;;;;test`}
       />
-      <Button type="button" size="sm" variant="secondary" className="mt-2" disabled={busy || !text.trim()} onClick={() => void run(text)}>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        className="mt-2"
+        disabled={busy || !text.trim()}
+        onClick={() => void run(text)}
+      >
         {busy ? "Vérification…" : "Prévisualiser"}
       </Button>
       {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
       {accepted && (
         <div className="mt-3 space-y-3">
           <div>
-            <h4 className="text-sm font-semibold">{accepted.length} ligne{accepted.length > 1 ? "s" : ""} acceptée{accepted.length > 1 ? "s" : ""}</h4>
+            <h4 className="text-sm font-semibold">
+              {accepted.length} ligne{accepted.length > 1 ? "s" : ""} acceptée{accepted.length > 1 ? "s" : ""}
+            </h4>
             <ul className="mt-1 max-h-40 space-y-1 overflow-auto text-xs">
               {accepted.map((row) => (
                 <li key={row.transport.id} className="rounded-lg bg-paper px-2 py-1">
@@ -74,7 +83,9 @@ export function CsvImport() {
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-rose-800">{rejected.length} rejet{rejected.length > 1 ? "s" : ""}</h4>
+            <h4 className="text-sm font-semibold text-rose-800">
+              {rejected.length} rejet{rejected.length > 1 ? "s" : ""}
+            </h4>
             <ul className="mt-1 max-h-40 space-y-1 overflow-auto text-xs">
               {rejected.map((row) => (
                 <li key={`${row.line}-${row.reason}`} className="rounded-lg bg-rose-50 px-2 py-1 text-rose-900">

@@ -103,8 +103,7 @@ export function dayScore(metrics: Metrics, stats: Stats, regulationMs: number, c
   const missedRatio = callCount === 0 ? 0 : stats.callsMissed / callCount;
   const callPts = Math.round(clamp(1 - missedRatio, 0, 1) * 8);
   const total = clamp(metrics.planScore + timePts + callPts, 0, 100);
-  const grade: DayScore["grade"] =
-    total >= 90 ? "A" : total >= 78 ? "B" : total >= 65 ? "C" : total >= 50 ? "D" : "E";
+  const grade: DayScore["grade"] = total >= 90 ? "A" : total >= 78 ? "B" : total >= 65 ? "C" : total >= 50 ? "D" : "E";
   const titles: Record<DayScore["grade"], string> = {
     A: "Régulation d'orfèvre",
     B: "Feuille de route solide",

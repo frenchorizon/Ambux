@@ -2,14 +2,16 @@ import { indexById } from "../lib/collections";
 import { mulberry32 } from "../lib/rng";
 import { pickMealSlot } from "./breaks";
 import { metricsFromSchedules, type Metrics } from "./scoring";
+import { crewOrigin, scheduleCrew, scheduleFleet, type CrewSchedule, type Leg } from "./schedule";
 import {
-  crewOrigin,
-  scheduleCrew,
-  scheduleFleet,
-  type CrewSchedule,
-  type Leg,
-} from "./schedule";
-import { DEFAULT_RULES, type Crew, type Location, type PlanStop, type Rules, type TimeBlock, type Transport } from "./types";
+  DEFAULT_RULES,
+  type Crew,
+  type Location,
+  type PlanStop,
+  type Rules,
+  type TimeBlock,
+  type Transport,
+} from "./types";
 
 export interface PlanResult {
   stops: PlanStop[];

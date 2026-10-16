@@ -38,8 +38,20 @@ export function UnavailabilityControls({ crewId }: { crewId: string }) {
       </div>
       {range && (
         <div className="mt-2 flex gap-2">
-          <input type="time" aria-label="Début d'indisponibilité" value={from} onChange={(event) => setFrom(event.target.value)} className={field} />
-          <input type="time" aria-label="Fin d'indisponibilité" value={to} onChange={(event) => setTo(event.target.value)} className={field} />
+          <input
+            type="time"
+            aria-label="Début d'indisponibilité"
+            value={from}
+            onChange={(event) => setFrom(event.target.value)}
+            className={field}
+          />
+          <input
+            type="time"
+            aria-label="Fin d'indisponibilité"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+            className={field}
+          />
         </div>
       )}
       <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
@@ -62,7 +74,12 @@ export function ReoptButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button type="button" variant="secondary" className="mt-2 h-11 w-full whitespace-normal px-3 text-center leading-tight" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="secondary"
+        className="mt-2 h-11 w-full whitespace-normal px-3 text-center leading-tight"
+        onClick={() => setOpen(true)}
+      >
         Régénérer sans tout bouleverser
       </Button>
       <ReoptDialog key={open ? "ouvert" : "ferme"} open={open} onClose={() => setOpen(false)} />
@@ -155,7 +172,9 @@ export function CourseSheet({ transportId, onClose }: { transportId: string; onC
   const transport = data.transportById.get(transportId);
   const patient = transport ? data.patientById.get(transport.patientId) : undefined;
   const [crewId, setCrewId] = useState(transport?.crewId ?? data.crews[0]?.id ?? "");
-  const [time, setTime] = useState(formatMin(transport?.departMin ?? transport?.appointmentMin ?? transport?.windowStart ?? DAY_START));
+  const [time, setTime] = useState(
+    formatMin(transport?.departMin ?? transport?.appointmentMin ?? transport?.windowStart ?? DAY_START),
+  );
   if (!transport) return null;
   const crew = data.crews.find((item) => item.id === crewId);
   const requested = parseClock(time);
@@ -176,7 +195,12 @@ export function CourseSheet({ transportId, onClose }: { transportId: string; onC
       : null;
 
   return (
-    <Modal open onClose={onClose} title={patient ? personName(patient) : "Course"} description="Épingler, ou poser un créneau et voir les courses suivantes.">
+    <Modal
+      open
+      onClose={onClose}
+      title={patient ? personName(patient) : "Course"}
+      description="Épingler, ou poser un créneau et voir les courses suivantes."
+    >
       <Button
         className="h-11 w-full"
         variant={transport.pinned ? "navy" : "secondary"}
@@ -196,7 +220,13 @@ export function CourseSheet({ transportId, onClose }: { transportId: string; onC
       </label>
       <label className="mt-2 block text-sm font-semibold">
         Départ
-        <input type="time" aria-label="Heure de départ" value={time} onChange={(event) => setTime(event.target.value)} className={`${field} font-normal`} />
+        <input
+          type="time"
+          aria-label="Heure de départ"
+          value={time}
+          onChange={(event) => setTime(event.target.value)}
+          className={`${field} font-normal`}
+        />
       </label>
       <div className="mt-3 rounded-xl bg-paper px-3 py-2 text-sm">
         {!plan && <p>Indiquez une heure.</p>}
@@ -218,7 +248,13 @@ export function CourseSheet({ transportId, onClose }: { transportId: string; onC
         disabled={!plan?.ok || !crew || requested == null}
         onClick={() => {
           if (!crew || requested == null) return;
-          data.dispatch({ type: "ASSIGN", transportId: transport.id, crewId: crew.id, departMin: requested, ripple: true });
+          data.dispatch({
+            type: "ASSIGN",
+            transportId: transport.id,
+            crewId: crew.id,
+            departMin: requested,
+            ripple: true,
+          });
         }}
       >
         Poser ce créneau
@@ -288,9 +324,27 @@ export function LateCallForm({ onDone }: { onDone: () => void }) {
         onDone();
       }}
     >
-      <input required aria-label="Nom du patient" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Nom" className={field} />
-      <input type="time" aria-label="Heure de prise en charge" value={time} onChange={(event) => setTime(event.target.value)} className={field} />
-      <select aria-label="Prise en charge" value={fromId} onChange={(event) => setFromId(event.target.value)} className={field}>
+      <input
+        required
+        aria-label="Nom du patient"
+        value={lastName}
+        onChange={(event) => setLastName(event.target.value)}
+        placeholder="Nom"
+        className={field}
+      />
+      <input
+        type="time"
+        aria-label="Heure de prise en charge"
+        value={time}
+        onChange={(event) => setTime(event.target.value)}
+        className={field}
+      />
+      <select
+        aria-label="Prise en charge"
+        value={fromId}
+        onChange={(event) => setFromId(event.target.value)}
+        className={field}
+      >
         {fromOptions.map((location) => (
           <option key={location.id} value={location.id}>
             {location.short}
@@ -304,7 +358,12 @@ export function LateCallForm({ onDone }: { onDone: () => void }) {
           </option>
         ))}
       </select>
-      <select aria-label="Position" value={posture} onChange={(event) => setPosture(event.target.value as Posture)} className={field}>
+      <select
+        aria-label="Position"
+        value={posture}
+        onChange={(event) => setPosture(event.target.value as Posture)}
+        className={field}
+      >
         <option value="assis">Assis</option>
         <option value="fauteuil">Fauteuil</option>
         <option value="allonge">Allongé</option>
@@ -316,7 +375,10 @@ export function LateCallForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function labelOf(data: { patientById: { get(id: string): { firstName: string; lastName: string } | undefined } }, transport: Transport): string {
+function labelOf(
+  data: { patientById: { get(id: string): { firstName: string; lastName: string } | undefined } },
+  transport: Transport,
+): string {
   const patient = data.patientById.get(transport.patientId);
   return patient ? personName(patient) : transport.dossier;
 }

@@ -29,9 +29,7 @@ export function Modal({
         >
           <Dialog.Title className="text-lg font-semibold text-ink">{title}</Dialog.Title>
           {description ? (
-            <Dialog.Description className="mt-1 text-sm leading-relaxed text-muted">
-              {description}
-            </Dialog.Description>
+            <Dialog.Description className="mt-1 text-sm leading-relaxed text-muted">{description}</Dialog.Description>
           ) : (
             <Dialog.Description className="sr-only">{title}</Dialog.Description>
           )}

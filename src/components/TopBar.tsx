@@ -1,4 +1,17 @@
-import { CircleHelp, Ellipsis, FileText, Moon, Pause, Play, Redo2, Search, Send, Sparkles, Sun, Undo2 } from "lucide-react";
+import {
+  CircleHelp,
+  Ellipsis,
+  FileText,
+  Moon,
+  Pause,
+  Play,
+  Redo2,
+  Search,
+  Send,
+  Sparkles,
+  Sun,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
@@ -24,7 +37,12 @@ export function TopBar() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLButtonElement) return;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLButtonElement
+      )
+        return;
       if (!live) return;
       if (event.code === "Space") {
         event.preventDefault();
@@ -42,7 +60,9 @@ export function TopBar() {
       <div className="flex h-14 items-center gap-1.5 px-2">
         <div className="flex min-w-0 flex-1 items-center gap-1 px-1">
           <label className="relative inline-flex h-11 min-w-0 shrink items-center rounded-lg px-1">
-            <span className="truncate text-xs font-semibold sm:text-sm">{narrow ? shortDate(missionIso) : missionLabel}</span>
+            <span className="truncate text-xs font-semibold sm:text-sm">
+              {narrow ? shortDate(missionIso) : missionLabel}
+            </span>
             <input
               type="date"
               aria-label="Date de mission"
@@ -54,10 +74,22 @@ export function TopBar() {
             />
           </label>
           {!narrow && <DraftVersion />}
-          <button type="button" className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30" aria-label="Annuler" disabled={!canUndo} onClick={undo}>
+          <button
+            type="button"
+            className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30"
+            aria-label="Annuler"
+            disabled={!canUndo}
+            onClick={undo}
+          >
             <Undo2 size={16} />
           </button>
-          <button type="button" className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30" aria-label="Rétablir" disabled={!canRedo} onClick={redo}>
+          <button
+            type="button"
+            className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30"
+            aria-label="Rétablir"
+            disabled={!canRedo}
+            onClick={redo}
+          >
             <Redo2 size={16} />
           </button>
         </div>
@@ -89,7 +121,12 @@ export function TopBar() {
               aria-label={`À contrôler, ${reviewCount}`}
               onClick={() => setTimelineSheet("review")}
             >
-              <span className={cn("rounded-full px-2 py-0.5 text-xs", reviewCount ? "bg-amber-100 text-amber-900" : "bg-ice text-muted")}>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs",
+                  reviewCount ? "bg-amber-100 text-amber-900" : "bg-ice text-muted",
+                )}
+              >
                 {reviewCount}
               </span>
             </button>
@@ -125,11 +162,46 @@ export function TopBar() {
       )}
       {menu && (
         <div className="absolute right-2 top-14 z-50 w-64 rounded-2xl border border-line bg-card p-1 shadow-xl">
-          <MenuButton icon={<Undo2 size={16} />} label="Annuler" onClick={() => { setMenu(false); undo(); }} />
-          <MenuButton icon={<Redo2 size={16} />} label="Rétablir" onClick={() => { setMenu(false); redo(); }} />
-          <MenuButton icon={<FileText size={16} />} label="Importer" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "import" }); }} />
-          <MenuButton icon={<FileText size={16} />} label="Feuilles de route" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "sheets" }); }} />
-          <MenuButton icon={<Send size={16} />} label="Exporter le CSV" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "lomaco" }); }} />
+          <MenuButton
+            icon={<Undo2 size={16} />}
+            label="Annuler"
+            onClick={() => {
+              setMenu(false);
+              undo();
+            }}
+          />
+          <MenuButton
+            icon={<Redo2 size={16} />}
+            label="Rétablir"
+            onClick={() => {
+              setMenu(false);
+              redo();
+            }}
+          />
+          <MenuButton
+            icon={<FileText size={16} />}
+            label="Importer"
+            onClick={() => {
+              setMenu(false);
+              dispatch({ type: "OPEN_MODAL", modal: "import" });
+            }}
+          />
+          <MenuButton
+            icon={<FileText size={16} />}
+            label="Feuilles de route"
+            onClick={() => {
+              setMenu(false);
+              dispatch({ type: "OPEN_MODAL", modal: "sheets" });
+            }}
+          />
+          <MenuButton
+            icon={<Send size={16} />}
+            label="Exporter le CSV"
+            onClick={() => {
+              setMenu(false);
+              dispatch({ type: "OPEN_MODAL", modal: "lomaco" });
+            }}
+          />
           <MenuButton label="Feuille équipage" onClick={() => go(dispatch, setMenu, "feuille")} />
           <MenuButton label="Demande de demain" onClick={() => go(dispatch, setMenu, "tomorrow")} />
           <MenuButton label="Équipages" onClick={() => go(dispatch, setMenu, "crews")} />
@@ -139,22 +211,68 @@ export function TopBar() {
             <>
               <div className="flex gap-1 px-2 py-1">
                 {SPEEDS.map((speed) => (
-                  <button key={speed} type="button" className={cn("h-10 flex-1 rounded-lg text-sm font-semibold", clock.speed === speed ? "bg-navy text-white" : "bg-ice")} onClick={() => dispatch({ type: "SET_SPEED", speed })}>
+                  <button
+                    key={speed}
+                    type="button"
+                    className={cn(
+                      "h-10 flex-1 rounded-lg text-sm font-semibold",
+                      clock.speed === speed ? "bg-navy text-white" : "bg-ice",
+                    )}
+                    onClick={() => dispatch({ type: "SET_SPEED", speed })}
+                  >
                     ×{speed}
                   </button>
                 ))}
               </div>
               {phase === "playing" && (
-                <MenuButton label="Clôturer la journée" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "closeDay" }); }} />
+                <MenuButton
+                  label="Clôturer la journée"
+                  onClick={() => {
+                    setMenu(false);
+                    dispatch({ type: "OPEN_MODAL", modal: "closeDay" });
+                  }}
+                />
               )}
-              <MenuButton label="Quitter la simulation" onClick={() => { setMenu(false); dispatch({ type: "SET_LIVE", live: false }); }} />
+              <MenuButton
+                label="Quitter la simulation"
+                onClick={() => {
+                  setMenu(false);
+                  dispatch({ type: "SET_LIVE", live: false });
+                }}
+              />
             </>
           ) : (
-            <MenuButton label="Simuler la journée" onClick={() => { setMenu(false); dispatch({ type: "SET_LIVE", live: true }); }} />
+            <MenuButton
+              label="Simuler la journée"
+              onClick={() => {
+                setMenu(false);
+                dispatch({ type: "SET_LIVE", live: true });
+              }}
+            />
           )}
-          <MenuButton icon={dark ? <Sun size={16} /> : <Moon size={16} />} label={dark ? "Mode clair" : "Mode sombre"} onClick={() => { setMenu(false); toggleTheme(); }} />
-          <MenuButton icon={<CircleHelp size={16} />} label="Aide" onClick={() => { setMenu(false); dispatch({ type: "OPEN_MODAL", modal: "help" }); }} />
-          <MenuButton label="Retour à l'accueil" onClick={() => { setMenu(false); dispatch({ type: "REPLAY" }); }} />
+          <MenuButton
+            icon={dark ? <Sun size={16} /> : <Moon size={16} />}
+            label={dark ? "Mode clair" : "Mode sombre"}
+            onClick={() => {
+              setMenu(false);
+              toggleTheme();
+            }}
+          />
+          <MenuButton
+            icon={<CircleHelp size={16} />}
+            label="Aide"
+            onClick={() => {
+              setMenu(false);
+              dispatch({ type: "OPEN_MODAL", modal: "help" });
+            }}
+          />
+          <MenuButton
+            label="Retour à l'accueil"
+            onClick={() => {
+              setMenu(false);
+              dispatch({ type: "REPLAY" });
+            }}
+          />
         </div>
       )}
     </header>
@@ -163,7 +281,11 @@ export function TopBar() {
 
 function MenuButton({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
   return (
-    <button type="button" className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium hover:bg-ice" onClick={onClick}>
+    <button
+      type="button"
+      className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium hover:bg-ice"
+      onClick={onClick}
+    >
       {icon}
       {label}
     </button>

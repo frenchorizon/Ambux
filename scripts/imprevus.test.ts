@@ -5,8 +5,24 @@ import { recordHistory } from "../src/game/history.ts";
 import { initialState, reducer, type Action } from "../src/game/reducer.ts";
 import { DAY_END, DAY_START, type Crew, type GameState, type Location, type Transport } from "../src/game/types.ts";
 
-const depot: Location = { id: "depot", name: "Depot", short: "Depot", kind: "depot", lat: 49.41, lng: 1.05, city: "Rouen" };
-const home: Location = { id: "home", name: "Maison", short: "Maison", kind: "domicile", lat: 49.44, lng: 1.08, city: "Rouen" };
+const depot: Location = {
+  id: "depot",
+  name: "Depot",
+  short: "Depot",
+  kind: "depot",
+  lat: 49.41,
+  lng: 1.05,
+  city: "Rouen",
+};
+const home: Location = {
+  id: "home",
+  name: "Maison",
+  short: "Maison",
+  kind: "domicile",
+  lat: 49.44,
+  lng: 1.08,
+  city: "Rouen",
+};
 const chu: Location = { id: "chu", name: "Chu", short: "Chu", kind: "chu", lat: 49.445, lng: 1.1, city: "Rouen" };
 const locations = [depot, home, chu];
 
@@ -104,11 +120,21 @@ describe("indisponibilité", () => {
     assert.equal(byId(next, "am").crewId, undefined);
     assert.equal(byId(next, "pm").crewId, "c1");
     assert.equal(byId(next, "pm").departMin, 15 * 60);
-    assert.equal(next.blocks.some((block) => block.kind === "panne" && block.crewId === "c1"), true);
+    assert.equal(
+      next.blocks.some((block) => block.kind === "panne" && block.crewId === "c1"),
+      true,
+    );
   });
 
   it("replace les courses sur un autre équipage sans les épingler", () => {
-    const morning = trip({ id: "am", dossier: "DOS-AM", crewId: "c1", departMin: 8 * 60, appointmentMin: 8 * 60, pinned: true });
+    const morning = trip({
+      id: "am",
+      dossier: "DOS-AM",
+      crewId: "c1",
+      departMin: 8 * 60,
+      appointmentMin: 8 * 60,
+      pinned: true,
+    });
     const state = playing({ transports: [morning] });
     const next = reducer(state, {
       type: "SET_UNAVAILABILITY",
@@ -132,7 +158,13 @@ describe("appel tardif", () => {
     const appointment = 19 * 60;
     const next = reducer(state, {
       type: "ADD_LATE",
-      transport: trip({ id: "late", dossier: "DOS-LATE", appointmentMin: appointment, windowStart: appointment - 20, windowEnd: appointment + 20 }),
+      transport: trip({
+        id: "late",
+        dossier: "DOS-LATE",
+        appointmentMin: appointment,
+        windowStart: appointment - 20,
+        windowEnd: appointment + 20,
+      }),
       patient: { id: "p1", firstName: "", lastName: "Leroy", phone: "", birthYear: 1954, addressId: home.id },
     });
     const late = byId(next, "late");
@@ -140,7 +172,10 @@ describe("appel tardif", () => {
     assert.equal(late.pinned, true);
     assert.ok((late.departMin ?? 0) >= 18 * 60);
     assert.match(next.toast?.message ?? "", /Course ajoutée sur/);
-    assert.equal(next.patients.some((patient) => patient.lastName === "Leroy"), true);
+    assert.equal(
+      next.patients.some((patient) => patient.lastName === "Leroy"),
+      true,
+    );
   });
 
   it("reste dans À placer si aucun créneau, et s'annule en une étape", () => {
@@ -170,16 +205,32 @@ describe("appel tardif", () => {
     assert.equal(byId(next, "late").crewId, undefined);
     assert.match(next.toast?.message ?? "", /À placer/);
     const undone = reducer(next, { type: "HYDRATE", state: past[0]!, label: "Modification annulée." });
-    assert.equal(undone.transports.some((item) => item.id === "late"), false);
+    assert.equal(
+      undone.transports.some((item) => item.id === "late"),
+      false,
+    );
     assert.equal(past.length, 1);
   });
 });
 
 describe("régénérer sans tout bouleverser", () => {
   it("garde l'épinglé et le stable, et ne place que le non affecté", () => {
-    const pinned = trip({ id: "pin", dossier: "DOS-PIN", crewId: "c1", departMin: 8 * 60, appointmentMin: 8 * 60, pinned: true });
+    const pinned = trip({
+      id: "pin",
+      dossier: "DOS-PIN",
+      crewId: "c1",
+      departMin: 8 * 60,
+      appointmentMin: 8 * 60,
+      pinned: true,
+    });
     const stable = trip({ id: "stay", dossier: "DOS-STAY", crewId: "c1", departMin: 11 * 60, appointmentMin: 11 * 60 });
-    const loose = trip({ id: "loose", dossier: "DOS-LOOSE", appointmentMin: 15 * 60, windowStart: 15 * 60 - 20, windowEnd: 15 * 60 + 20 });
+    const loose = trip({
+      id: "loose",
+      dossier: "DOS-LOOSE",
+      appointmentMin: 15 * 60,
+      windowStart: 15 * 60 - 20,
+      windowEnd: 15 * 60 + 20,
+    });
     const state = playing({ transports: [pinned, stable, loose] });
     const plan = reoptimizeStable({
       crews: state.crews,
@@ -198,14 +249,23 @@ describe("régénérer sans tout bouleverser", () => {
     assert.equal(keptStay.crewId, "c1");
     assert.equal(keptStay.departMin, 11 * 60);
     assert.equal(placed.crewId != null, true);
-    assert.deepEqual(plan.changes.map((change) => change.transportId), ["loose"]);
+    assert.deepEqual(
+      plan.changes.map((change) => change.transportId),
+      ["loose"],
+    );
     assert.equal(plan.lockedIds.includes("pin"), true);
     assert.equal(plan.lockedIds.includes("stay"), true);
   });
 
   it("n'écrit qu'une étape d'annulation", () => {
     const pinned = trip({ id: "pin", crewId: "c1", departMin: 8 * 60, appointmentMin: 8 * 60, pinned: true });
-    const loose = trip({ id: "loose", dossier: "DOS-LOOSE", appointmentMin: 16 * 60, windowStart: 16 * 60 - 20, windowEnd: 16 * 60 + 20 });
+    const loose = trip({
+      id: "loose",
+      dossier: "DOS-LOOSE",
+      appointmentMin: 16 * 60,
+      windowStart: 16 * 60 - 20,
+      windowEnd: 16 * 60 + 20,
+    });
     const state = playing({ transports: [pinned, loose] });
     const action: Action = { type: "APPLY_REOPT" };
     const past = recordHistory([], [], state, action.type).past;
@@ -310,7 +370,10 @@ describe("épingle et conséquences", () => {
     });
     assert.equal(preview.ok, true);
     if (!preview.ok) return;
-    assert.equal(preview.shifts.some((shift) => shift.transportId === "b"), false);
+    assert.equal(
+      preview.shifts.some((shift) => shift.transportId === "b"),
+      false,
+    );
   });
 
   it("refuse de bouger une course suivante épinglée, sans rien déplacer", () => {
@@ -326,7 +389,13 @@ describe("épingle et conséquences", () => {
       pinned: true,
     });
     const state = playing({ transports: [first, second] });
-    const next = reducer(state, { type: "ASSIGN", transportId: "a", crewId: "c1", departMin: 8 * 60 + 20, ripple: true });
+    const next = reducer(state, {
+      type: "ASSIGN",
+      transportId: "a",
+      crewId: "c1",
+      departMin: 8 * 60 + 20,
+      ripple: true,
+    });
     assert.match(next.toast?.message ?? "", /épinglée/);
     assert.equal(byId(next, "a").departMin, 8 * 60);
     assert.equal(byId(next, "b").departMin, 8 * 60 + 15);

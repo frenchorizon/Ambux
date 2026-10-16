@@ -1,0 +1,10 @@
+---
+description: Interface minimale, mobile d'abord
+globs: src/components/**/*.tsx
+alwaysApply: false
+---
+
+- D'abord le téléphone. Les cibles tactiles restent d'au moins 44 px. Le planning doit encore défiler.
+- Pas de deuxième geste de glisser sur la carte ni dans À placer.
+- Texte réel, en français, court. Pas de lorem.
+- Prévoir l'état vide, l'attente et l'erreur quand l'écran charge des données.

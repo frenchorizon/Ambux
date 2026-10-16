@@ -32,14 +32,16 @@ export function MapPanel() {
         <Basemap />
         <ResizeMap />
         <Sites />
-        {crews.map((crew) =>
-          shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null,
-        )}
+        {crews.map((crew) => (shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null))}
       </MapContainer>
       <div className="absolute bottom-2 left-2 right-16 z-[500] rounded-xl bg-white/95 px-3 py-2 shadow">
         <div className="mb-1 flex items-center justify-between text-[11px] text-muted">
-          <span>{live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}</span>
-          <span>{source === "osrm" ? "Routes OSRM" : source === "estimate" ? "Tracés estimés" : "Calcul des routes…"}</span>
+          <span>
+            {live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}
+          </span>
+          <span>
+            {source === "osrm" ? "Routes OSRM" : source === "estimate" ? "Tracés estimés" : "Calcul des routes…"}
+          </span>
         </div>
         {!live && (
           <input

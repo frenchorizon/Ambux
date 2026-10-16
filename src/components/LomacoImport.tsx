@@ -130,12 +130,23 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
               }}
             />
           </label>
-          <p className="text-xs text-muted">Un ou plusieurs fichiers. Courses, équipages et véhicules peuvent être dans des feuilles différentes.</p>
+          <p className="text-xs text-muted">
+            Un ou plusieurs fichiers. Courses, équipages et véhicules peuvent être dans des feuilles différentes.
+          </p>
           <ul className="max-h-40 space-y-1 overflow-auto text-sm">
             {sheets.map((sheet, index) => (
-              <li key={`${sheet.file}-${sheet.sheet}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
-                <span className="min-w-0 truncate">{sheet.file} · {sheet.sheet}</span>
-                <button type="button" className="text-xs font-semibold text-rose-700" onClick={() => setSheets((current) => current.filter((_, item) => item !== index))}>
+              <li
+                key={`${sheet.file}-${sheet.sheet}-${index}`}
+                className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2"
+              >
+                <span className="min-w-0 truncate">
+                  {sheet.file} · {sheet.sheet}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-rose-700"
+                  onClick={() => setSheets((current) => current.filter((_, item) => item !== index))}
+                >
                   Retirer
                 </button>
               </li>
@@ -167,7 +178,9 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                 }}
               >
                 {profiles.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -205,7 +218,9 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
             {sheets.map((sheet, sheetIndex) => (
               <section key={`${sheet.file}-${sheet.sheet}`} className="rounded-xl border border-line p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{sheet.file} · {sheet.sheet}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {sheet.file} · {sheet.sheet}
+                  </h3>
                   <label className="text-xs font-semibold">
                     Contenu
                     <select
@@ -214,11 +229,17 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                       value={sheet.kind}
                       onChange={(event) => {
                         const kind = event.target.value as SheetKind;
-                        setSheets((current) => current.map((item, index) => index === sheetIndex ? { ...item, kind, kindLocked: true } : item));
+                        setSheets((current) =>
+                          current.map((item, index) =>
+                            index === sheetIndex ? { ...item, kind, kindLocked: true } : item,
+                          ),
+                        );
                       }}
                     >
                       {KINDS.map((kind) => (
-                        <option key={kind.id} value={kind.id}>{kind.label}</option>
+                        <option key={kind.id} value={kind.id}>
+                          {kind.label}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -226,23 +247,29 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                 <ul className="mt-2 space-y-1">
                   {sheet.headers.map((header, column) => (
                     <li key={`${header}-${column}`} className="grid grid-cols-[1fr_auto] items-center gap-2 text-sm">
-                      <span className="truncate" title={header || "Colonne vide"}>{header || "Colonne vide"}</span>
+                      <span className="truncate" title={header || "Colonne vide"}>
+                        {header || "Colonne vide"}
+                      </span>
                       <select
                         aria-label={`Colonne ${header || column + 1}`}
                         className="h-9 max-w-[11rem] rounded-lg border border-line bg-white px-2 text-xs"
                         value={sheet.fields[column] ?? "ignore"}
                         onChange={(event) => {
                           const field = event.target.value as ImportField;
-                          setSheets((current) => current.map((item, index) => {
-                            if (index !== sheetIndex) return item;
-                            const fields = item.fields.slice();
-                            fields[column] = field;
-                            return { ...item, fields, kind: item.kindLocked ? item.kind : detectKind(fields) };
-                          }));
+                          setSheets((current) =>
+                            current.map((item, index) => {
+                              if (index !== sheetIndex) return item;
+                              const fields = item.fields.slice();
+                              fields[column] = field;
+                              return { ...item, fields, kind: item.kindLocked ? item.kind : detectKind(fields) };
+                            }),
+                          );
                         }}
                       >
                         {IMPORT_FIELD_LABELS.map((field) => (
-                          <option key={field.id} value={field.id}>{field.label}</option>
+                          <option key={field.id} value={field.id}>
+                            {field.label}
+                          </option>
                         ))}
                       </select>
                     </li>
@@ -252,8 +279,12 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
             ))}
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setStep("fichiers")}>Retour</Button>
-            <Button type="button" disabled={busy} onClick={() => void runPreview()}>{busy ? "Lecture…" : "Aperçu"}</Button>
+            <Button type="button" variant="secondary" onClick={() => setStep("fichiers")}>
+              Retour
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void runPreview()}>
+              {busy ? "Lecture…" : "Aperçu"}
+            </Button>
           </div>
         </div>
       )}
@@ -261,13 +292,19 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
       {step === "apercu" && preview && counts && (
         <div className="space-y-3">
           <p className="text-sm">
-            {counts.courses} course{counts.courses > 1 ? "s" : ""} · {counts.vehicles} véhicule{counts.vehicles > 1 ? "s" : ""} · {counts.crews} équipage{counts.crews > 1 ? "s" : ""} · {counts.rejected} rejet{counts.rejected > 1 ? "s" : ""}
+            {counts.courses} course{counts.courses > 1 ? "s" : ""} · {counts.vehicles} véhicule
+            {counts.vehicles > 1 ? "s" : ""} · {counts.crews} équipage{counts.crews > 1 ? "s" : ""} · {counts.rejected}{" "}
+            rejet{counts.rejected > 1 ? "s" : ""}
           </p>
-          <PreviewList title="Acceptées" empty="Aucune ligne retenue." items={[
-            ...preview.transports.map((row) => `L${row.line} · ${row.summary}`),
-            ...preview.vehicles.map((row) => `L${row.line} · ${row.summary}`),
-            ...preview.crews.map((row) => `L${row.line} · ${row.summary}`),
-          ]} />
+          <PreviewList
+            title="Acceptées"
+            empty="Aucune ligne retenue."
+            items={[
+              ...preview.transports.map((row) => `L${row.line} · ${row.summary}`),
+              ...preview.vehicles.map((row) => `L${row.line} · ${row.summary}`),
+              ...preview.crews.map((row) => `L${row.line} · ${row.summary}`),
+            ]}
+          />
           <PreviewList
             title="Rejets"
             tone="bad"
@@ -275,7 +312,9 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
             items={preview.rejected.map((row) => `${row.file} · ${row.sheet} · L${row.line} · ${row.reason}`)}
           />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setStep("colonnes")}>Retour</Button>
+            <Button type="button" variant="secondary" onClick={() => setStep("colonnes")}>
+              Retour
+            </Button>
             <Button
               type="button"
               disabled={!counts.courses && !counts.vehicles && !counts.crews}
@@ -283,13 +322,23 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                 if (preview.vehicles.length) {
                   data.dispatch({
                     type: "IMPORT_VEHICLES",
-                    rows: preview.vehicles.map((row) => ({ plate: row.plate, vehicleType: row.vehicleType, name: row.name, vehicleCode: row.vehicleCode })),
+                    rows: preview.vehicles.map((row) => ({
+                      plate: row.plate,
+                      vehicleType: row.vehicleType,
+                      name: row.name,
+                      vehicleCode: row.vehicleCode,
+                    })),
                   });
                 }
                 if (preview.crews.length) {
                   data.dispatch({
                     type: "IMPORT_CREWS",
-                    rows: preview.crews.map((row) => ({ plate: row.plate, driver: row.driver, mate: row.mate, dea: row.dea })),
+                    rows: preview.crews.map((row) => ({
+                      plate: row.plate,
+                      driver: row.driver,
+                      mate: row.mate,
+                      dea: row.dea,
+                    })),
                   });
                 }
                 if (preview.transports.length) {
@@ -324,7 +373,12 @@ function PreviewList({ title, items, empty, tone }: { title: string; items: stri
       <ul className="mt-1 max-h-36 space-y-1 overflow-auto text-xs">
         {items.length === 0 && <li className="text-muted">{empty}</li>}
         {items.map((item, index) => (
-          <li key={`${index}-${item}`} className={tone === "bad" ? "rounded-lg bg-rose-50 px-2 py-1 text-rose-900" : "rounded-lg bg-paper px-2 py-1"}>
+          <li
+            key={`${index}-${item}`}
+            className={
+              tone === "bad" ? "rounded-lg bg-rose-50 px-2 py-1 text-rose-900" : "rounded-lg bg-paper px-2 py-1"
+            }
+          >
             {item}
           </li>
         ))}

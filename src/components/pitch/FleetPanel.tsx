@@ -19,7 +19,8 @@ export function FleetPanel() {
     <div className="rounded-3xl border border-line bg-card p-6 shadow-sm">
       <h2 className="text-xl font-semibold">Ouvrir une démo chiffrée</h2>
       <p className="mt-1 text-sm text-muted">
-        Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h, charge max 15 / 25.
+        Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h,
+        charge max 15 / 25.
       </p>
       <Stepper label="Ambulances" value={amb} min={1} max={Math.min(16, MAX_VEHICLES - vsl)} onChange={setAmb} />
       <Stepper label="VSL" value={vsl} min={1} max={Math.min(16, MAX_VEHICLES - amb)} onChange={setVsl} />
@@ -121,11 +122,21 @@ function Stepper({
     <div className="mt-4 flex items-center justify-between">
       <span className="text-sm font-semibold">{label}</span>
       <div className="flex items-center gap-2">
-        <button type="button" className="h-8 w-8 rounded-lg border border-line" onClick={() => onChange(Math.max(min, value - 1))} aria-label={`Moins de ${label}`}>
+        <button
+          type="button"
+          className="h-8 w-8 rounded-lg border border-line"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          aria-label={`Moins de ${label}`}
+        >
           −
         </button>
         <span className="w-6 text-center font-semibold tabular-nums">{value}</span>
-        <button type="button" className="h-8 w-8 rounded-lg border border-line" onClick={() => onChange(Math.min(max, value + 1))} aria-label={`Plus de ${label}`}>
+        <button
+          type="button"
+          className="h-8 w-8 rounded-lg border border-line"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          aria-label={`Plus de ${label}`}
+        >
           +
         </button>
       </div>

@@ -91,10 +91,26 @@ export function DPad({
     >
       <div className="dpad-cross">
         <div className="dpad-glow" aria-hidden />
-        <button type="button" className="dpad-btn dpad-up" aria-label="Véhicule précédent" onPointerDown={press("up")} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(event) => event.preventDefault()}>
+        <button
+          type="button"
+          className="dpad-btn dpad-up"
+          aria-label="Véhicule précédent"
+          onPointerDown={press("up")}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+          onContextMenu={(event) => event.preventDefault()}
+        >
           <Triangle dir="up" />
         </button>
-        <button type="button" className="dpad-btn dpad-left" aria-label="5 minutes plus tôt" onPointerDown={press("left")} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(event) => event.preventDefault()}>
+        <button
+          type="button"
+          className="dpad-btn dpad-left"
+          aria-label="5 minutes plus tôt"
+          onPointerDown={press("left")}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+          onContextMenu={(event) => event.preventDefault()}
+        >
           <Triangle dir="left" />
         </button>
         <div
@@ -106,13 +122,34 @@ export function DPad({
           onPointerUp={onHandleUp}
           onPointerCancel={onHandleUp}
         />
-        <button type="button" className="dpad-btn dpad-right" aria-label="5 minutes plus tard" onPointerDown={press("right")} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(event) => event.preventDefault()}>
+        <button
+          type="button"
+          className="dpad-btn dpad-right"
+          aria-label="5 minutes plus tard"
+          onPointerDown={press("right")}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+          onContextMenu={(event) => event.preventDefault()}
+        >
           <Triangle dir="right" />
         </button>
-        <button type="button" className="dpad-btn dpad-down" aria-label="Véhicule suivant" onPointerDown={press("down")} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(event) => event.preventDefault()}>
+        <button
+          type="button"
+          className="dpad-btn dpad-down"
+          aria-label="Véhicule suivant"
+          onPointerDown={press("down")}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+          onContextMenu={(event) => event.preventDefault()}
+        >
           <Triangle dir="down" />
         </button>
-        <button type="button" className="dpad-close" aria-label="Fermer la croix" onClick={() => setHiddenFor(selectedId)}>
+        <button
+          type="button"
+          className="dpad-close"
+          aria-label="Fermer la croix"
+          onClick={() => setHiddenFor(selectedId)}
+        >
           ×
         </button>
       </div>

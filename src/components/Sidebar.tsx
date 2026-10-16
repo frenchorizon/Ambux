@@ -67,7 +67,14 @@ export function NavList({ onPick }: { onPick?: () => void }) {
   return (
     <nav className="flex flex-col gap-1">
       {PRIMARY.map((item) => (
-        <NavButton key={item.id} item={item} active={view === item.id} pending={item.id === "gantt" ? pending : 0} onPick={onPick} dispatch={dispatch} />
+        <NavButton
+          key={item.id}
+          item={item}
+          active={view === item.id}
+          pending={item.id === "gantt" ? pending : 0}
+          onPick={onPick}
+          dispatch={dispatch}
+        />
       ))}
       <button
         type="button"
@@ -80,7 +87,14 @@ export function NavList({ onPick }: { onPick?: () => void }) {
       </button>
       {more &&
         MORE.map((item) => (
-          <NavButton key={item.id} item={item} active={view === item.id} pending={0} onPick={onPick} dispatch={dispatch} />
+          <NavButton
+            key={item.id}
+            item={item}
+            active={view === item.id}
+            pending={0}
+            onPick={onPick}
+            dispatch={dispatch}
+          />
         ))}
     </nav>
   );
@@ -114,7 +128,9 @@ function NavButton({
     >
       <span className={cn(active ? "text-sky-200" : "text-sky-100/70")}>{item.icon}</span>
       <span className="flex-1">{item.label}</span>
-      {pending > 0 && <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>}
+      {pending > 0 && (
+        <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>
+      )}
     </button>
   );
 }
@@ -148,7 +164,10 @@ export function BottomNav() {
   const { view, dispatch } = useData();
   if (!narrow) return null;
   return (
-    <nav className="grid shrink-0 grid-cols-5 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Navigation">
+    <nav
+      className="grid shrink-0 grid-cols-5 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]"
+      aria-label="Navigation"
+    >
       {PRIMARY.map((item) => {
         const active = view === item.id;
         return (

@@ -28,7 +28,9 @@ export function GameDialogs() {
         <LomacoExportPanel />
         <ul className="mb-4 space-y-1 text-sm">
           {data.crews.map((crew) => {
-            const count = data.transports.filter((transport) => transport.crewId === crew.id && !transport.cancelled).length;
+            const count = data.transports.filter(
+              (transport) => transport.crewId === crew.id && !transport.cancelled,
+            ).length;
             return (
               <li key={crew.id} className="flex justify-between rounded-lg bg-paper px-3 py-2">
                 <span>
@@ -90,8 +92,14 @@ export function GameDialogs() {
         <ol className="list-decimal space-y-2 pl-4 text-sm leading-relaxed">
           <li>Importer lit les exports Lomaco (xlsx, xls, csv), puis Générer le planning pose les tournées.</li>
           <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
-          <li>Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en orange. Revenir à l'heure prévue recale le rendez-vous.</li>
-          <li>Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est signalée sur la ligne.</li>
+          <li>
+            Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en
+            orange. Revenir à l'heure prévue recale le rendez-vous.
+          </li>
+          <li>
+            Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est
+            signalée sur la ligne.
+          </li>
           <li>Exporter vers Lomaco écrit une feuille par équipage (CSV, Excel ou PDF).</li>
           <li>Simuler la journée rejoue l'horloge et les appels, sans remplacer le planning.</li>
         </ol>
@@ -157,13 +165,21 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
                 </tr>
               </thead>
               <tbody>
-                <Compare label="Km à vide" yours={formatKm(data.metrics.emptyKm)} algo={formatKm(result.metrics.emptyKm)} />
+                <Compare
+                  label="Km à vide"
+                  yours={formatKm(data.metrics.emptyKm)}
+                  algo={formatKm(result.metrics.emptyKm)}
+                />
                 <Compare
                   label="Transports planifiés"
                   yours={`${data.metrics.placed} / ${data.metrics.total}`}
                   algo={`${result.metrics.placed} / ${result.metrics.total}`}
                 />
-                <Compare label="Hors créneau" yours={String(data.metrics.lateCount)} algo={String(result.metrics.lateCount)} />
+                <Compare
+                  label="Hors créneau"
+                  yours={String(data.metrics.lateCount)}
+                  algo={String(result.metrics.lateCount)}
+                />
                 <Compare
                   label="À traiter"
                   yours={String(data.issues.filter((issue) => issue.kind === "non_place").length)}

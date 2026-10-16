@@ -12,10 +12,16 @@ export function CompaniesView() {
   const vsl = crews.filter((crew) => crew.vehicleType === "vsl").length;
   return (
     <div className="h-full overflow-auto p-4">
-      <PageTitle title="Groupes de sociétés" text="Une holding, trois exploitations. Aujourd'hui vous préparez Rouen." />
+      <PageTitle
+        title="Groupes de sociétés"
+        text="Une holding, trois exploitations. Aujourd'hui vous préparez Rouen."
+      />
       <div className="grid gap-3 md:grid-cols-2">
         {COMPANIES.map((company) => (
-          <article key={company.id} className={`rounded-2xl border p-4 shadow-sm ${company.active ? "border-brand bg-white" : "border-line bg-white/70"}`}>
+          <article
+            key={company.id}
+            className={`rounded-2xl border p-4 shadow-sm ${company.active ? "border-brand bg-white" : "border-line bg-white/70"}`}
+          >
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-semibold">{company.name}</h3>
               <Badge className={company.active ? "bg-brand text-white" : "bg-paper text-muted"}>{company.role}</Badge>
@@ -23,7 +29,9 @@ export function CompaniesView() {
             <p className="mt-1 text-xs text-muted">{company.city}</p>
             <p className="mt-2 text-sm leading-relaxed">{company.blurb}</p>
             {company.active && (
-              <p className="mt-3 text-sm font-medium">{amb} ambulances · {vsl} VSL au planning</p>
+              <p className="mt-3 text-sm font-medium">
+                {amb} ambulances · {vsl} VSL au planning
+              </p>
             )}
           </article>
         ))}
@@ -45,7 +53,10 @@ export function LomacoView() {
   const data = useData();
   return (
     <div className="h-full overflow-auto p-4">
-      <PageTitle title="Export du planning" text="Le fichier CSV reprend le planning retenu, y compris les courses à traiter. Il n'y a pas d'envoi fictif." />
+      <PageTitle
+        title="Export du planning"
+        text="Le fichier CSV reprend le planning retenu, y compris les courses à traiter. Il n'y a pas d'envoi fictif."
+      />
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <article className="rounded-2xl border border-line bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">Statut</div>

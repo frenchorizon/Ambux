@@ -11,7 +11,7 @@ export function Toaster() {
   }, [toast, dispatch]);
   if (!toast) return null;
   return (
-    <div className="fixed left-1/2 top-3 z-[75] w-[min(100%-1.5rem,440px)] -translate-x-1/2">
+    <div className="pointer-events-none fixed left-1/2 top-3 z-[75] w-[min(100%-1.5rem,440px)] -translate-x-1/2">
       <div
         className={cn(
           "rounded-xl px-3 py-2 text-sm font-medium shadow-lg",

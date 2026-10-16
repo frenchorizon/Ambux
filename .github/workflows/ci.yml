@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npx tsx --test scripts/rules.test.ts scripts/schedulerRules.test.ts scripts/lomaco.test.ts scripts/lomacoSheet.test.ts scripts/ganttSegments.test.ts scripts/imprevus.test.ts
+      - run: npm run build
+      - run: npx playwright install --with-deps chrome
+      - run: npm run e2e

@@ -85,9 +85,7 @@ export function toleranceOf(transport: Transport): number {
 export function jumpBreaks(blocks: readonly TimeBlock[], crewId: string, time: number): number {
   let cursor = time;
   for (let guard = 0; guard < 8; guard++) {
-    const hit = blocks.find(
-      (block) => block.crewId === crewId && cursor >= block.startMin && cursor < block.endMin,
-    );
+    const hit = blocks.find((block) => block.crewId === crewId && cursor >= block.startMin && cursor < block.endMin);
     if (!hit) return cursor;
     cursor = hit.endMin;
   }
@@ -100,14 +98,15 @@ export function legHitsBlock(
   start: number,
   end: number,
 ): TimeBlock | undefined {
-  return blocks.find(
-    (block) => block.crewId === crewId && start < block.endMin - 0.05 && end > block.startMin + 0.05,
-  );
+  return blocks.find((block) => block.crewId === crewId && start < block.endMin - 0.05 && end > block.startMin + 0.05);
 }
 
 export function serviceDurations(crew: Crew, rules: Rules = DEFAULT_RULES): { pecMin: number; dropoffMin: number } {
   return {
-    pecMin: crew.vehicleType === "ambulance" ? (rules.pecAmbMin ?? DEFAULT_RULES.pecAmbMin) : (rules.pecVslMin ?? DEFAULT_RULES.pecVslMin),
+    pecMin:
+      crew.vehicleType === "ambulance"
+        ? (rules.pecAmbMin ?? DEFAULT_RULES.pecAmbMin)
+        : (rules.pecVslMin ?? DEFAULT_RULES.pecVslMin),
     dropoffMin: rules.dropoffMin ?? DEFAULT_RULES.dropoffMin,
   };
 }
@@ -584,11 +583,7 @@ export function suggestCompact(
         continue;
       }
       cursor = jumpBreaks(blocks, crew.id, cursor);
-      let depart = jumpBreaks(
-        blocks,
-        crew.id,
-        Math.max(cursor, smartDepart(cursor, transport, locId, locMap)),
-      );
+      let depart = jumpBreaks(blocks, crew.id, Math.max(cursor, smartDepart(cursor, transport, locId, locMap)));
       let next = simulateLeg(transport, depart, locId, crew, locMap, rules);
       const hit = legHitsBlock(blocks, crew.id, next.departMin, next.endMin);
       if (hit) {

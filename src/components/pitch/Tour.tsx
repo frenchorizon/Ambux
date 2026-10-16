@@ -44,8 +44,6 @@ export function Tour({ onDone }: { onDone: () => void }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // finish ne dépend que de props stables pour Échap.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDone]);
 
   useLayoutEffect(() => {
@@ -84,7 +82,12 @@ export function Tour({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-labelledby="tour-title">
-      <button type="button" className="absolute inset-0 bg-navy/50" aria-label="Passer la visite" onClick={() => finish(false)} />
+      <button
+        type="button"
+        className="absolute inset-0 bg-navy/50"
+        aria-label="Passer la visite"
+        onClick={() => finish(false)}
+      />
       {box && (
         <div
           className="pointer-events-none absolute rounded-xl shadow-[0_0_0_9999px_rgba(7,19,31,0.55)] ring-2 ring-white"
@@ -98,7 +101,9 @@ export function Tour({ onDone }: { onDone: () => void }) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
           Visite {step + 1} / {STEPS.length}
         </p>
-        <h2 id="tour-title" className="mt-1 text-lg font-semibold">{current.title}</h2>
+        <h2 id="tour-title" className="mt-1 text-lg font-semibold">
+          {current.title}
+        </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">{current.body}</p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={() => finish(false)}>

@@ -2,15 +2,7 @@ import { mealIssue } from "./breaks";
 import type { CrewSchedule } from "./schedule";
 import type { Crew, Patient, Rules, TimeBlock, Transport } from "./types";
 
-export type IssueKind =
-  | "non_place"
-  | "hors_creneau"
-  | "repas"
-  | "serie"
-  | "dea"
-  | "charge"
-  | "amplitude"
-  | "km_estime";
+export type IssueKind = "non_place" | "hors_creneau" | "repas" | "serie" | "dea" | "charge" | "amplitude" | "km_estime";
 
 export interface Issue {
   id: string;
@@ -152,9 +144,12 @@ export function reviewIssues(input: {
     if (aller && retour && aller.crewId && retour.crewId) {
       const allerLeg = legOf(input.schedules, aller.id);
       const retourLeg = legOf(input.schedules, retour.id);
-      const expected =
-        retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
-      if (retourLeg && expected != null && Math.abs(retourLeg.arrivePickup - expected) > input.rules.toleranceMin + 0.5) {
+      const expected = retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
+      if (
+        retourLeg &&
+        expected != null &&
+        Math.abs(retourLeg.arrivePickup - expected) > input.rules.toleranceMin + 0.5
+      ) {
         issues.push({
           id: `ser-gap-${seriesId}`,
           kind: "serie",

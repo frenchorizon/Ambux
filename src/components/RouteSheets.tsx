@@ -70,11 +70,22 @@ export function RouteSheetsDialog({ open }: { open: boolean }) {
               <p className="text-xs text-muted">
                 {crew.driver}
                 {crew.mate ? ` · ${crew.mate}` : ""}
-                {crew.dea ? " · DEA à bord" : crew.vehicleType === "ambulance" ? " · DEA non enregistré" : " · conducteur seul"}
+                {crew.dea
+                  ? " · DEA à bord"
+                  : crew.vehicleType === "ambulance"
+                    ? " · DEA non enregistré"
+                    : " · conducteur seul"}
                 {meal ? ` · repas ${formatMin(meal.startMin)}–${formatMin(meal.endMin)}` : " · repas non posé"}
               </p>
-              <p className="mt-1 text-xs text-muted">{legs.length} courses · retour dépôt {formatKm(schedule?.returnKm ?? 0, 1)}</p>
-              <Button variant="secondary" size="sm" className="mt-2" onClick={() => printLomacoSheets(data, crew.id, clock.nowMin)}>
+              <p className="mt-1 text-xs text-muted">
+                {legs.length} courses · retour dépôt {formatKm(schedule?.returnKm ?? 0, 1)}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-2"
+                onClick={() => printLomacoSheets(data, crew.id, clock.nowMin)}
+              >
                 Imprimer {crew.code}
               </Button>
             </article>

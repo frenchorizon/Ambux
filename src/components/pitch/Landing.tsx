@@ -41,17 +41,28 @@ export function Landing() {
   const [ask, setAsk] = useState(false);
   return (
     <div className="min-h-dvh bg-paper text-ink">
-      <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2">
+      <a
+        href="#contenu"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2"
+      >
         Aller au contenu
       </a>
       <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Logo />
           <nav className="ml-auto hidden items-center gap-5 text-sm font-semibold text-muted sm:flex">
-            <a href="#mesure" className="hover:text-ink">Mesure</a>
-            <a href="#calculateur" className="hover:text-ink">Calculateur</a>
-            <a href="#tarifs" className="hover:text-ink">Tarifs</a>
-            <a href="#demo" className="hover:text-ink">Démo</a>
+            <a href="#mesure" className="hover:text-ink">
+              Mesure
+            </a>
+            <a href="#calculateur" className="hover:text-ink">
+              Calculateur
+            </a>
+            <a href="#tarifs" className="hover:text-ink">
+              Tarifs
+            </a>
+            <a href="#demo" className="hover:text-ink">
+              Démo
+            </a>
           </nav>
           <button
             type="button"
@@ -67,12 +78,15 @@ export function Landing() {
       <main id="contenu">
         <section className="mx-auto grid max-w-6xl items-end gap-10 px-4 py-14 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Transport sanitaire programmé · France</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
+              Transport sanitaire programmé · France
+            </p>
             <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] text-navy sm:text-6xl">
               Le planning de demain, déjà posé.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Ambux prépare les feuilles du lendemain pour une société d'ambulance et de VSL. Votre logiciel de régulation — Lomaco ou un autre — reste en place. Ambux lui rend un CSV, il ne le remplace pas.
+              Ambux prépare les feuilles du lendemain pour une société d'ambulance et de VSL. Votre logiciel de
+              régulation — Lomaco ou un autre — reste en place. Ambux lui rend un CSV, il ne le remplace pas.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Button size="lg" onClick={() => oneClick(dispatch)}>
@@ -83,11 +97,14 @@ export function Landing() {
               </Button>
             </div>
             <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
-              Démonstration au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable.
+              Démonstration au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
+              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable.
             </p>
           </div>
           <aside className="rounded-3xl border border-line bg-card p-5 shadow-sm" id="mesure">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Jeu fictif 3 ambulances + 3 VSL</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              Jeu fictif 3 ambulances + 3 VSL
+            </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Stat k="Courses posées" v="66 / 67" />
               <Stat k="Hors créneau" v="0" />
@@ -95,16 +112,30 @@ export function Landing() {
               <Stat k="Km à vide, Ambux" v="292" />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              Dispatch naïf : premier équipage compatible, mêmes règles dures. Calcul hors ligne en 0,6 s, distances estimées, pas le réseau routier. Avec OSRM les kilomètres bougent. Une journée plus pleine peut ne presque rien gagner en kilomètres : les courses qui ne tiennent pas restent dans « À contrôler ».
+              Dispatch naïf : premier équipage compatible, mêmes règles dures. Calcul hors ligne en 0,6 s, distances
+              estimées, pas le réseau routier. Avec OSRM les kilomètres bougent. Une journée plus pleine peut ne presque
+              rien gagner en kilomètres : les courses qui ne tiennent pas restent dans « À contrôler ».
             </p>
           </aside>
         </section>
 
         <section className="border-y border-line bg-card">
           <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-3">
-            <Step n="01" title="La demande de demain" text="Vous importez le CSV que votre logiciel sait déjà sortir, ou vous saisissez les courses. Chaque ligne douteuse est refusée, avec le motif." />
-            <Step n="02" title="Un planning qui dit non" text="Tolérance, pause repas, amplitude de 11 h, charge max, DEA sur l'ambulance. Ce qui ne passe pas n'est pas maquillé en succès." />
-            <Step n="03" title="La feuille, puis le CSV" text="Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter. La boucle s'arrête là, dans cette démo." />
+            <Step
+              n="01"
+              title="La demande de demain"
+              text="Vous importez le CSV que votre logiciel sait déjà sortir, ou vous saisissez les courses. Chaque ligne douteuse est refusée, avec le motif."
+            />
+            <Step
+              n="02"
+              title="Un planning qui dit non"
+              text="Tolérance, pause repas, amplitude de 11 h, charge max, DEA sur l'ambulance. Ce qui ne passe pas n'est pas maquillé en succès."
+            />
+            <Step
+              n="03"
+              title="La feuille, puis le CSV"
+              text="Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter. La boucle s'arrête là, dans cette démo."
+            />
           </div>
         </section>
 
@@ -116,7 +147,9 @@ export function Landing() {
           <div className="mx-auto max-w-6xl px-4 py-16">
             <h2 className="font-display text-3xl text-navy sm:text-4xl">Une grille pour en parler</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Prix indicatifs, hors taxes, non contractuels. Ils décrivent un compagnon du logiciel que vous avez déjà : préparation du J+1 et export. Ils ne décrivent pas une licence Lomaco, ni un hébergement de données de santé.
+              Prix indicatifs, hors taxes, non contractuels. Ils décrivent un compagnon du logiciel que vous avez déjà :
+              préparation du J+1 et export. Ils ne décrivent pas une licence Lomaco, ni un hébergement de données de
+              santé.
             </p>
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {TIERS.map((tier) => (
@@ -140,11 +173,16 @@ export function Landing() {
             <div>
               <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder le geste</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Un clic charge la journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous pouvez aussi choisir la flotte. Le brouillon reste dans ce navigateur.
+                Un clic charge la journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous pouvez
+                aussi choisir la flotte. Le brouillon reste dans ce navigateur.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" onClick={() => oneClick(dispatch)}>Planning de demain en 1 clic</Button>
-                <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>Demander une démo</Button>
+                <Button size="lg" onClick={() => oneClick(dispatch)}>
+                  Planning de demain en 1 clic
+                </Button>
+                <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
+                  Demander une démo
+                </Button>
               </div>
             </div>
             <FleetPanel />
@@ -152,7 +190,8 @@ export function Landing() {
         </section>
       </main>
       <footer className="border-t border-line px-4 py-8 text-center text-xs text-muted">
-        Ambux · démonstration · {MISSION_DATE} · patients fictifs · compagnon possible d'un logiciel de régulation, pas son remplaçant.
+        Ambux · démonstration · {MISSION_DATE} · patients fictifs · compagnon possible d'un logiciel de régulation, pas
+        son remplaçant.
       </footer>
       {ask && <DemoAsk onClose={() => setAsk(false)} />}
     </div>
@@ -186,7 +225,12 @@ function Step({ n, title, text }: { n: string; title: string; text: string }) {
 function DemoAsk({ onClose }: { onClose: () => void }) {
   const [sent, setSent] = useState(false);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy/50 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="demo-title">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-navy/50 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="demo-title"
+    >
       <form
         className="w-full max-w-md rounded-3xl bg-card p-6 shadow-xl"
         onSubmit={(event) => {
@@ -209,9 +253,12 @@ function DemoAsk({ onClose }: { onClose: () => void }) {
           setSent(true);
         }}
       >
-        <h2 id="demo-title" className="font-display text-3xl text-navy">Demander une démo</h2>
+        <h2 id="demo-title" className="font-display text-3xl text-navy">
+          Demander une démo
+        </h2>
         <p className="mt-2 text-sm text-muted">
-          Le formulaire reste dans ce navigateur. Aucun e-mail n'est envoyé, aucun commercial n'est prévenu. C'est le geste, pas une prise de contact.
+          Le formulaire reste dans ce navigateur. Aucun e-mail n'est envoyé, aucun commercial n'est prévenu. C'est le
+          geste, pas une prise de contact.
         </p>
         {sent ? (
           <p className="mt-4 text-sm font-semibold" role="status">
@@ -219,14 +266,44 @@ function DemoAsk({ onClose }: { onClose: () => void }) {
           </p>
         ) : (
           <div className="mt-4 grid gap-2">
-            <input required name="societe" placeholder="Société" aria-label="Société" className="h-11 rounded-xl border border-line bg-paper px-3" />
-            <input required name="ville" placeholder="Ville" aria-label="Ville" className="h-11 rounded-xl border border-line bg-paper px-3" />
-            <input required name="vehicules" type="number" min={1} max={80} placeholder="Nombre de véhicules" aria-label="Nombre de véhicules" className="h-11 rounded-xl border border-line bg-paper px-3" />
-            <input required name="email" type="email" placeholder="E-mail" aria-label="E-mail" className="h-11 rounded-xl border border-line bg-paper px-3" />
+            <input
+              required
+              name="societe"
+              placeholder="Société"
+              aria-label="Société"
+              className="h-11 rounded-xl border border-line bg-paper px-3"
+            />
+            <input
+              required
+              name="ville"
+              placeholder="Ville"
+              aria-label="Ville"
+              className="h-11 rounded-xl border border-line bg-paper px-3"
+            />
+            <input
+              required
+              name="vehicules"
+              type="number"
+              min={1}
+              max={80}
+              placeholder="Nombre de véhicules"
+              aria-label="Nombre de véhicules"
+              className="h-11 rounded-xl border border-line bg-paper px-3"
+            />
+            <input
+              required
+              name="email"
+              type="email"
+              placeholder="E-mail"
+              aria-label="E-mail"
+              className="h-11 rounded-xl border border-line bg-paper px-3"
+            />
           </div>
         )}
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Fermer</Button>
+          <Button variant="secondary" type="button" onClick={onClose}>
+            Fermer
+          </Button>
           {!sent && <Button type="submit">Enregistrer ici</Button>}
         </div>
       </form>

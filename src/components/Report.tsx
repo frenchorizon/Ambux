@@ -36,7 +36,9 @@ export function Report() {
 
   const late = data.transports
     .map((transport) => {
-      const leg = [...data.schedules.values()].flatMap((schedule) => schedule.legs).find((item) => item.transportId === transport.id);
+      const leg = [...data.schedules.values()]
+        .flatMap((schedule) => schedule.legs)
+        .find((item) => item.transportId === transport.id);
       return leg && leg.lateMin >= 5 ? { transport, late: leg.lateMin } : null;
     })
     .filter((item): item is { transport: (typeof data.transports)[number]; late: number } => Boolean(item))
@@ -51,14 +53,28 @@ export function Report() {
           <div>
             <h1 className="text-3xl font-semibold">Journée clôturée</h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              {data.issues.length ? `${data.issues.length} point${data.issues.length > 1 ? "s" : ""} à contrôler.` : "Rien à contrôler sur la feuille engagée."}
+              {data.issues.length
+                ? `${data.issues.length} point${data.issues.length > 1 ? "s" : ""} à contrôler.`
+                : "Rien à contrôler sur la feuille engagée."}
             </p>
           </div>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Km à vide" value={formatKm(data.metrics.emptyKm)} detail={`départ ${formatKm(data.stats.baselineEmptyKm)}`} />
-          <Stat label="Transports planifiés" value={`${data.metrics.placed} / ${data.metrics.total}`} detail={`au poste : ${data.stats.baselinePlaced}`} />
-          <Stat label="Hors créneau" value={String(data.metrics.lateCount)} detail={`${Math.round(data.metrics.lateMin)} min au-delà de la tolérance`} />
+          <Stat
+            label="Km à vide"
+            value={formatKm(data.metrics.emptyKm)}
+            detail={`départ ${formatKm(data.stats.baselineEmptyKm)}`}
+          />
+          <Stat
+            label="Transports planifiés"
+            value={`${data.metrics.placed} / ${data.metrics.total}`}
+            detail={`au poste : ${data.stats.baselinePlaced}`}
+          />
+          <Stat
+            label="Hors créneau"
+            value={String(data.metrics.lateCount)}
+            detail={`${Math.round(data.metrics.lateMin)} min au-delà de la tolérance`}
+          />
           <Stat label="Temps de régulation" value={formatRegulation(clock.regulationMs)} detail="horloge réelle" />
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -71,7 +87,11 @@ export function Report() {
               <table className="mt-3 w-full text-sm">
                 <tbody>
                   <Row label="Km à vide" a={formatKm(data.metrics.emptyKm)} b={formatKm(bench.metrics.emptyKm)} />
-                  <Row label="Taux de remplissage" a={formatPct(data.metrics.fillRate)} b={formatPct(bench.metrics.fillRate)} />
+                  <Row
+                    label="Taux de remplissage"
+                    a={formatPct(data.metrics.fillRate)}
+                    b={formatPct(bench.metrics.fillRate)}
+                  />
                   <Row label="Courses placées" a={String(data.metrics.placed)} b={String(bench.metrics.placed)} />
                   <Row label="Hors créneau" a={String(data.metrics.lateCount)} b={String(bench.metrics.lateCount)} />
                 </tbody>
@@ -89,8 +109,13 @@ export function Report() {
             <h2 className="font-semibold">Ce que la journée a demandé</h2>
             <ul className="mt-3 space-y-1 text-sm">
               <li>Mouvements manuels : {data.stats.moves}</li>
-              <li>Optimiseur consulté : {data.stats.optimizerUsed ? "oui" : "non"}{data.stats.optimizerApplied ? ", plan appliqué" : ""}</li>
-              <li>Appels traités : {data.stats.callsHandled} · manqués : {data.stats.callsMissed}</li>
+              <li>
+                Optimiseur consulté : {data.stats.optimizerUsed ? "oui" : "non"}
+                {data.stats.optimizerApplied ? ", plan appliqué" : ""}
+              </li>
+              <li>
+                Appels traités : {data.stats.callsHandled} · manqués : {data.stats.callsMissed}
+              </li>
               <li>Exports CSV : {data.stats.lomacoSends}</li>
               <li>Remplissage : {formatPct(data.metrics.fillRate)}</li>
             </ul>
@@ -112,8 +137,12 @@ export function Report() {
           </article>
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Button onClick={() => data.dispatch({ type: "REVIEW", view: "tomorrow" })}>Préparer le planning de demain</Button>
-          <Button variant="secondary" onClick={() => data.dispatch({ type: "REPLAY" })}>Rejouer la journée</Button>
+          <Button onClick={() => data.dispatch({ type: "REVIEW", view: "tomorrow" })}>
+            Préparer le planning de demain
+          </Button>
+          <Button variant="secondary" onClick={() => data.dispatch({ type: "REPLAY" })}>
+            Rejouer la journée
+          </Button>
         </div>
         <p className="mt-3 text-xs text-muted">{MISSION_DATE} · la simulation ne remplace pas le planning exporté.</p>
       </div>

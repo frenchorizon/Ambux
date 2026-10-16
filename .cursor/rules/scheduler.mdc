@@ -1,0 +1,11 @@
+---
+description: Invariants du solveur
+globs: src/game/**/*.ts
+alwaysApply: false
+---
+
+- Un déplacement utilisateur (glisser, croix, flèches) se cale sur 5 minutes. Le générateur de démo ne se recale pas tout seul.
+- Une course déjà calée qui est poussée par la simulation ancrée ou par l'annulation reste sur un multiple de 5 minutes à l'écran.
+- Amplitude 11 h, repas entre 11:00 et 14:30 (30 min), charge max 15 ambulance / 25 VSL, tolérance 20 min, DEA obligatoire en ambulance.
+- Un allongé ne va pas en VSL. Une course épinglée ne bouge pas sans un geste explicite.
+- `npm run check` et les tests de `scripts/` doivent rester verts.
