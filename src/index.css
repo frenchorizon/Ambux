@@ -136,6 +136,8 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+  /* Le cadre et les libellés laissent passer le tap. Seuls les boutons captent. */
+  pointer-events: none;
 }
 
 @media (max-width: 1024px) {
@@ -176,6 +178,7 @@ body {
   display: grid;
   width: 56px;
   height: 56px;
+  pointer-events: auto;
   place-items: center;
   border: 0;
   border-radius: 999px;
@@ -229,6 +232,7 @@ body {
   border-radius: 999px;
   cursor: grab;
   touch-action: none;
+  pointer-events: auto;
 }
 
 .dpad-close {
@@ -237,6 +241,7 @@ body {
   right: 0;
   width: 36px;
   height: 36px;
+  pointer-events: auto;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.82);
@@ -258,6 +263,8 @@ body {
   font-size: 13px;
   line-height: 1.35;
   box-shadow: 0 4px 14px rgba(12, 46, 77, 0.12);
+  /* Le libellé ne doit pas masquer une course : les boutons de la croix restent cliquables. */
+  pointer-events: none;
 }
 
 .dpad-times {
@@ -402,6 +409,10 @@ html.dark textarea::placeholder {
   .glass {
     --glass-blur: 14px;
     border-radius: var(--radius-card);
+  }
+
+  nav.glass {
+    border-radius: 0;
   }
 }
 

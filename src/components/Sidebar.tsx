@@ -132,7 +132,7 @@ export function BottomNav() {
             data-tour={item.id === "carte" ? "carte" : undefined}
             onClick={() => dispatch({ type: "SET_VIEW", view: item.id })}
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[13px] font-semibold",
+              "flex min-h-14 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-0.5 text-[13px] font-semibold leading-none",
               active ? "text-brand" : "text-muted",
             )}
           >
