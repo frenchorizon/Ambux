@@ -9,10 +9,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-brand text-white hover:bg-brand-2",
-        secondary: "border border-line bg-white text-ink hover:bg-ice",
-        ghost: "text-ink hover:bg-black/5",
+        secondary: "border border-line bg-card text-ink hover:bg-ice",
+        ghost: "text-ink hover:bg-ice",
         navy: "bg-navy text-white hover:bg-navy-2",
-        danger: "bg-rose-600 text-white hover:bg-rose-700",
+        danger: "bg-alert-strong text-white hover:opacity-90",
       },
       size: {
         default: "h-10 px-3.5 text-sm",

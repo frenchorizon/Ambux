@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 const KEY = "ambux.theme";
-let dark = false;
+let dark = true;
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -11,9 +11,9 @@ function emit(): void {
 
 export function initTheme(): void {
   try {
-    dark = localStorage.getItem(KEY) === "dark";
+    dark = localStorage.getItem(KEY) !== "light";
   } catch {
-    dark = false;
+    dark = true;
   }
   document.documentElement.classList.toggle("dark", dark);
 }
@@ -39,6 +39,6 @@ export function useDark(): boolean {
       return () => listeners.delete(callback);
     },
     () => dark,
-    () => false,
+    () => true,
   );
 }

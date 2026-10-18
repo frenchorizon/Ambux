@@ -41,14 +41,14 @@ export function Landing() {
   const dark = useDark();
   const [ask, setAsk] = useState(false);
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="min-h-dvh bg-transparent text-ink">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2"
       >
         Aller au contenu
       </a>
-      <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
+      <header className="glass sticky top-0 z-40 border-b border-line/80">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Logo />
           <nav className="ml-auto hidden items-center gap-5 text-sm font-semibold text-muted sm:flex">
@@ -82,7 +82,7 @@ export function Landing() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
               Transport sanitaire programmé · France
             </p>
-            <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] text-navy sm:text-6xl">
+            <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] font-light text-navy sm:text-6xl">
               Le planning de demain, déjà posé.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
@@ -102,7 +102,7 @@ export function Landing() {
               réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable.
             </p>
           </div>
-          <aside className="rounded-3xl border border-line bg-card p-5 shadow-sm" id="mesure">
+          <aside className="glass p-5 shadow-sm" id="mesure">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Jeu fictif 3 ambulances + 3 VSL
             </p>
@@ -154,9 +154,9 @@ export function Landing() {
             </p>
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {TIERS.map((tier) => (
-                <article key={tier.name} className="flex flex-col rounded-3xl border border-line bg-paper p-5">
+                <article key={tier.name} className="glass flex flex-col p-5">
                   <h3 className="font-semibold">{tier.name}</h3>
-                  <p className="mt-3 font-display text-4xl text-navy">{tier.price}</p>
+                  <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
                   <p className="text-xs text-muted">{tier.unit}</p>
                   <ul className="mt-4 space-y-2 text-sm">
                     {tier.points.map((point) => (
@@ -207,8 +207,8 @@ function oneClick(dispatch: ReturnType<typeof useData>["dispatch"]): void {
 function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div className="rounded-2xl bg-paper px-3 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{k}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{v}</div>
+      <div className="text-[13px] font-medium uppercase tracking-wide text-muted">{k}</div>
+      <div className="mt-1 text-2xl font-light tracking-tight tabular-nums">{v}</div>
     </div>
   );
 }
@@ -233,7 +233,7 @@ function DemoAsk({ onClose }: { onClose: () => void }) {
       aria-labelledby="demo-title"
     >
       <form
-        className="w-full max-w-md rounded-3xl bg-card p-6 shadow-xl"
+        className="glass w-full max-w-md p-6 shadow-xl"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);

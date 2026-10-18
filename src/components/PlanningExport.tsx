@@ -85,7 +85,7 @@ export function PlanningExport() {
           </li>
         ))}
       </ul>
-      {!matrix.rangeOk && <p className="mt-2 text-xs text-rose-700">La date de début est après la date de fin.</p>}
+      {!matrix.rangeOk && <p className="mt-2 text-xs text-alert">La date de début est après la date de fin.</p>}
       <p className="mt-2 text-xs text-muted">
         {matrix.rangeOk
           ? `${matrix.rows.length} course${matrix.rows.length > 1 ? "s" : ""} dans la période.`

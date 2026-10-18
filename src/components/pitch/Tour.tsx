@@ -95,10 +95,10 @@ export function Tour({ onDone }: { onDone: () => void }) {
         />
       )}
       <div
-        className="absolute z-10 w-[min(360px,calc(100%-24px))] rounded-2xl border border-line bg-card p-4 text-ink shadow-xl"
+        className="glass absolute z-10 w-[min(360px,calc(100%-24px))] p-4 text-ink shadow-xl"
         style={box ? { top: cardTop, left: cardLeft } : { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+        <p className="text-[13px] font-medium uppercase tracking-[0.16em] text-muted">
           Visite {step + 1} / {STEPS.length}
         </p>
         <h2 id="tour-title" className="mt-1 text-lg font-semibold">

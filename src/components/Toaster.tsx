@@ -15,9 +15,9 @@ export function Toaster() {
       <div
         className={cn(
           "rounded-xl px-3 py-2 text-sm font-medium shadow-lg",
-          toast.tone === "ok" && "bg-emerald-700 text-white",
-          toast.tone === "warn" && "bg-amber-600 text-white",
-          toast.tone === "bad" && "bg-rose-700 text-white",
+          toast.tone === "ok" && "bg-gain-strong text-white",
+          toast.tone === "warn" && "bg-alert-strong text-white",
+          toast.tone === "bad" && "bg-alert-strong text-white",
           toast.tone === "info" && "bg-navy text-white",
         )}
       >

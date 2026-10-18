@@ -2,6 +2,16 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.1 — 2026-10-18
+
+Branche `feat/refonte-lot1-jetons`. Lot 1 de la refonte « verre nuit » : jetons et fond. Pas de tag. Le mode clair de la v0.8.0 reste dans Réglages, rubrique Affichage.
+
+- Thème nuit par défaut, de `#0A1622` à `#0F2A3A`, avec un dégradé et un voile sombre. Pas de photo. Pas de `background-attachment: fixed`.
+- Jetons de verre et classe `.glass` : fond `rgba(255,255,255,.06)`, bord `rgba(255,255,255,.12)`, rayon 16 à 20 px, flou 20 px (14 px sous 1024 px), préfixe `-webkit-backdrop-filter`, repli opaque si le flou n'est pas disponible. Le flou reste sur les panneaux statiques (coque, accueil, synthèse, réglages). Pas de flou sur les lignes ou les blocs du Gantt, ni sur la carte.
+- Plus Jakarta Sans, graisse 300 pour les titres et les grands chiffres. Fraunces sort de l'interface. Texte secondaire à 68 % de blanc. Plancher de 13 px.
+- Un rôle par couleur : teal `#2EC4B6` (primaire, en service), vert pour les gains, corail pour les alertes, jaune doux pour Repas.
+- Les feuilles imprimées et le PDF Lomaco restent en noir et blanc, dans leur propre document.
+
 ## v0.8.0 — 2026-10-16
 
 Tag `v0.8.0`. Branches `feat/v0.8-gantt-tactile`, `qa/journee-regulateur`, `feat/imprevus`, `ux/donnees-menu`, `feat/import-export`.

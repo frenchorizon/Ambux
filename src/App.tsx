@@ -55,7 +55,7 @@ function RoutingBanner() {
   const source = matrixSource();
   if (source !== "estimate") return null;
   return (
-    <div className="bg-rose-700 px-3 py-1.5 text-sm font-semibold text-white">
+    <div className="bg-alert-strong px-3 py-1.5 text-sm font-semibold text-white">
       Routage dégradé : durées et kilomètres estimés, non opposables. Les courses concernées portent la mention « km
       estimé ».
     </div>
@@ -80,7 +80,7 @@ function Dashboard() {
   }, [cinema, dispatch, tour]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-paper text-ink">
+    <div className="flex h-dvh overflow-hidden bg-transparent text-ink">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         {phase === "review" && (

@@ -2,7 +2,8 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  /* Fraunces sort de l'interface : les titres restent en Jakarta, graisse légère. */
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --color-ink: #12283c;
   --color-muted: #5c7285;
   --color-navy: #0c2e4d;
@@ -13,6 +14,22 @@
   --color-paper: #eef3f8;
   --color-line: #d5e2ee;
   --color-card: #ffffff;
+  --color-night-0: #0a1622;
+  --color-night-1: #0f2a3a;
+  --color-teal: #2ec4b6;
+  --color-gain: #166534;
+  --color-gain-bright: #4ade80;
+  --color-gain-strong: #166534;
+  --color-alert: #9f1239;
+  --color-alert-strong: #9f1239;
+  --color-alert-soft: #fff1f2;
+  --color-coral: #ff6b6b;
+  --color-meal: #f6d58e;
+  --color-meal-ink: #1a1408;
+  --color-empty: #a78bfa;
+  --color-text: #ffffff;
+  --color-text-2: rgba(255, 255, 255, 0.68);
+  --color-text-3: rgba(255, 255, 255, 0.55);
 }
 
 html,
@@ -24,6 +41,7 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-size: 13px;
   background: var(--color-paper);
   color: var(--color-ink);
 }
@@ -237,7 +255,7 @@ body {
   background: rgba(255, 255, 255, 0.82);
   padding: 6px 8px;
   text-align: right;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
   box-shadow: 0 4px 14px rgba(12, 46, 77, 0.12);
 }
@@ -260,7 +278,7 @@ body {
 }
 
 .leaflet-control-attribution {
-  font-size: 10px;
+  font-size: 13px;
   max-width: 70%;
 }
 
@@ -279,30 +297,180 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: -0.03em;
   font-optical-sizing: auto;
+}
+
+/* Plancher de lecture : 13 px. Les utilitaires plus petits sont relevés. */
+.text-xs,
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 13px;
+}
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 20px;
+  --glass-fallback: rgba(15, 42, 58, 0.92);
+  --radius-panel: 20px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --bg-overlay: linear-gradient(180deg, rgba(10, 22, 34, 0.72), rgba(10, 22, 34, 0.88));
+}
+
+/* Mode clair : le verre redevient une carte opaque lisible. */
+html:not(.dark) {
+  color-scheme: light;
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-bg-strong: #ffffff;
+  --glass-border: #d5e2ee;
+  --glass-fallback: #ffffff;
 }
 
 html.dark {
   color-scheme: dark;
-  --color-ink: #e7eef6;
-  --color-muted: #9aafc2;
+  --color-ink: var(--color-text);
+  --color-muted: var(--color-text-2);
   --color-navy: #07131f;
   --color-navy-2: #10283c;
-  --color-brand: #4c92ef;
-  --color-brand-2: #2f78d6;
-  --color-ice: #163049;
-  --color-paper: #0b1622;
-  --color-line: #2a4156;
-  --color-card: #12202e;
+  --color-brand: var(--color-teal);
+  --color-brand-2: #1fa396;
+  --color-ice: rgba(255, 255, 255, 0.08);
+  --color-paper: #0c1c2b;
+  --color-line: rgba(255, 255, 255, 0.12);
+  --color-card: #13283a;
+  --color-gain: var(--color-gain-bright);
+  --color-alert: #ff6b6b;
+  --color-alert-soft: rgba(255, 107, 107, 0.16);
+  background-color: var(--color-night-0);
+  background-image:
+    var(--bg-overlay), linear-gradient(160deg, var(--color-night-0) 0%, #123044 46%, var(--color-night-1) 100%);
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+  background-size: cover;
 }
 
-html.dark .bg-white {
+html.dark body,
+html.dark #root {
+  background: transparent;
+}
+
+/* Le teal #2EC4B6 ne porte pas du blanc en AA : le libellé primaire passe en encre nuit. */
+html.dark .bg-brand,
+html.dark .bg-brand-2 {
+  color: var(--color-night-0);
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/95,
+html.dark .bg-white\/70 {
   background-color: var(--color-card);
 }
 
 html.dark .text-navy {
-  color: #d5e4f3;
+  color: #ffffff;
+}
+
+html.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--color-text-3);
+}
+
+/* Le parcours e2e vise li.bg-rose-50. La classe reste, la teinte suit le jeton d'alerte. */
+.bg-rose-50 {
+  background-color: var(--color-alert-soft);
+}
+
+/* Panneaux et cartes statiques. Pas sur les lignes du Gantt, ni au-dessus de la carte. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+@media (max-width: 1023px) {
+  .glass {
+    --glass-blur: 14px;
+    border-radius: var(--radius-card);
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--glass-fallback);
+  }
+}
+
+/* Coque latérale : toujours sombre, flou sur le dégradé, pas sur le Gantt. */
+.shell {
+  background: var(--color-navy);
+  color: #ffffff;
+}
+
+html.dark .shell {
+  background: rgba(10, 22, 34, 0.62);
+  border-right: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  html.dark .shell {
+    background: rgba(10, 22, 34, 0.94);
+  }
+}
+
+/* Chrome posé sur la carte : opaque, aucun flou. */
+.map-chrome {
+  background: var(--color-card);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass,
+  .shell {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html.dark .glass {
+    background: var(--glass-fallback);
+  }
+
+  html.dark .shell {
+    background: rgba(10, 22, 34, 0.94);
+  }
+}
+
+@media print {
+  html,
+  html.dark,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .glass,
+  .shell,
+  .map-chrome {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
 }
 
 .route-live {

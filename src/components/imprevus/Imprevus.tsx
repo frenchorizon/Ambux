@@ -230,8 +230,8 @@ export function CourseSheet({ transportId, onClose }: { transportId: string; onC
       </label>
       <div className="mt-3 rounded-xl bg-paper px-3 py-2 text-sm">
         {!plan && <p>Indiquez une heure.</p>}
-        {plan && !plan.ok && <p className="text-rose-800">{plan.message}</p>}
-        {plan && plan.ok && plan.warning && <p className="text-amber-900">{plan.warning}</p>}
+        {plan && !plan.ok && <p className="text-alert">{plan.message}</p>}
+        {plan && plan.ok && plan.warning && <p className="text-alert">{plan.warning}</p>}
         {plan && plan.ok && plan.shifts.length === 0 && <p className="text-muted">Aucune course suivante décalée.</p>}
         {plan && plan.ok && plan.shifts.length > 0 && (
           <ul className="space-y-1">

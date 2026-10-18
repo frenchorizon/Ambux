@@ -45,9 +45,9 @@ export function RoiCalculator() {
           <Field label="Part de ce temps évitée (%)" value={timeCut} min={0} max={70} step={5} onChange={setTimeCut} />
         </div>
         <div className="rounded-3xl bg-navy p-6 text-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">Hypothèse mensuelle</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/75">Hypothèse mensuelle</p>
           <p className="mt-3 font-display text-5xl">{euro(result.total)}</p>
-          <p className="mt-1 text-sm text-sky-100/80">carburant et temps de préparation, additionnés</p>
+          <p className="mt-1 text-sm text-white/75">carburant et temps de préparation, additionnés</p>
           <dl className="mt-6 space-y-2 text-sm">
             <Row k="Km à vide du mois" v={`${Math.round(result.monthKm).toLocaleString("fr-FR")} km`} />
             <Row k="Km évités dans l'hypothèse" v={`${Math.round(result.savedKm).toLocaleString("fr-FR")} km`} />
@@ -57,7 +57,7 @@ export function RoiCalculator() {
               v={`${result.savedHours.toFixed(1).replace(".", ",")} h · ${euro(result.laborEuro)}`}
             />
           </dl>
-          <p className="mt-5 text-xs leading-relaxed text-sky-100/70">
+          <p className="mt-5 text-xs leading-relaxed text-white/70">
             Aucune de ces sommes n'est un gain garanti, ni un kilomètre opposable à l'Assurance maladie. Changez les
             curseurs avec vos propres relevés.
           </p>
@@ -74,7 +74,7 @@ function euro(value: number): string {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-3 border-t border-white/10 pt-2">
-      <dt className="text-sky-100/80">{k}</dt>
+      <dt className="text-white/75">{k}</dt>
       <dd className="font-semibold tabular-nums">{v}</dd>
     </div>
   );

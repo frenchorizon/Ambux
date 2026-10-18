@@ -27,13 +27,13 @@ function CallCard({ call }: { call: Call }) {
   const { dispatch } = useData();
   const forced = call.kind === "retard" || call.kind === "panne";
   return (
-    <article className="rounded-2xl border border-rose-100 bg-white p-3 shadow-2xl ring-2 ring-rose-100">
+    <article className="rounded-2xl border border-alert/40 bg-card p-3 shadow-2xl ring-2 ring-alert/30">
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+        <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-alert-soft text-alert">
           <PhoneCall size={16} />
         </span>
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-rose-600">Appel entrant</div>
+          <div className="text-[13px] font-semibold uppercase tracking-wide text-alert">Appel entrant</div>
           <div className="text-sm font-semibold text-ink">{call.title}</div>
           <div className="text-xs text-muted">
             {call.caller} · {call.phone}

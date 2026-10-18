@@ -199,7 +199,7 @@ function OptimizerDialog({ open, nowMin }: { open: boolean; nowMin: number }) {
       description="Tolérance dure, pause repas, dialyse liée et DEA. Ce qui ne tient pas reste dans À contrôler."
     >
       {!result && !error && <p className="text-sm text-muted">Calcul des tournées…</p>}
-      {error && <p className="text-sm text-rose-700">{error}</p>}
+      {error && <p className="text-sm text-alert">{error}</p>}
       {result && (
         <>
           <div className="overflow-x-auto">
@@ -275,13 +275,13 @@ function ProposedIssues({ result }: { result: PlanResult }) {
   })
     .filter((issue) => issue.kind !== "km_estime")
     .slice(0, 8);
-  if (!issues.length) return <p className="mt-3 text-sm text-emerald-800">Rien à contrôler sur ce planning.</p>;
+  if (!issues.length) return <p className="mt-3 text-sm text-gain">Rien à contrôler sur ce planning.</p>;
   return (
     <div className="mt-3">
       <h3 className="text-sm font-semibold">À contrôler</h3>
       <ul className="mt-1 max-h-36 space-y-1 overflow-auto text-xs">
         {issues.map((issue) => (
-          <li key={issue.id} className="rounded-lg bg-amber-50 px-2 py-1 text-amber-950">
+          <li key={issue.id} className="rounded-lg bg-alert-soft px-2 py-1 text-alert">
             {issue.title}
           </li>
         ))}

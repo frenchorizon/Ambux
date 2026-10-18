@@ -41,7 +41,7 @@ export function TopBar() {
   }, [dispatch, live]);
 
   return (
-    <header className={cn("relative border-b border-line bg-card", menu ? "z-[80]" : "z-30")}>
+    <header className={cn("glass relative border-b border-line", menu ? "z-[80]" : "z-30")}>
       <div className="flex h-14 items-center gap-1.5 px-2">
         <div className="flex min-w-0 flex-1 items-center gap-1 px-1">
           <label className="relative inline-flex h-11 min-w-0 shrink items-center rounded-lg px-1">
@@ -122,7 +122,7 @@ export function TopBar() {
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-xs",
-                  reviewCount ? "bg-amber-100 text-amber-900" : "bg-ice text-muted",
+                  reviewCount ? "bg-alert-soft text-alert" : "bg-ice text-muted",
                 )}
               >
                 {reviewCount}

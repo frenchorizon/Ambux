@@ -17,7 +17,7 @@ export function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="9" fill={light ? "#1d6fdb" : "#0c2e4d"} />
+        <rect width="32" height="32" rx="9" fill="var(--color-brand)" />
         <path
           d="M6.5 21.5c3.4-7 6.6-7 9.4-2.6 1.8 2.8 3.6 3.1 9.6-1.2"
           fill="none"
@@ -30,7 +30,7 @@ export function Logo({ light = false }: { light?: boolean }) {
       </svg>
       <div>
         <div className={cn("font-display text-lg leading-none", light ? "text-white" : "text-ink")}>Ambux</div>
-        <div className={cn("mt-1 text-[11px] font-medium", light ? "text-sky-100" : "text-muted")}>Régulateur</div>
+        <div className={cn("mt-1 text-[13px] font-medium", light ? "text-white/75" : "text-muted")}>Régulateur</div>
       </div>
     </div>
   );
@@ -78,13 +78,13 @@ function NavButton({
       data-tour={item.id === "carte" ? "carte" : undefined}
       className={cn(
         "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors",
-        active ? "bg-white/15 text-white" : "text-sky-100/80 hover:bg-white/10 hover:text-white",
+        active ? "bg-teal/20 text-white" : "text-white/70 hover:bg-white/10 hover:text-white",
       )}
     >
-      <span className={cn(active ? "text-sky-200" : "text-sky-100/70")}>{item.icon}</span>
+      <span className={cn(active ? "text-teal" : "text-white/60")}>{item.icon}</span>
       <span className="flex-1">{item.label}</span>
       {pending > 0 && (
-        <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>
+        <span className="rounded-full bg-alert-strong px-1.5 py-0.5 text-[13px] font-bold text-white">{pending}</span>
       )}
     </button>
   );
@@ -95,19 +95,19 @@ export function Sidebar() {
   const { dispatch } = useData();
   if (narrow) return null;
   return (
-    <aside className="flex h-full w-[248px] shrink-0 flex-col bg-navy px-3 py-4 text-white">
+    <aside className="shell flex h-full w-[248px] shrink-0 flex-col px-3 py-4 text-white">
       <div className="px-2 pb-5">
         <Logo light />
       </div>
       <NavList />
       <button
         type="button"
-        className="mt-auto px-2 pt-4 text-left text-[11px] font-semibold text-sky-100/70 hover:text-white"
+        className="mt-auto px-2 pt-4 text-left text-[13px] font-semibold text-white/70 hover:text-white"
         onClick={() => dispatch({ type: "REPLAY" })}
       >
         Retour à l'accueil
       </button>
-      <p className="px-2 pt-2 text-[11px] leading-relaxed text-sky-100/60">
+      <p className="px-2 pt-2 text-[13px] leading-relaxed text-white/65">
         Démo locale pour les sociétés de transport sanitaire. Aucune donnée patient réelle.
       </p>
     </aside>
@@ -120,7 +120,7 @@ export function BottomNav() {
   if (!narrow) return null;
   return (
     <nav
-      className="grid shrink-0 grid-cols-5 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]"
+      className="glass grid shrink-0 grid-cols-5 border-t border-line pb-[env(safe-area-inset-bottom)]"
       aria-label="Navigation"
     >
       {PRIMARY.map((item) => {
@@ -132,7 +132,7 @@ export function BottomNav() {
             data-tour={item.id === "carte" ? "carte" : undefined}
             onClick={() => dispatch({ type: "SET_VIEW", view: item.id })}
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold",
+              "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[13px] font-semibold",
               active ? "text-brand" : "text-muted",
             )}
           >

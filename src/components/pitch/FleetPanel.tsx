@@ -16,7 +16,7 @@ export function FleetPanel() {
   const volume = amb * quota.amb + vsl * quota.vsl;
 
   return (
-    <div className="rounded-3xl border border-line bg-card p-6 shadow-sm">
+    <div className="glass p-6 shadow-sm">
       <h2 className="text-xl font-semibold">Ouvrir une démo chiffrée</h2>
       <p className="mt-1 text-sm text-muted">
         Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h.

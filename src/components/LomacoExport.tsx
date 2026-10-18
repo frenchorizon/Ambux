@@ -52,7 +52,7 @@ export function LomacoExportPanel() {
           Profil d'export
           <select
             aria-label="Profil d'export"
-            className="mt-1 block h-10 rounded-lg border border-line bg-white px-2 text-sm font-normal"
+            className="mt-1 block h-10 rounded-lg border border-line bg-card px-2 text-sm font-normal"
             value={profileId}
             onChange={(event) => choose(event.target.value)}
           >

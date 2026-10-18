@@ -20,10 +20,10 @@ export function Modal({
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-[#0c2e4d]/45 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-[80] bg-night-0/55" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[81] max-h-[min(90vh,860px)] w-[min(100%-1.5rem,560px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl bg-white p-5 shadow-2xl outline-none",
+            "fixed left-1/2 top-1/2 z-[81] max-h-[min(90vh,860px)] w-[min(100%-1.5rem,560px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border border-line bg-card p-5 shadow-2xl outline-none",
             wide && "w-[min(100%-1.5rem,920px)]",
           )}
         >

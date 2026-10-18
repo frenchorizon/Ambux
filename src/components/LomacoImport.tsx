@@ -147,7 +147,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                 </span>
                 <button
                   type="button"
-                  className="text-xs font-semibold text-rose-700"
+                  className="text-xs font-semibold text-alert"
                   onClick={() => setSheets((current) => current.filter((_, item) => item !== index))}
                 >
                   Retirer
@@ -171,7 +171,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
               Profil d'import
               <select
                 aria-label="Profil d'import"
-                className="mt-1 block h-10 rounded-lg border border-line bg-white px-2 text-sm font-normal"
+                className="mt-1 block h-10 rounded-lg border border-line bg-card px-2 text-sm font-normal"
                 value={profileId}
                 onChange={(event) => {
                   const next = profiles.find((item) => item.id === event.target.value) ?? LOMACO_IMPORT_PROFILE;
@@ -228,7 +228,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                     Contenu
                     <select
                       aria-label={`Contenu ${sheet.sheet}`}
-                      className="ml-2 h-9 rounded-lg border border-line bg-white px-2 text-sm font-normal"
+                      className="ml-2 h-9 rounded-lg border border-line bg-card px-2 text-sm font-normal"
                       value={sheet.kind}
                       onChange={(event) => {
                         const kind = event.target.value as SheetKind;
@@ -255,7 +255,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                       </span>
                       <select
                         aria-label={`Colonne ${header || column + 1}`}
-                        className="h-9 max-w-[11rem] rounded-lg border border-line bg-white px-2 text-xs"
+                        className="h-9 max-w-[11rem] rounded-lg border border-line bg-card px-2 text-xs"
                         value={sheet.fields[column] ?? "ignore"}
                         onChange={(event) => {
                           const field = event.target.value as ImportField;
@@ -348,14 +348,14 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
                   </tr>
                 ))}
                 {preview.warnings.map((row, index) => (
-                  <tr key={`w-${index}`} className="border-t border-line bg-amber-50">
+                  <tr key={`w-${index}`} className="border-t border-line bg-alert-soft">
                     <td className="px-2 py-1.5">L{row.line}</td>
                     <td className="px-2 py-1.5">Avertissement</td>
                     <td className="px-2 py-1.5">{row.message}</td>
                   </tr>
                 ))}
                 {preview.rejected.map((row, index) => (
-                  <tr key={`r-${index}`} className="border-t border-line bg-rose-50 text-rose-900">
+                  <tr key={`r-${index}`} className="border-t border-line bg-alert-soft text-alert">
                     <td className="px-2 py-1.5">L{row.line}</td>
                     <td className="px-2 py-1.5">Rejet</td>
                     <td className="px-2 py-1.5">{row.reason}</td>
@@ -417,7 +417,7 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
           </div>
         </div>
       )}
-      {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
+      {error && <p className="mt-3 text-sm text-alert">{error}</p>}
     </Modal>
   );
 }

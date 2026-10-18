@@ -18,10 +18,7 @@ export function CompaniesView() {
       />
       <div className="grid gap-3 md:grid-cols-2">
         {COMPANIES.map((company) => (
-          <article
-            key={company.id}
-            className={`rounded-2xl border p-4 shadow-sm ${company.active ? "border-brand bg-white" : "border-line bg-white/70"}`}
-          >
+          <article key={company.id} className={`glass p-4 shadow-sm ${company.active ? "border-brand" : ""}`}>
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-semibold">{company.name}</h3>
               <Badge className={company.active ? "bg-brand text-white" : "bg-paper text-muted"}>{company.role}</Badge>
@@ -39,7 +36,7 @@ export function CompaniesView() {
       <h3 className="mb-2 mt-6 text-sm font-semibold">Conventions</h3>
       <div className="grid gap-2 md:grid-cols-3">
         {CONVENTIONS.map((item) => (
-          <article key={item.name} className="rounded-xl border border-line bg-white p-3">
+          <article key={item.name} className="glass p-3">
             <div className="font-semibold">{item.name}</div>
             <p className="mt-1 text-sm text-muted">{item.detail}</p>
           </article>
@@ -58,19 +55,19 @@ export function LomacoView() {
         text="Le fichier CSV reprend le planning retenu, y compris les courses à traiter. Il n'y a pas d'envoi fictif."
       />
       <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <article className="rounded-2xl border border-line bg-white p-4">
+        <article className="glass p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">Statut</div>
           <div className="mt-1 text-lg font-semibold">Fichier local</div>
         </article>
-        <article className="rounded-2xl border border-line bg-white p-4">
+        <article className="glass p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">Exports</div>
           <div className="mt-1 text-lg font-semibold">{data.stats.lomacoSends}</div>
         </article>
-        <article className="rounded-2xl border border-line bg-white p-4">
+        <article className="glass p-4">
           <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>Exporter le CSV</Button>
         </article>
       </div>
-      <article className="rounded-2xl border border-line bg-white p-4">
+      <article className="glass p-4">
         <h3 className="font-semibold">Journal</h3>
         {data.lomaco.length === 0 && <p className="mt-2 text-sm text-muted">Aucune feuille envoyée.</p>}
         <ul className="mt-2 space-y-2">

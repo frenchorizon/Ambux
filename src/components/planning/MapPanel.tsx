@@ -34,8 +34,8 @@ export function MapPanel() {
         <Sites />
         {crews.map((crew) => (shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null))}
       </MapContainer>
-      <div className="absolute bottom-2 left-2 right-16 z-[500] rounded-xl bg-white/95 px-3 py-2 shadow">
-        <div className="mb-1 flex items-center justify-between text-[11px] text-muted">
+      <div className="map-chrome absolute bottom-2 left-2 right-16 z-[500] rounded-xl px-3 py-2">
+        <div className="mb-1 flex items-center justify-between text-[13px] text-muted">
           <span>
             {live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}
           </span>
@@ -63,7 +63,7 @@ export function MapPanel() {
             onClick={() => setVisible((current) => ({ ...current, [crew.id]: !shown(crew.id) }))}
             className={cn(
               "rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm",
-              shown(crew.id) ? "text-white" : "bg-white text-muted",
+              shown(crew.id) ? "text-white" : "map-chrome text-muted",
             )}
             style={shown(crew.id) ? { background: crew.color, borderColor: crew.color } : undefined}
           >

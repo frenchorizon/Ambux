@@ -4,7 +4,6 @@ import { useClock, useData } from "../../game/context";
 import { displayedDepart, previewOnGrid, snap5 } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
-import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { ganttEdgeDelta, previewCacheKey, sameAssignment, scrollGanttEdge, type DragState } from "./drag";
 import { DPad, type PadDir } from "./DPad";
@@ -493,10 +492,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
           <li key={issue.id}>
             <button
               type="button"
-              className={cn(
-                "min-h-11 w-full rounded-xl px-3 py-2 text-left text-sm",
-                issue.level === "bloquant" ? "bg-rose-50 text-rose-800" : "bg-amber-50 text-amber-950",
-              )}
+              className="min-h-11 w-full rounded-xl bg-alert-soft px-3 py-2 text-left text-sm text-alert"
               onClick={() => {
                 if (issue.transportId) dispatch({ type: "SELECT", id: issue.transportId });
                 if (issue.crewId) dispatch({ type: "SET_CREW_FILTER", crewId: issue.crewId });
@@ -521,7 +517,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
       aria-label={title}
     >
       <button type="button" className="absolute inset-0" aria-label="Fermer" onClick={onClose} />
-      <div className="relative max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-3xl bg-card p-4 shadow-2xl sm:rounded-3xl">
+      <div className="relative max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-3xl border border-line bg-card p-4 shadow-2xl sm:rounded-3xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button type="button" className="h-11 rounded-xl px-3 text-sm font-semibold text-muted" onClick={onClose}>

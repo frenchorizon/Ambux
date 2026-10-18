@@ -67,14 +67,14 @@ export function Cinema({ onClose }: { onClose: () => void }) {
     >
       <div className="flex items-end justify-between gap-4 px-5 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200">Données fictives · Rouen</p>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/75">Données fictives · Rouen</p>
           <h2 id="cinema-title" className="font-display text-3xl sm:text-4xl">
             Planning de demain
           </h2>
         </div>
         <div className="text-right">
           <div className="font-display text-4xl tabular-nums">{plan ? placed : "…"}</div>
-          <div className="text-xs text-sky-100/80">{plan ? `courses sur ${plan.metrics.total}` : "calcul"}</div>
+          <div className="text-xs text-white/75">{plan ? `courses sur ${plan.metrics.total}` : "calcul"}</div>
         </div>
       </div>
       <div className="relative min-h-0 flex-1">
@@ -95,7 +95,7 @@ export function Cinema({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <p className="max-w-xl text-xs leading-relaxed text-sky-100/75">
+        <p className="max-w-xl text-xs leading-relaxed text-white/75">
           {error ??
             "Les traits apparaissent équipage par équipage. Kilomètres de ce calcul, estimés tant que le routier n'a pas répondu. Rien n'est facturable."}
         </p>

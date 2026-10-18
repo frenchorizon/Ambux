@@ -21,7 +21,7 @@ export function CrewsView() {
         text="Ambulance : deux personnes, dont un DEA. VSL : un conducteur. L'affectation se fait ici."
       />
       <form
-        className="mb-4 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-white p-3"
+        className="mb-4 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-card p-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
@@ -65,7 +65,7 @@ export function CrewsView() {
           const drivers = data.staff.filter((member) => member.role === "conducteur");
           const mates = data.staff.filter((member) => member.role === "auxiliaire" || member.dea);
           return (
-            <article key={crew.id} className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+            <article key={crew.id} className="rounded-2xl border border-line bg-card p-4 shadow-sm">
               <button
                 type="button"
                 className="text-left"
@@ -141,7 +141,7 @@ export function VehiclesView() {
     <div className="h-full overflow-auto p-4">
       <PageTitle title="Véhicules" text="Ajoutez une ambulance ou un VSL : il entre en ligne avec un équipage." />
       <form
-        className="mb-4 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-white p-3"
+        className="mb-4 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-card p-3"
         onSubmit={(event) => {
           event.preventDefault();
           data.dispatch({ type: "ADD_VEHICLE", plate, vehicleType: kind, name });
@@ -183,7 +183,7 @@ export function VehiclesView() {
         </Button>
       </form>
       <VehicleCsvImport />
-      <div className="overflow-hidden rounded-2xl border border-line bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-card">
         <table className="w-full text-sm">
           <thead className="bg-paper text-left text-xs uppercase tracking-wide text-muted">
             <tr>
@@ -231,7 +231,7 @@ export function VehiclesView() {
                   <td className="pr-3 text-right">
                     <button
                       type="button"
-                      className="text-xs font-semibold text-rose-700"
+                      className="text-xs font-semibold text-alert"
                       onClick={() => data.dispatch({ type: "REMOVE_VEHICLE", id: vehicle.id })}
                     >
                       Retirer
@@ -267,9 +267,9 @@ export function PatientsView() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Nom du patient"
-        className="mb-3 h-10 max-w-sm rounded-lg border border-line bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-brand/30"
+        className="mb-3 h-10 max-w-sm rounded-lg border border-line bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-brand/30"
       />
-      <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-line bg-white">
+      <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-line bg-card">
         {rows.map((patient) => {
           const home = data.locMap.get(patient.addressId);
           const open = editId === patient.id;
@@ -415,7 +415,7 @@ export function TomorrowView() {
       </div>
       {openForm && <TransportForm sites={sites} homes={homes} onDone={() => setOpenForm(false)} />}
       <CsvImport />
-      <div className="overflow-hidden rounded-2xl border border-line bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-card">
         {data.transports.length === 0 && (
           <p className="p-4 text-sm text-muted">Aucune course. Ajoutez-en une ou importez un fichier.</p>
         )}
@@ -456,7 +456,7 @@ export function TomorrowView() {
                 </button>
                 <button
                   type="button"
-                  className="text-xs font-semibold text-rose-700"
+                  className="text-xs font-semibold text-alert"
                   onClick={() => data.dispatch({ type: "REMOVE_TRANSPORT", id: transport.id })}
                 >
                   Retirer
@@ -474,7 +474,7 @@ export function TomorrowView() {
           Reprendre au jour suivant
         </Button>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-line bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-card">
         {data.tomorrowItems.length === 0 && (
           <p className="p-4 text-sm text-muted">Aucune série habituelle (dialyse, aller-retour) sur cette journée.</p>
         )}
@@ -521,7 +521,7 @@ function TransportForm({
   const [note, setNote] = useState("");
   return (
     <form
-      className="mb-4 grid gap-2 rounded-2xl border border-line bg-white p-3 sm:grid-cols-3"
+      className="mb-4 grid gap-2 rounded-2xl border border-line bg-card p-3 sm:grid-cols-3"
       onSubmit={(event) => {
         event.preventDefault();
         const [hours, minutes] = time.split(":").map(Number);

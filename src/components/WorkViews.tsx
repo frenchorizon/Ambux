@@ -6,6 +6,7 @@ import type { ViewId } from "../game/types";
 import { formatDuration, formatKm, formatMin } from "../lib/format";
 import { useRoutingVersion } from "../lib/routing";
 import { toggleTheme, useDark } from "../lib/theme";
+import { cn } from "../lib/utils";
 import { KpiBar } from "./KpiBar";
 import { setTimelineSheet } from "./planning/timelineUi";
 
@@ -70,7 +71,7 @@ export function ReglagesView() {
             pas un paramétrage réglementaire certifié.
           </p>
         </div>
-        <section className="flex items-center justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2">
+        <section className="glass flex items-center justify-between gap-3 px-3 py-2">
           <div>
             <h2 className="text-sm font-semibold">Affichage</h2>
             <p className="text-xs text-muted">Le choix reste dans ce navigateur.</p>
@@ -88,7 +89,7 @@ export function ReglagesView() {
         <section>
           <h2 className="text-sm font-semibold">Données</h2>
           <p className="mt-1 text-sm text-muted">Équipages, véhicules, patients et demande du lendemain.</p>
-          <div className="mt-2 overflow-hidden rounded-xl border border-line bg-card">
+          <div className="glass mt-2 overflow-hidden">
             {DATA_LINKS.map((item) => (
               <button
                 key={item.id}
@@ -233,7 +234,7 @@ function GainCard() {
   const placedDelta = data.metrics.placed - base.placed;
 
   return (
-    <article className="mt-4 rounded-xl border border-line bg-white px-3 py-3 shadow-sm">
+    <article className="glass mt-4 px-3 py-3 shadow-sm">
       <h2 className="text-sm font-semibold">Gain vs planning initial</h2>
       <p className="mt-1 text-sm leading-relaxed text-muted">
         Le planning initial pose les courses dans l'ordre des rendez-vous, chacune sur le premier équipage qui peut la
@@ -244,11 +245,13 @@ function GainCard() {
           label="Km à vide"
           value={deltaText(savedKm, formatKm(Math.abs(savedKm)))}
           detail={`${formatKm(data.metrics.emptyKm)} au lieu de ${formatKm(base.emptyKm)}`}
+          gain={savedKm > 0.5}
         />
         <GainStat
           label="Temps de trajet à vide"
           value={deltaText(savedMin, formatDuration(savedMin))}
           detail={`${formatDuration(gain.driveMin)} au lieu de ${formatDuration(gain.baseline.emptyDriveMin)}`}
+          gain={savedMin > 0.5}
         />
         <GainStat
           label="Courses placées"
@@ -272,12 +275,24 @@ function placedText(placed: number, delta: number): string {
   return `${placed}, comme le planning initial`;
 }
 
-function GainStat({ label, value, detail }: { label: string; value: string; detail: string }) {
+function GainStat({
+  label,
+  value,
+  detail,
+  gain = false,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  gain?: boolean;
+}) {
   return (
     <div className="rounded-lg bg-paper px-3 py-2">
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="mt-1 text-base font-semibold tabular-nums text-ink">{value}</dd>
-      <p className="mt-0.5 text-[11px] leading-snug text-muted">{detail}</p>
+      <dt className="text-[13px] font-medium uppercase tracking-wide text-muted">{label}</dt>
+      <dd className={cn("mt-1 text-base font-light tracking-tight tabular-nums", gain ? "text-gain" : "text-ink")}>
+        {value}
+      </dd>
+      <p className="mt-0.5 text-[13px] leading-snug text-muted">{detail}</p>
     </div>
   );
 }

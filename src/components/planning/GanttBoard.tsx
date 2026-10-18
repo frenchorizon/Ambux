@@ -59,12 +59,12 @@ export function GanttBoard({
     : undefined;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-white">
+    <div className="relative flex h-full min-h-0 flex-col bg-card">
       <div ref={scrollRef} className="gantt-scroll min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: label + width }}>
-          <div className="sticky top-0 z-30 flex border-b border-line bg-white">
+          <div className="sticky top-0 z-30 flex border-b border-line bg-card">
             <div
-              className="sticky left-0 z-40 flex items-end border-r border-line bg-white px-2 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted"
+              className="sticky left-0 z-40 flex items-end border-r border-line bg-card px-2 pb-2 text-[13px] font-semibold uppercase tracking-wide text-muted"
               style={{ width: label }}
             >
               Équipage
@@ -73,7 +73,7 @@ export function GanttBoard({
               {hours().map((hour) => (
                 <div
                   key={hour}
-                  className="absolute top-0 flex h-full items-end border-l border-line/80 pb-1 pl-1 text-[11px] font-semibold text-muted"
+                  className="absolute top-0 flex h-full items-end border-l border-line/80 pb-1 pl-1 text-[13px] font-semibold text-muted"
                   style={{ left: (hour * 60 - DAY_START) * pxPerMin }}
                 >
                   {String(hour).padStart(2, "0")} h
@@ -99,10 +99,10 @@ export function GanttBoard({
             ))}
           {data.live && (
             <div
-              className="pointer-events-none absolute bottom-0 z-20 w-px bg-rose-500"
+              className="pointer-events-none absolute bottom-0 z-20 w-px bg-alert-strong"
               style={{ left: label + (nowMin - DAY_START) * pxPerMin, top: 36 }}
             >
-              <span className="absolute -left-5 top-0 rounded bg-rose-500 px-1 py-0.5 text-[10px] font-bold text-white">
+              <span className="absolute -left-5 top-0 rounded bg-alert-strong px-1 py-0.5 text-[13px] font-bold text-white">
                 {formatMin(nowMin, "floor")}
               </span>
             </div>
@@ -111,7 +111,7 @@ export function GanttBoard({
       </div>
       {tip && tipTransport && !drag?.moved && !narrow && (
         <div
-          className="pointer-events-none fixed z-[60] w-64 rounded-xl border border-line bg-white p-3 text-xs shadow-xl"
+          className="pointer-events-none fixed z-[60] w-64 rounded-xl border border-line bg-card p-3 text-xs shadow-xl"
           style={{
             left: Math.min(tip.x + 12, window.innerWidth - 280),
             top: Math.min(tip.y + 12, window.innerHeight - 180),
@@ -168,22 +168,22 @@ function CrewRow({
   return (
     <div className="flex border-b border-line">
       <div
-        className="sticky left-0 z-20 flex items-center gap-1.5 border-r border-line bg-white px-1.5"
+        className="sticky left-0 z-20 flex items-center gap-1.5 border-r border-line bg-card px-1.5"
         style={{ width: label, height: rowH }}
         title={`${crew.driver}${crew.mate ? ` · ${crew.mate}` : ""} · ${formatMin(crew.shiftStart)}–${formatMin(crew.shiftEnd)}`}
       >
         <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: crew.color }} />
         <span className="min-w-0">
           <span className="block truncate text-[13px] font-semibold leading-tight">{crew.code}</span>
-          <span className="block truncate text-[11px] leading-tight text-ink">{family}</span>
-          {mealWarn && <span className="block truncate text-[10px] text-amber-800">{mealWarn}</span>}
+          <span className="block truncate text-[13px] leading-tight text-ink">{family}</span>
+          {mealWarn && <span className="block truncate text-[13px] text-alert">{mealWarn}</span>}
         </span>
       </div>
       <div
         data-track
         data-crew-id={crew.id}
         data-vehicle={crew.vehicleType}
-        className={cn("relative", hot && !bad && "bg-emerald-50/70", bad && "bg-rose-50")}
+        className={cn("relative", hot && !bad && "bg-teal/15", bad && "bg-alert-soft")}
         style={{ width, height: rowH }}
       >
         {hours().map((hour) => (
@@ -198,10 +198,10 @@ function CrewRow({
             key={block.id}
             title={block.kind === "repas" ? "Pause repas obligatoire" : block.label}
             className={cn(
-              "absolute flex items-center overflow-hidden rounded-md px-1 text-[10px] font-semibold",
+              "absolute flex items-center overflow-hidden rounded-md px-1 text-[13px] font-semibold",
               block.kind === "repas"
-                ? "border border-amber-500 bg-amber-100 text-amber-950"
-                : "border border-dashed border-slate-400 bg-slate-200/90 text-slate-700",
+                ? "border border-meal bg-meal text-meal-ink"
+                : "border border-dashed border-line bg-ice text-muted",
             )}
             style={{
               top: barTop,
@@ -216,13 +216,13 @@ function CrewRow({
         {schedule && schedule.returnKm > 0.2 && (
           <div
             title={`Retour dépôt à vide · ${formatKm(schedule.returnKm, 1)}`}
-            className="seg-deadhead absolute overflow-hidden rounded-md border border-slate-300"
+            className="seg-deadhead absolute overflow-hidden rounded-md border border-line"
             style={{
               top: barTop,
               height: barH,
               left: (schedule.returnStart - DAY_START) * pxPerMin,
               width: Math.max(8, (schedule.returnEnd - schedule.returnStart) * pxPerMin),
-              backgroundColor: "#dbe4ee",
+              backgroundColor: "var(--color-ice)",
             }}
           />
         )}
@@ -246,14 +246,10 @@ function CrewRow({
                 type="button"
                 draggable={false}
                 className={cn(
-                  "gantt-block absolute rounded-md border border-black/15 text-left text-[11px] font-semibold text-white shadow-sm",
+                  "gantt-block absolute rounded-md border border-black/15 text-left text-[13px] font-semibold text-white shadow-sm",
                   pending && "gantt-pending",
                   dragging && "gantt-dragging",
-                  leg.conflict || leg.incompatible
-                    ? "ring-2 ring-rose-600"
-                    : leg.lateMin >= 1
-                      ? "ring-2 ring-amber-500"
-                      : "",
+                  (leg.conflict || leg.incompatible || leg.lateMin >= 1) && "ring-2 ring-alert",
                   selected && "outline outline-2 outline-offset-1 outline-navy",
                 )}
                 style={{
@@ -313,7 +309,7 @@ function CrewRow({
                   {leg.kmEstimated && (
                     <span
                       title="Durée estimée : le routage n'a pas répondu"
-                      className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-600"
+                      className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-alert-strong"
                     />
                   )}
                 </span>
@@ -321,7 +317,7 @@ function CrewRow({
               {off && (
                 <span
                   key={`dev-${leg.transportId}`}
-                  className="pointer-events-none absolute z-10 rounded bg-amber-500 px-1 text-[10px] font-bold leading-4 text-white"
+                  className="pointer-events-none absolute z-10 rounded bg-alert-strong px-1 text-[13px] font-bold leading-4 text-white"
                   style={{ left: left + Math.max(0, bar - 42), top: 2 }}
                 >
                   {deviationLabel(leg.deviationMin)}
@@ -329,7 +325,7 @@ function CrewRow({
               )}
               {(transport.stayMin ?? 0) > 0 && (
                 <span
-                  className="gantt-stay pointer-events-none absolute z-10 max-w-24 truncate text-[10px] font-semibold leading-none text-navy"
+                  className="gantt-stay pointer-events-none absolute z-10 max-w-24 truncate text-[13px] font-semibold leading-none text-navy"
                   style={{ left, top: barTop + barH + 1 }}
                   data-stay={transport.stayMin}
                 >
@@ -347,10 +343,10 @@ function CrewRow({
             <div
               key={`ghost-${leg.transportId}`}
               title={`Heure prévue ${formatMin(planned)}`}
-              className="pointer-events-none absolute top-1 z-10 h-3 w-px bg-navy"
+              className="pointer-events-none absolute top-1 z-10 h-3 w-px bg-ink"
               style={{ left: (planned - DAY_START) * pxPerMin }}
             >
-              <span className="absolute -left-1 top-0 h-2 w-2 rounded-sm bg-navy" />
+              <span className="absolute -left-1 top-0 h-2 w-2 rounded-sm bg-ink" />
             </div>
           );
         })}
@@ -372,7 +368,7 @@ function CrewRow({
             data-preview="invalid"
             data-reason={drag.preview.message}
             title={drag.preview.message}
-            className="pointer-events-none absolute rounded-md border-2 border-rose-700 bg-rose-400/80"
+            className="pointer-events-none absolute rounded-md border-2 border-alert-strong bg-alert/70"
             style={{
               top: barTop,
               height: barH,
@@ -413,12 +409,12 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
         </div>
       )}
       {leg && Math.abs(leg.deviationMin) >= 1 && (
-        <div className={cn("mt-1 font-semibold", leg.lateMin >= 1 ? "text-amber-700" : "text-navy")}>
+        <div className={cn("mt-1 font-semibold", leg.lateMin >= 1 ? "text-alert" : "text-navy")}>
           Écart au rendez-vous : {deviationLabel(leg.deviationMin)}
         </div>
       )}
-      {leg?.conflict && <div className="mt-1 font-semibold text-rose-700">Conflit horaire</div>}
-      {leg?.incompatible && <div className="mt-1 font-semibold text-rose-700">Incompatibilité VSL</div>}
+      {leg?.conflict && <div className="mt-1 font-semibold text-alert">Conflit horaire</div>}
+      {leg?.incompatible && <div className="mt-1 font-semibold text-alert">Incompatibilité VSL</div>}
       {transport.note && <div className="mt-1 text-muted">{transport.note}</div>}
     </div>
   );

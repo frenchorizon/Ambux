@@ -52,14 +52,14 @@ function Kpi({
 }) {
   return (
     <Hint label={hint}>
-      <article className="flex items-start gap-3 rounded-xl border border-line bg-white px-3 py-2.5 text-left shadow-sm">
+      <article className="glass flex items-start gap-3 px-3 py-2.5 text-left shadow-sm">
         <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ice text-brand">
           {icon}
         </span>
         <span className="min-w-0">
-          <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
-          <span className="block truncate text-xl font-semibold tabular-nums text-ink">{value}</span>
-          <span className="block text-[11px] text-muted">{detail}</span>
+          <span className="block text-[13px] font-medium uppercase tracking-wide text-muted">{label}</span>
+          <span className="block truncate text-xl font-light tracking-tight tabular-nums text-ink">{value}</span>
+          <span className="block text-[13px] text-muted">{detail}</span>
         </span>
       </article>
     </Hint>

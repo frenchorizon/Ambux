@@ -148,18 +148,18 @@ function Hero({
   const to = transport ? data.locMap.get(transport.dropoffId) : undefined;
   return (
     <section className="rounded-2xl bg-navy px-4 py-4 text-white">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-200">
+      <p className="text-[13px] font-medium uppercase tracking-[0.16em] text-white/75">
         {live ? "Prochaine course" : "Première prise en charge"}
       </p>
       <p className="mt-1 font-display text-4xl tabular-nums">{formatMin(leg.departMin)}</p>
       <p className="mt-2 text-lg font-semibold">{patient ? personName(patient) : "Course"}</p>
-      <p className="text-sm text-sky-100">{transport ? postureLabel(transport.posture) : ""}</p>
+      <p className="text-sm text-white/80">{transport ? postureLabel(transport.posture) : ""}</p>
       <p className="mt-3 text-sm leading-relaxed">
         {from ? `${from.short}, ${from.city}` : "Départ"}
-        <span className="text-sky-200"> → </span>
+        <span className="text-white/70"> → </span>
         {to ? `${to.short}, ${to.city}` : "Arrivée"}
       </p>
-      {leg.kmEstimated && <p className="mt-2 text-xs text-amber-200">Km estimé, non opposable.</p>}
+      {leg.kmEstimated && <p className="mt-2 text-xs text-coral">Km estimé, non opposable.</p>}
     </section>
   );
 }

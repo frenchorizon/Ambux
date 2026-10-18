@@ -78,11 +78,11 @@ export function Report() {
           <Stat label="Temps de régulation" value={formatRegulation(clock.regulationMs)} detail="horloge réelle" />
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <article className="rounded-2xl border border-line bg-white p-4">
+          <article className="glass p-4">
             <h2 className="font-semibold">Votre feuille / référence algorithme</h2>
             <p className="mt-1 text-xs text-muted">Même demande, planning reconstruit par la recherche locale.</p>
             {!bench && !failed && <p className="mt-4 text-sm text-muted">Calcul de la référence…</p>}
-            {failed && <p className="mt-4 text-sm text-rose-700">La référence n'a pas pu être calculée.</p>}
+            {failed && <p className="mt-4 text-sm text-alert">La référence n'a pas pu être calculée.</p>}
             {bench && (
               <table className="mt-3 w-full text-sm">
                 <tbody>
@@ -105,7 +105,7 @@ export function Report() {
               </p>
             )}
           </article>
-          <article className="rounded-2xl border border-line bg-white p-4">
+          <article className="glass p-4">
             <h2 className="font-semibold">Ce que la journée a demandé</h2>
             <ul className="mt-3 space-y-1 text-sm">
               <li>Mouvements manuels : {data.stats.moves}</li>
@@ -152,8 +152,8 @@ export function Report() {
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-2xl border border-line bg-white p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</div>
+    <article className="glass p-3">
+      <div className="text-[13px] font-medium uppercase tracking-wide text-muted">{label}</div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
       <div className="text-xs text-muted">{detail}</div>
     </article>
