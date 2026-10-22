@@ -13,19 +13,6 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   /* Fraunces et Plus Jakarta Sans sortent de l'interface. Les titres restent en Inter, graisse légère. */
   --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* H3 Medium 20/28, corps Regular 15/22, libellé Medium 13/18, légende Regular 13/18. */
-  --text-h3: 20px;
-  --text-h3--line-height: 28px;
-  --text-h3--font-weight: 500;
-  --text-body: 15px;
-  --text-body--line-height: 22px;
-  --text-body--font-weight: 400;
-  --text-label: 13px;
-  --text-label--line-height: 18px;
-  --text-label--font-weight: 500;
-  --text-caption: 13px;
-  --text-caption--line-height: 18px;
-  --text-caption--font-weight: 400;
   --color-ink: #12283c;
   --color-muted: #5c7285;
   --color-navy: #0c2e4d;
@@ -454,8 +441,34 @@ html.dark textarea::placeholder {
   }
 }
 
-/* Pilules, pastilles, infobulles. Le fond reste surchargeable par un utilitaire (badge coloré). */
+/* H3 20/28, corps 15/22, libellé 13/18, légende 13/18.
+   Pas de préfixe text- : il entrerait en conflit avec les couleurs dans tailwind-merge. */
 @layer components {
+  .type-h3 {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 500;
+  }
+
+  .type-label {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+  }
+
+  .type-caption {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+  }
+
+  /* Après .type-label : un bouton lg porte les deux, et le corps gagne. */
+  .type-body {
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
   .glass-surface {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);

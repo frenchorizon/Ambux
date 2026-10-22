@@ -22,7 +22,7 @@ export function Hint({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className={cn("glass-surface z-[70] max-w-xs rounded-xl px-3 py-2 text-caption text-ink shadow-lg")}
+          className={cn("glass-surface type-caption z-[70] max-w-xs rounded-xl px-3 py-2 text-ink shadow-lg")}
         >
           {label}
         </TooltipPrimitive.Content>

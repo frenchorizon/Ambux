@@ -12,7 +12,7 @@ export function Toaster() {
   if (!toast) return null;
   return (
     <div className="toast-dock" role="status">
-      <div className="glass-opaque flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-body text-ink">
+      <div className="glass-opaque type-body flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-ink">
         <span
           aria-hidden
           className={cn(

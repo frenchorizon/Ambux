@@ -27,9 +27,9 @@ export function Modal({
             wide && "w-[min(100%-1.5rem,920px)]",
           )}
         >
-          <Dialog.Title className="text-h3 text-ink">{title}</Dialog.Title>
+          <Dialog.Title className="type-h3 text-ink">{title}</Dialog.Title>
           {description ? (
-            <Dialog.Description className="mt-1 text-body text-muted">{description}</Dialog.Description>
+            <Dialog.Description className="type-body mt-1 text-muted">{description}</Dialog.Description>
           ) : (
             <Dialog.Description className="sr-only">{title}</Dialog.Description>
           )}
