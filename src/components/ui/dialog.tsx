@@ -20,16 +20,16 @@ export function Modal({
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-night-0/55" />
+        <Dialog.Overlay className="fixed inset-0 z-[80] bg-night-0/60" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[81] max-h-[min(90vh,860px)] w-[min(100%-1.5rem,560px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border border-line bg-card p-5 shadow-2xl outline-none",
+            "glass-opaque fixed left-1/2 top-1/2 z-[81] max-h-[min(90vh,860px)] w-[min(100%-1.5rem,560px)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-[var(--radius-panel)] p-5 outline-none",
             wide && "w-[min(100%-1.5rem,920px)]",
           )}
         >
-          <Dialog.Title className="text-lg font-semibold text-ink">{title}</Dialog.Title>
+          <Dialog.Title className="text-h3 text-ink">{title}</Dialog.Title>
           {description ? (
-            <Dialog.Description className="mt-1 text-sm leading-relaxed text-muted">{description}</Dialog.Description>
+            <Dialog.Description className="mt-1 text-body text-muted">{description}</Dialog.Description>
           ) : (
             <Dialog.Description className="sr-only">{title}</Dialog.Description>
           )}

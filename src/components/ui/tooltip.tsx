@@ -22,9 +22,7 @@ export function Hint({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className={cn(
-            "z-[70] max-w-xs rounded-lg bg-navy px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg",
-          )}
+          className={cn("glass-surface z-[70] max-w-xs rounded-xl px-3 py-2 text-caption text-ink shadow-lg")}
         >
           {label}
         </TooltipPrimitive.Content>

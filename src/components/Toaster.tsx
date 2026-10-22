@@ -11,17 +11,18 @@ export function Toaster() {
   }, [toast, dispatch]);
   if (!toast) return null;
   return (
-    <div className="pointer-events-none fixed left-1/2 top-16 z-[75] w-[min(100%-1.5rem,440px)] -translate-x-1/2">
-      <div
-        className={cn(
-          "rounded-xl px-3 py-2 text-sm font-medium shadow-lg",
-          toast.tone === "ok" && "bg-gain-strong text-white",
-          toast.tone === "warn" && "bg-alert-strong text-white",
-          toast.tone === "bad" && "bg-alert-strong text-white",
-          toast.tone === "info" && "bg-navy text-white",
-        )}
-      >
-        {toast.message}
+    <div className="toast-dock" role="status">
+      <div className="glass-opaque flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-body text-ink">
+        <span
+          aria-hidden
+          className={cn(
+            "h-2 w-2 shrink-0 rounded-full",
+            toast.tone === "ok" && "bg-gain-bright",
+            (toast.tone === "warn" || toast.tone === "bad") && "bg-coral",
+            toast.tone === "info" && "bg-teal",
+          )}
+        />
+        <span>{toast.message}</span>
       </div>
     </div>
   );

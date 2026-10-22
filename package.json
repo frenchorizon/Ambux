@@ -13,6 +13,7 @@
     "test:unit": "tsx --test scripts/*.test.ts",
     "e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0 --port 5280 --strictPort",
+    "standalone": "node scripts/standalone.mjs",
     "sim": "tsx scripts/simcheck.ts",
     "test": "npm run test:unit && playwright test"
   },

@@ -1,9 +1,31 @@
 @import "tailwindcss";
 
+/* Inter variable, latin seulement (é, œ, ponctuation). SIL OFL : src/fonts/OFL.txt */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./fonts/inter-latin.woff2") format("woff2");
+}
+
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  /* Fraunces sort de l'interface : les titres restent en Jakarta, graisse légère. */
-  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Fraunces et Plus Jakarta Sans sortent de l'interface. Les titres restent en Inter, graisse légère. */
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* H3 Medium 20/28, corps Regular 15/22, libellé Medium 13/18, légende Regular 13/18. */
+  --text-h3: 20px;
+  --text-h3--line-height: 28px;
+  --text-h3--font-weight: 500;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-body--font-weight: 400;
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-label--font-weight: 500;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-caption--font-weight: 400;
   --color-ink: #12283c;
   --color-muted: #5c7285;
   --color-navy: #0c2e4d;
@@ -23,12 +45,12 @@
   --color-alert: #9f1239;
   --color-alert-strong: #9f1239;
   --color-alert-soft: #fff1f2;
-  --color-coral: #ff6b6b;
-  --color-meal: #f6d58e;
+  --color-coral: #ff7a6b;
+  --color-meal: #f5d98b;
   --color-meal-ink: #1a1408;
   --color-empty: #a78bfa;
   --color-text: #ffffff;
-  --color-text-2: rgba(255, 255, 255, 0.68);
+  --color-text-2: #ffffffa6;
   --color-text-3: rgba(255, 255, 255, 0.55);
 }
 
@@ -41,7 +63,9 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
   background: var(--color-paper);
   color: var(--color-ink);
 }
@@ -318,15 +342,23 @@ body {
 }
 
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg: #ffffff0f;
   --glass-bg-strong: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border: #ffffff1f;
   --glass-blur: 20px;
   --glass-fallback: rgba(15, 42, 58, 0.92);
+  /* Verre opaque : dialogues et toasts au-dessus du Gantt ou de la carte, sans flou. */
+  --glass-opaque: rgba(15, 42, 58, 0.96);
   --radius-panel: 20px;
   --radius-card: 16px;
   --radius-pill: 999px;
   --bg-overlay: linear-gradient(180deg, rgba(10, 22, 34, 0.72), rgba(10, 22, 34, 0.88));
+  --glow-teal: 0 0 24px rgba(46, 196, 182, 0.45);
+  /* Pastels d'équipage (maquette Nuit). Les blocs du Gantt les prennent au lot timeline. */
+  --crew-blue: #8ec5f0;
+  --crew-green: #9fd8b0;
+  --crew-lilac: #b9a6e8;
+  --crew-peach: #f3c1a0;
 }
 
 /* Mode clair : le verre redevient une carte opaque lisible. */
@@ -336,6 +368,8 @@ html:not(.dark) {
   --glass-bg-strong: #ffffff;
   --glass-border: #d5e2ee;
   --glass-fallback: #ffffff;
+  --glass-opaque: #ffffff;
+  --glow-teal: 0 8px 22px rgba(46, 196, 182, 0.28);
 }
 
 html.dark {
@@ -351,8 +385,8 @@ html.dark {
   --color-line: rgba(255, 255, 255, 0.12);
   --color-card: #13283a;
   --color-gain: var(--color-gain-bright);
-  --color-alert: #ff6b6b;
-  --color-alert-soft: rgba(255, 107, 107, 0.16);
+  --color-alert: #ff7a6b;
+  --color-alert-soft: rgba(255, 122, 107, 0.16);
   background-color: var(--color-night-0);
   background-image:
     var(--bg-overlay), linear-gradient(160deg, var(--color-night-0) 0%, #123044 46%, var(--color-night-1) 100%);
@@ -406,13 +440,68 @@ html.dark textarea::placeholder {
 }
 
 @media (max-width: 1023px) {
-  .glass {
+  .glass,
+  .glass-surface {
     --glass-blur: 14px;
+  }
+
+  .glass {
     border-radius: var(--radius-card);
   }
 
   nav.glass {
     border-radius: 0;
+  }
+}
+
+/* Pilules, pastilles, infobulles. Le fond reste surchargeable par un utilitaire (badge coloré). */
+@layer components {
+  .glass-surface {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+
+  .glass-opaque {
+    background: var(--glass-opaque);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-surface {
+      background: var(--glass-fallback);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glass-surface {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: var(--glass-fallback);
+    }
+  }
+}
+
+/* Toast : bas droite au bureau, au-dessus de la barre d'onglets (≤1024 px) avec l'encoche. */
+.toast-dock {
+  position: fixed;
+  z-index: 75;
+  right: 0.75rem;
+  left: 0.75rem;
+  bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  pointer-events: none;
+}
+
+@media (min-width: 1025px) {
+  .toast-dock {
+    left: auto;
+    right: 1rem;
+    bottom: 1rem;
+    width: min(100% - 2rem, 380px);
   }
 }
 
@@ -474,6 +563,8 @@ html.dark .shell {
   }
 
   .glass,
+  .glass-surface,
+  .glass-opaque,
   .shell,
   .map-chrome {
     background: #fff !important;
@@ -502,6 +593,6 @@ html.dark .shell {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-teal);
   outline-offset: 2px;
 }

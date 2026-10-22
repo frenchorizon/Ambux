@@ -409,7 +409,7 @@ export function TomorrowView() {
         <Button variant="secondary" onClick={() => data.dispatch({ type: "PLACE_MEALS" })}>
           Placer les repas
         </Button>
-        <Button variant="secondary" onClick={() => data.dispatch({ type: "CLEAR_DEMAND" })}>
+        <Button variant="danger" onClick={() => data.dispatch({ type: "CLEAR_DEMAND" })}>
           Vider la demande
         </Button>
       </div>

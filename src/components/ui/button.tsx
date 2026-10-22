@@ -3,25 +3,33 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
+const primary = "border border-transparent bg-teal text-night-0 shadow-[var(--glow-teal)] hover:brightness-105";
+const glass = "glass-surface text-ink shadow-none hover:bg-ice";
+const ghost = "border border-transparent bg-transparent text-ink shadow-none hover:bg-ice";
+const danger = "border border-transparent bg-coral text-night-0 shadow-none hover:brightness-105";
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-label whitespace-nowrap transition-[filter,background-color,box-shadow] focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-brand text-white hover:bg-brand-2",
-        secondary: "border border-line bg-card text-ink hover:bg-ice",
-        ghost: "text-ink hover:bg-ice",
-        navy: "bg-navy text-white hover:bg-navy-2",
-        danger: "bg-alert-strong text-white hover:opacity-90",
+        primary,
+        glass,
+        ghost,
+        danger,
+        /* Anciens noms : les écrans ne changent pas de structure. */
+        default: primary,
+        secondary: glass,
+        navy: "border border-transparent bg-navy text-white shadow-none hover:bg-navy-2",
       },
       size: {
-        default: "h-10 px-3.5 text-sm",
-        sm: "h-8 px-2.5 text-xs",
-        lg: "h-12 px-5 text-base",
-        icon: "h-10 w-10",
+        default: "min-h-11 px-4",
+        sm: "min-h-11 px-3",
+        lg: "min-h-12 px-5 text-body",
+        icon: "size-11 p-0",
       },
     },
-    defaultVariants: { variant: "default", size: "default" },
+    defaultVariants: { variant: "primary", size: "default" },
   },
 );
 

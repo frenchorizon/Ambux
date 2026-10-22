@@ -2,6 +2,18 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.2 — 2026-10-22
+
+Branche `feat/refonte-lot2-primitives`. Lot 2 de la refonte « verre nuit » : primitives. Pas de tag. Le mode clair de la v0.8.0 reste dans Réglages, rubrique Affichage. La coque, les gestes et le CSS des blocs ne bougent pas.
+
+- Inter, police variable auto-hébergée, sous-ensemble latin (environ 47 Ko), `font-display: swap`. Plus Jakarta Sans sort de l'interface. Le fichier autonome n'appelle plus de police en ligne.
+- Styles : titre H3 Medium 20/28, corps Regular 15/22, libellé Medium 13/18, légende Regular 13/18. Le plancher de 13 px reste.
+- Boutons en pilule : `primary` teal avec lueur, `glass` en contour, `ghost`, `danger` corail. Cible d'au moins 44 px. Focus teal, visible. `default` et `secondary` suivent `primary` et `glass`, pour laisser les écrans en place. `navy` reste la pilule d'une course épinglée.
+- Pastilles en verre. Infobulles en verre. Dialogues en verre opaque, sans flou, parce qu'ils passent au-dessus du Gantt et de la carte.
+- Toasts en verre opaque : bas droite à partir de 1025 px, au-dessus de la barre d'onglets en dessous, avec `safe-area-inset-bottom`.
+- Jetons Nuit alignés : fond `#0A1622`, primaire `#2EC4B6`, verre `#ffffff0f`, trait `#ffffff1f`, texte secondaire `#ffffffa6`, alerte `#FF7A6B`, succès `#4ADE80`, repas `#F5D98B`. Les pastels d'équipage sont posés ; les blocs du Gantt les prennent au lot timeline.
+- Fichier autonome : `ambux-v0.9.0-alpha.2.html`.
+
 ## v0.9.0-alpha.1 — 2026-10-18
 
 Branche `feat/refonte-lot1-jetons`. Lot 1 de la refonte « verre nuit » : jetons et fond. Pas de tag. Le mode clair de la v0.8.0 reste dans Réglages, rubrique Affichage.
