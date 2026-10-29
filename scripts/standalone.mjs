@@ -10,7 +10,7 @@ import { build } from "vite";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "dist-standalone");
 const releaseDir = "/opt/cursor/artifacts/releases";
-const releaseName = "ambux-v0.9.0-alpha.2.html";
+const releaseName = "ambux-v0.9.0-alpha.3.html";
 
 await build({
   root,

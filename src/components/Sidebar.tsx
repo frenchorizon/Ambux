@@ -1,22 +1,23 @@
-import { ChartNoAxesGantt, Inbox, LayoutDashboard, Map, SlidersHorizontal } from "lucide-react";
+import { ChartNoAxesGantt, Clock, Heart, Map, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { useData } from "../game/context";
 import type { ViewId } from "../game/types";
+import { useDark } from "../lib/theme";
 import { cn } from "../lib/utils";
 import { useNarrow } from "../lib/useMedia";
 
 const PRIMARY: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: "gantt", label: "Timeline", icon: <ChartNoAxesGantt size={18} /> },
   { id: "carte", label: "Carte", icon: <Map size={18} /> },
-  { id: "file", label: "À placer", icon: <Inbox size={18} /> },
-  { id: "synthese", label: "Synthèse", icon: <LayoutDashboard size={18} /> },
-  { id: "reglages", label: "Réglages", icon: <SlidersHorizontal size={18} /> },
+  { id: "file", label: "À placer", icon: <Clock size={18} /> },
+  { id: "synthese", label: "Synthèse", icon: <Heart size={18} /> },
+  { id: "reglages", label: "Réglages", icon: <Settings size={18} /> },
 ];
 
-export function Logo({ light = false }: { light?: boolean }) {
+export function Logo({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden>
+    <div className={cn("flex items-center", compact ? "gap-1.5" : "gap-2.5")}>
+      <svg viewBox="0 0 32 32" className={cn("shrink-0", compact ? "h-7 w-7" : "h-9 w-9")} aria-hidden>
         <rect width="32" height="32" rx="9" fill="var(--color-brand)" />
         <path
           d="M6.5 21.5c3.4-7 6.6-7 9.4-2.6 1.8 2.8 3.6 3.1 9.6-1.2"
@@ -28,25 +29,41 @@ export function Logo({ light = false }: { light?: boolean }) {
         <circle cx="24.6" cy="18.2" r="1.7" fill="#7eb6ff" />
         <path d="M16 6.6v5.8M13.1 9.5h5.8" stroke="white" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
-      <div>
-        <div className={cn("font-display text-lg leading-none", light ? "text-white" : "text-ink")}>Ambux</div>
-        <div className={cn("mt-1 text-[13px] font-medium", light ? "text-white/75" : "text-muted")}>Régulateur</div>
+      <div className={compact ? "min-w-0" : undefined}>
+        <div
+          className={cn(
+            "font-display leading-none",
+            compact ? "text-[15px]" : "text-lg",
+            light ? "text-white" : "text-ink",
+          )}
+        >
+          Ambux
+        </div>
+        {!compact && (
+          <div className={cn("mt-1 text-[13px] font-medium", light ? "text-white/75" : "text-muted")}>Régulateur</div>
+        )}
       </div>
     </div>
   );
 }
 
+function useShellCounts() {
+  const { calls, metrics } = useData();
+  const callsPending = calls.filter((call) => call.spawned && !call.resolved).length;
+  return { callsPending, queue: metrics.unassigned };
+}
+
 export function NavList({ onPick }: { onPick?: () => void }) {
-  const { view, dispatch, calls } = useData();
-  const pending = calls.filter((call) => call.spawned && !call.resolved).length;
+  const { view, dispatch } = useData();
+  const counts = useShellCounts();
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-col gap-1" aria-label="Navigation">
       {PRIMARY.map((item) => (
         <NavButton
           key={item.id}
           item={item}
           active={view === item.id}
-          pending={item.id === "gantt" ? pending : 0}
+          count={badgeCount(item.id, counts)}
           onPick={onPick}
           dispatch={dispatch}
         />
@@ -55,36 +72,43 @@ export function NavList({ onPick }: { onPick?: () => void }) {
   );
 }
 
+function badgeCount(id: ViewId, counts: { callsPending: number; queue: number }): number {
+  if (id === "file") return counts.queue;
+  if (id === "gantt") return counts.callsPending;
+  return 0;
+}
+
 function NavButton({
   item,
   active,
-  pending,
+  count,
   onPick,
   dispatch,
 }: {
   item: { id: ViewId; label: string; icon: ReactNode };
   active: boolean;
-  pending: number;
+  count: number;
   onPick?: () => void;
   dispatch: ReturnType<typeof useData>["dispatch"];
 }) {
   return (
     <button
       type="button"
+      aria-label={item.label}
+      aria-current={active ? "page" : undefined}
       onClick={() => {
         dispatch({ type: "SET_VIEW", view: item.id });
         onPick?.();
       }}
       data-tour={item.id === "carte" ? "carte" : undefined}
-      className={cn(
-        "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors",
-        active ? "bg-teal/20 text-white" : "text-white/70 hover:bg-white/10 hover:text-white",
-      )}
+      className="nav-item"
     >
-      <span className={cn(active ? "text-teal" : "text-white/60")}>{item.icon}</span>
-      <span className="flex-1">{item.label}</span>
-      {pending > 0 && (
-        <span className="rounded-full bg-alert-strong px-1.5 py-0.5 text-[13px] font-bold text-white">{pending}</span>
+      {item.icon}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {count > 0 && (
+        <span className={cn("nav-badge", item.id === "gantt" && "nav-badge-alert")} aria-hidden>
+          {count}
+        </span>
       )}
     </button>
   );
@@ -92,24 +116,19 @@ function NavButton({
 
 export function Sidebar() {
   const narrow = useNarrow();
+  const dark = useDark();
   const { dispatch } = useData();
   if (narrow) return null;
   return (
-    <aside className="shell flex h-full w-[248px] shrink-0 flex-col px-3 py-4 text-white">
-      <div className="px-2 pb-5">
-        <Logo light />
+    <aside className="shell-side glass">
+      <div className="px-2 pb-4">
+        <Logo light={dark} />
       </div>
       <NavList />
-      <button
-        type="button"
-        className="mt-auto px-2 pt-4 text-left text-[13px] font-semibold text-white/70 hover:text-white"
-        onClick={() => dispatch({ type: "REPLAY" })}
-      >
+      <button type="button" className="shell-back" onClick={() => dispatch({ type: "REPLAY" })}>
         Retour à l'accueil
       </button>
-      <p className="px-2 pt-2 text-[13px] leading-relaxed text-white/65">
-        Démo locale pour les sociétés de transport sanitaire. Aucune donnée patient réelle.
-      </p>
+      <p className="shell-note">Démo locale. Aucune donnée patient réelle.</p>
     </aside>
   );
 }
@@ -117,27 +136,32 @@ export function Sidebar() {
 export function BottomNav() {
   const narrow = useNarrow();
   const { view, dispatch } = useData();
+  const counts = useShellCounts();
   if (!narrow) return null;
   return (
-    <nav
-      className="glass grid shrink-0 grid-cols-5 border-t border-line pb-[env(safe-area-inset-bottom)]"
-      aria-label="Navigation"
-    >
+    <nav className="shell-tabs glass" aria-label="Navigation">
       {PRIMARY.map((item) => {
         const active = view === item.id;
+        const count = badgeCount(item.id, counts);
         return (
           <button
             key={item.id}
             type="button"
+            aria-label={item.label}
+            aria-current={active ? "page" : undefined}
             data-tour={item.id === "carte" ? "carte" : undefined}
             onClick={() => dispatch({ type: "SET_VIEW", view: item.id })}
-            className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-0.5 text-[13px] font-semibold leading-none",
-              active ? "text-brand" : "text-muted",
-            )}
+            className="shell-tab"
           >
-            {item.icon}
-            {item.label}
+            <span className="relative">
+              {item.icon}
+              {count > 0 && (
+                <span className={cn("nav-badge nav-badge-float", item.id === "gantt" && "nav-badge-alert")} aria-hidden>
+                  {count}
+                </span>
+              )}
+            </span>
+            <span className="max-w-full truncate">{item.label}</span>
           </button>
         );
       })}

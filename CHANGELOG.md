@@ -2,6 +2,17 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3 — 2026-10-29
+
+Branche `feat/refonte-lot3-coque`. Lot 3 de la refonte « verre nuit » : coquille. Pas de tag. Le mode clair reste dans Réglages. Les gestes du Gantt et le CSS des blocs ne bougent pas.
+
+- Barre latérale bureau en verre, 212 px : logo Ambux, cinq vues (Timeline, Carte, À placer, Synthèse, Réglages), item actif teal. Données, flotte, patients et feuilles restent dans Réglages et dans le menu ⋯.
+- Barre du haut en verre : « Planning du … », pilule de brouillon, recherche, annuler, rétablir, « Générer le planning ». Sur téléphone étroit, le libellé du bouton devient « Générer ».
+- Barre d'onglets mobile en verre, au-dessus de `env(safe-area-inset-bottom)`. Le toast reste au-dessus des onglets.
+- Bandeau de routage dégradé en verre corail.
+- Flou (`backdrop-filter` et `-webkit-backdrop-filter`) limité à cette coque, avec repli opaque. Pas de flou sur les lignes du Gantt ni sur la carte.
+- Fichier autonome : `ambux-v0.9.0-alpha.3.html`.
+
 ## v0.9.0-alpha.2 — 2026-10-22
 
 Branche `feat/refonte-lot2-primitives`. Lot 2 de la refonte « verre nuit » : primitives. Pas de tag. Le mode clair de la v0.8.0 reste dans Réglages, rubrique Affichage. La coque, les gestes et le CSS des blocs ne bougent pas.

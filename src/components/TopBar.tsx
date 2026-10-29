@@ -13,7 +13,8 @@ const SPEEDS: Speed[] = [1, 2, 4];
 
 export function TopBar() {
   const clock = useClock();
-  const { view, dispatch, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = useData();
+  const data = useData();
+  const { view, dispatch, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = data;
   const narrow = useNarrow();
   const [menu, setMenu] = useState(false);
   const reviewCount = issues.filter((issue) => issue.kind !== "km_estime").length;
@@ -40,49 +41,45 @@ export function TopBar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch, live]);
 
+  const dateField = (
+    <label className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-lg px-1">
+      <span className="truncate text-[15px] font-medium">
+        {narrow ? shortDate(missionIso) : planningTitle(missionLabel)}
+      </span>
+      <input
+        type="date"
+        aria-label="Date de mission"
+        value={missionIso}
+        onChange={(event) => {
+          if (event.target.value) dispatch({ type: "SET_MISSION", iso: event.target.value });
+        }}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      />
+    </label>
+  );
+
   return (
-    <header className={cn("glass relative border-b border-line", menu ? "z-[80]" : "z-30")}>
-      <div className="flex h-14 items-center gap-1.5 px-2">
-        <div className="flex min-w-0 flex-1 items-center gap-1 px-1">
-          <label className="relative inline-flex h-11 min-w-0 shrink items-center rounded-lg px-1">
-            <span className="truncate text-xs font-semibold sm:text-sm">
-              {narrow ? shortDate(missionIso) : missionLabel}
-            </span>
-            <input
-              type="date"
-              aria-label="Date de mission"
-              value={missionIso}
-              onChange={(event) => {
-                if (event.target.value) dispatch({ type: "SET_MISSION", iso: event.target.value });
-              }}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-          </label>
-          {!narrow && <DraftVersion />}
-          <button
-            type="button"
-            className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30"
-            aria-label="Annuler"
-            disabled={!canUndo}
-            onClick={undo}
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-ice disabled:opacity-30"
-            aria-label="Rétablir"
-            disabled={!canRedo}
-            onClick={redo}
-          >
-            <Redo2 size={16} />
-          </button>
+    <header className={cn("shell-top glass relative", menu ? "z-[80]" : "z-30")}>
+      <div className="flex min-h-14 items-center gap-1.5 px-2 sm:px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          {dateField}
+          {!narrow && <DraftVersion missionIso={missionIso} courses={data.transports.length} />}
         </div>
+        {!narrow && (
+          <>
+            <IconButton label="Annuler" disabled={!canUndo} onClick={undo}>
+              <Undo2 size={18} />
+            </IconButton>
+            <IconButton label="Rétablir" disabled={!canRedo} onClick={redo}>
+              <Redo2 size={18} />
+            </IconButton>
+          </>
+        )}
         {live && (
           <>
             <button
               type="button"
-              className="inline-flex h-11 items-center gap-1 rounded-xl bg-ice px-2 text-sm font-semibold tabular-nums text-navy"
+              className="shell-live"
               onClick={() => dispatch({ type: "PAUSE" })}
               aria-label={clock.paused ? "Reprendre" : "Mettre en pause"}
             >
@@ -91,7 +88,7 @@ export function TopBar() {
             </button>
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold hover:bg-ice"
+              className="shell-icon text-[13px] font-medium"
               aria-label={`Vitesse ×${clock.speed}`}
               onClick={() => {
                 const next = SPEEDS[(SPEEDS.indexOf(clock.speed) + 1) % SPEEDS.length] ?? 1;
@@ -106,27 +103,21 @@ export function TopBar() {
           <>
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-ice"
+              className="shell-search"
               aria-label="Rechercher"
               onClick={() => setTimelineSheet("find")}
             >
               <Search size={18} />
+              {!narrow && <span>Rechercher</span>}
             </button>
             <button
               type="button"
               data-tour="controle"
-              className="inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-xl px-2 text-sm font-semibold hover:bg-ice"
+              className="shell-icon text-[13px] font-medium"
               aria-label={`À contrôler, ${reviewCount}`}
               onClick={() => setTimelineSheet("review")}
             >
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs",
-                  reviewCount ? "bg-alert-soft text-alert" : "bg-ice text-muted",
-                )}
-              >
-                {reviewCount}
-              </span>
+              <span className={cn("shell-count", reviewCount > 0 && "shell-count-alert")}>{reviewCount}</span>
             </button>
           </>
         )}
@@ -145,7 +136,7 @@ export function TopBar() {
         <button
           type="button"
           data-tour="plus"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-ice"
+          className="shell-icon"
           aria-label="Autres actions"
           aria-expanded={menu}
           onClick={() => setMenu((value) => !value)}
@@ -154,22 +145,29 @@ export function TopBar() {
         </button>
       </div>
       {live && (
-        <div className="h-1 bg-ice">
-          <div className="h-full bg-brand" style={{ width: `${progress * 100}%` }} />
+        <div className="mx-3 mb-2 h-1 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full bg-teal" style={{ width: `${progress * 100}%` }} />
         </div>
       )}
       {narrow && (
-        <div className="flex gap-2 px-2 pb-2">
+        <div className="flex items-center gap-2 px-2 pb-2">
+          <IconButton label="Annuler" disabled={!canUndo} onClick={undo}>
+            <Undo2 size={18} />
+          </IconButton>
+          <IconButton label="Rétablir" disabled={!canRedo} onClick={redo}>
+            <Redo2 size={18} />
+          </IconButton>
+          <DraftVersion missionIso={missionIso} courses={data.transports.length} />
           <button
             type="button"
-            className="h-11 flex-1 rounded-xl bg-ice text-sm font-semibold"
+            className="shell-chip-btn"
             onClick={() => dispatch({ type: "OPEN_MODAL", modal: "import" })}
           >
             Importer
           </button>
           <button
             type="button"
-            className="h-11 flex-1 rounded-xl bg-ice text-sm font-semibold"
+            className="shell-chip-btn"
             onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}
           >
             Exporter
@@ -177,11 +175,7 @@ export function TopBar() {
         </div>
       )}
       {menu && (
-        <div
-          role="group"
-          aria-label="Autres actions"
-          className="absolute right-2 top-full z-50 mt-1 w-56 rounded-2xl border border-line bg-card p-1 shadow-xl"
-        >
+        <div role="group" aria-label="Autres actions" className="shell-menu glass-opaque">
           <MenuButton
             icon={<FileText size={16} />}
             label="Importer"
@@ -220,21 +214,50 @@ export function TopBar() {
   );
 }
 
+function IconButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button type="button" className="shell-icon" aria-label={label} disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
 function MenuButton({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
   return (
-    <button
-      type="button"
-      className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium hover:bg-ice"
-      onClick={onClick}
-    >
+    <button type="button" className="shell-menu-item" onClick={onClick}>
       {icon}
       {label}
     </button>
   );
 }
 
-function DraftVersion() {
-  const latest = listDrafts()[0];
-  if (!latest) return null;
-  return <span className="text-xs font-semibold text-muted">v{latest.version}</span>;
+function DraftVersion({ missionIso, courses }: { missionIso: string; courses: number }) {
+  const [version, setVersion] = useState<number | null>(null);
+  useEffect(() => {
+    const id = window.setTimeout(() => setVersion(listDrafts()[0]?.version ?? null), 0);
+    return () => window.clearTimeout(id);
+  }, [missionIso, courses]);
+  if (version == null) return null;
+  return (
+    <span className="version-chip" title={`Brouillon v${version}`}>
+      v{version}
+    </span>
+  );
+}
+
+function planningTitle(label: string): string {
+  const body = label.replace(/\s+\d{4}$/, "").trim();
+  if (!body) return "Planning";
+  const lower = body.charAt(0).toLocaleLowerCase("fr-FR") + body.slice(1);
+  return `Planning du ${lower}`;
 }
