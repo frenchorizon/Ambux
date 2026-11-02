@@ -1,6 +1,8 @@
 import type { PlacementPreview } from "../../game/schedule";
 import { snap5 } from "../../game/schedule";
 
+type Refusal = Extract<PlacementPreview, { ok: false }>;
+
 export interface DragState {
   transportId: string;
   pointerId: number;
@@ -24,6 +26,18 @@ export const GANTT_EDGE_STEP = 12;
 
 export function previewCacheKey(crewId: string, minute: number): string {
   return `${crewId}:${snap5(minute)}`;
+}
+
+/** Motif court du fantôme. La phrase complète reste sur le titre du bloc. */
+export function refusalMotif(preview: Refusal): string {
+  if (preview.reason === "incompatible") {
+    if (preview.message.includes("VSL")) return "VSL";
+    if (preview.message.includes("DEA")) return "DEA";
+    return "Incompatible";
+  }
+  if (preview.reason === "conflict") return "Conflit";
+  if (preview.reason === "cancelled") return "Annulé";
+  return "Engagée";
 }
 
 /** Même équipage et même départ calé sur 5 minutes : rien à enregistrer. */

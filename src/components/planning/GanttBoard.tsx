@@ -6,7 +6,7 @@ import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabe
 import { mealIssue } from "../../game/breaks";
 import { useNarrow } from "../../lib/useMedia";
 import { cn } from "../../lib/utils";
-import type { DragState } from "./drag";
+import { refusalMotif, type DragState } from "./drag";
 
 export function GanttBoard({
   drag,
@@ -259,7 +259,7 @@ function CrewRow({
                   height: barH,
                   background: "color-mix(in srgb, var(--crew) 16%, transparent)",
                   ["--crew" as string]: crew.color,
-                  transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px) scale(1.045)` : undefined,
+                  transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
                   zIndex: dragging ? 25 : undefined,
                 }}
                 data-armed={dragging && !drag.moved ? "1" : undefined}
@@ -350,31 +350,13 @@ function CrewRow({
             </div>
           );
         })}
-        {drag?.moved && drag.hoverCrewId === crew.id && drag.preview?.ok && (
-          <div
-            data-preview="ok"
-            className="pointer-events-none absolute rounded-md border-2 border-white/80 opacity-80"
-            style={{
-              top: barTop,
-              height: barH,
-              left: (drag.preview.departMin - DAY_START) * pxPerMin,
-              width: Math.max(8, (drag.preview.leg.endMin - drag.preview.departMin) * pxPerMin),
-              background: crew.color,
-            }}
-          />
-        )}
-        {drag?.moved && drag.hoverCrewId === crew.id && drag.preview && !drag.preview.ok && (
-          <div
-            data-preview="invalid"
-            data-reason={drag.preview.message}
-            title={drag.preview.message}
-            className="pointer-events-none absolute rounded-md border-2 border-alert-strong bg-alert/70"
-            style={{
-              top: barTop,
-              height: barH,
-              left: (snap5(drag.hoverMinute ?? DAY_START) - DAY_START) * pxPerMin,
-              width: Math.max(8, ghostSpan(schedules, drag.transportId) * pxPerMin),
-            }}
+        {drag?.moved && drag.hoverCrewId === crew.id && drag.preview && (
+          <DragGhost
+            drag={drag}
+            minutes={ghostSpan(schedules, drag.transportId)}
+            pxPerMin={pxPerMin}
+            top={barTop}
+            height={barH}
           />
         )}
       </div>
@@ -420,13 +402,51 @@ function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
   );
 }
 
+function DragGhost({
+  drag,
+  minutes,
+  pxPerMin,
+  top,
+  height,
+}: {
+  drag: DragState;
+  minutes: number;
+  pxPerMin: number;
+  top: number;
+  height: number;
+}) {
+  const preview = drag.preview;
+  if (!preview) return null;
+  const minute = preview.ok ? preview.departMin : snap5(drag.hoverMinute ?? DAY_START);
+  const refused = !preview.ok;
+  return (
+    <div
+      data-ghost=""
+      data-preview={refused ? "invalid" : "ok"}
+      data-depart={minute}
+      data-reason={refused ? preview.message : undefined}
+      title={refused ? preview.message : `Prise en charge ${formatMin(minute)}`}
+      className="gantt-ghost pointer-events-none absolute"
+      style={{
+        top,
+        height,
+        left: (minute - DAY_START) * pxPerMin,
+        width: Math.max(8, minutes * pxPerMin),
+      }}
+    >
+      <span className="truncate">{formatMin(minute)}</span>
+      {!preview.ok && <span className="truncate">{refusalMotif(preview)}</span>}
+    </div>
+  );
+}
+
 function ghostSpan(
   schedules: { values(): Iterable<{ legs: { transportId: string; departMin: number; endMin: number }[] }> },
   transportId: string,
 ): number {
   for (const schedule of schedules.values()) {
     const leg = schedule.legs.find((item) => item.transportId === transportId);
-    if (leg) return Math.max(8, leg.endMin - leg.departMin);
+    if (leg) return Math.max(1, leg.endMin - leg.departMin);
   }
   return 40;
 }

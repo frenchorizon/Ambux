@@ -138,12 +138,14 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
         armed: node.getAttribute("data-armed"),
         pending: node.classList.contains("gantt-pending"),
         transform: (node as HTMLElement).style.transform,
+        opacity: getComputedStyle(node).opacity,
         will: getComputedStyle(node).willChange,
         touch: getComputedStyle(node).touchAction,
       }));
       expect(armed.armed).toBe("1");
       expect(armed.pending).toBe(false);
-      expect(armed.transform).toContain("scale");
+      expect(armed.transform).not.toContain("scale");
+      expect(armed.opacity).toBe("0.6");
       expect(armed.will).toContain("transform");
       expect(armed.touch).toBe("none");
       await touch(page, "pointermove", from.x + 30, from.y, 11);
@@ -183,9 +185,10 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await page.waitForTimeout(480);
     await touch(page, "pointermove", from.x, box!.y + box!.height / 2, 12);
     await frame(page);
-    const refused = page.locator("[data-preview='invalid']");
+    const refused = page.locator("[data-ghost][data-preview='invalid']");
     await expect(refused).toBeVisible();
-    await expect(page.locator("[data-drag-reason]")).toContainText(/Incompatibilité :|Conflit horaire :/);
+    await expect(refused).toHaveAttribute("data-reason", /Incompatibilité :|Conflit horaire :/);
+    await expect(refused).toContainText(/VSL|DEA|Conflit/);
     await page.screenshot({ path: "/opt/cursor/artifacts/v080-gantt-phone.png" });
     await touch(page, "pointerup", from.x, box!.y + box!.height / 2, 12);
     await expect(page.getByText(/Incompatibilité|Conflit horaire/)).toBeVisible();

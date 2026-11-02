@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
-import { ganttEdgeDelta, previewCacheKey, sameAssignment } from "../src/components/planning/drag.ts";
+import { ganttEdgeDelta, previewCacheKey, refusalMotif, sameAssignment } from "../src/components/planning/drag.ts";
 import {
   displayedDepart,
   previewOnGrid,
@@ -162,6 +162,38 @@ describe("segments du Gantt", () => {
     if (!preview.ok) return;
     assert.equal(preview.departMin % 5, 0);
     assert.equal(preview.departMin, 8 * 60 + 5);
+  });
+
+  it("résume le refus du fantôme", () => {
+    assert.equal(
+      refusalMotif({
+        ok: false,
+        reason: "incompatible",
+        message: "Incompatibilité : transport allongé, un VSL n'est pas habilité.",
+      }),
+      "VSL",
+    );
+    assert.equal(
+      refusalMotif({
+        ok: false,
+        reason: "incompatible",
+        message: "Incompatibilité : cette ambulance n'a pas de DEA enregistré.",
+      }),
+      "DEA",
+    );
+    assert.equal(
+      refusalMotif({
+        ok: false,
+        reason: "conflict",
+        message: "Conflit horaire : aucun créneau libre sur cet équipage.",
+      }),
+      "Conflit",
+    );
+    assert.equal(refusalMotif({ ok: false, reason: "cancelled", message: "Ce transport est annulé." }), "Annulé");
+    assert.equal(
+      refusalMotif({ ok: false, reason: "started", message: "Course déjà engagée : l'équipage est parti." }),
+      "Engagée",
+    );
   });
 
   it("ne recalcule le créneau que si l'équipage ou la minute calée change", () => {

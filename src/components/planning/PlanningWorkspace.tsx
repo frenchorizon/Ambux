@@ -390,8 +390,6 @@ export function PlanningWorkspace() {
     drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
   const liveDepart = draggingSelection ? draggingSelection.departMin : selectedLeg?.departMin;
   const shownDepart = liveDepart == null ? undefined : displayedDepart(liveDepart);
-  const dragged = drag?.moved ? data.transportById.get(drag.transportId) : undefined;
-  const draggedPlan = dragged ? (dragged.appointmentMin ?? dragged.windowStart) : undefined;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" data-gesture={gesture}>
@@ -509,29 +507,13 @@ export function PlanningWorkspace() {
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
             Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le
-            planning défile si le doigt part avant, et au bord pendant le glisser. Un créneau refusé reste en rose avec
-            la raison. Reposer au même endroit n'est pas une modification. Échap annule. Les flèches décalent de 5
-            minutes ou changent de véhicule. La pastille marine est l'heure prévue.
+            planning défile si le doigt part avant, et au bord pendant le glisser. Le fantôme teal ou corail montre
+            l'heure calée ; un refus porte le motif. Reposer au même endroit n'est pas une modification. Échap annule.
+            Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
           </p>
         </Sheet>
       )}
       {ui.sheet === "review" && <ReviewSheet onClose={closeTimelineSheet} />}
-      {drag?.moved && (
-        <div
-          data-drag-label
-          className="pointer-events-none fixed z-[65] max-w-[240px] -translate-x-1/2 -translate-y-full rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white shadow-lg"
-          style={{ left: drag.x, top: Math.max(8, drag.y - 12) }}
-        >
-          <div>{labelFor(drag.transportId, data.transportById, data.patientById)}</div>
-          {drag.preview?.ok && (
-            <div>
-              Prise en charge {formatMin(drag.preview.departMin)}
-              {draggedPlan != null ? ` · prévue ${formatMin(draggedPlan)}` : ""}
-            </div>
-          )}
-          {drag.preview && !drag.preview.ok && <div data-drag-reason>{drag.preview.message}</div>}
-        </div>
-      )}
       {selected && shownDepart != null && plannedMin != null && (
         <DPad
           selectedId={selected.id}
@@ -594,16 +576,6 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
       </div>
     </div>
   );
-}
-
-function labelFor(
-  id: string,
-  transports: { get(id: string): { patientId: string } | undefined },
-  patients: { get(id: string): { firstName: string; lastName: string } | undefined },
-) {
-  const transport = transports.get(id);
-  const patient = transport ? patients.get(transport.patientId) : undefined;
-  return patient ? personName(patient) : "Course";
 }
 
 function touchById(list: TouchList, id: number): Touch | undefined {
