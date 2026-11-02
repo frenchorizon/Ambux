@@ -33,6 +33,6 @@ jobs:
       - name: build
         run: npm run build
       - name: playwright browsers
-        run: npx playwright install --with-deps chrome
+        run: npx playwright install --with-deps chrome webkit
       - name: playwright
         run: npm run e2e

@@ -10,7 +10,11 @@ import { build } from "vite";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "dist-standalone");
 const releaseDir = "/opt/cursor/artifacts/releases";
-const releaseName = "ambux-v0.9.0-alpha.3.html";
+const requested = process.argv[2];
+const releaseName = requested ?? "ambux-v0.9.0-alpha.3.html";
+if (requested && !/^ambux-[\w.-]+\.html$/.test(requested)) {
+  throw new Error(`Nom de fichier autonome refusé : ${requested}`);
+}
 
 await build({
   root,

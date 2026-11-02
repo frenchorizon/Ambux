@@ -429,6 +429,8 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   await page.mouse.move(from.x + 160, from.y, { steps: 8 });
+  await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
+  await page.screenshot({ path: "/opt/cursor/artifacts/dnd1_drag_1440.png", scale: "css" });
   await page.mouse.up();
   const dragged = await barById(page, from.id);
   if (dragged.depart !== from.depart) expect(dragged.depart % 5).toBe(0);

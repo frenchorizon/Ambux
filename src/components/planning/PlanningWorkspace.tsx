@@ -36,6 +36,8 @@ export function PlanningWorkspace() {
   const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
   const [note, setNote] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  /** Pointer events coupés par iOS, le doigt est encore là : touchmove et touchend suivent. */
+  const touchLost = useRef(false);
   const pending = useRef<Hold | null>(null);
   const captureRef = useRef<{ el: HTMLElement; pointerId: number } | null>(null);
   const queued = useRef<{ x: number; y: number } | null>(null);
@@ -66,6 +68,7 @@ export function PlanningWorkspace() {
       overUnassigned: false,
     };
     dragRef.current = next;
+    touchLost.current = false;
     captureRef.current = { el, pointerId };
     setPendingId(null);
     setNote(null);
@@ -153,6 +156,18 @@ export function PlanningWorkspace() {
   };
 
   useEffect(() => {
+    const fingers = new Set<number>();
+    const queue = (x: number, y: number) => {
+      if (!dragRef.current) return;
+      queued.current = { x, y };
+      if (frame.current) return;
+      frame.current = window.requestAnimationFrame(() => {
+        frame.current = 0;
+        const point = queued.current;
+        queued.current = null;
+        if (point) applyMove(point.x, point.y);
+      });
+    };
     const move = (event: PointerEvent) => {
       const hold = pending.current;
       if (hold && event.pointerId === hold.pointerId) {
@@ -165,16 +180,9 @@ export function PlanningWorkspace() {
         return;
       }
       const current = dragRef.current;
-      if (!current || event.pointerId !== current.pointerId) return;
+      if (!current || event.pointerId !== current.pointerId || touchLost.current) return;
       if (event.cancelable) event.preventDefault();
-      queued.current = { x: event.clientX, y: event.clientY };
-      if (frame.current) return;
-      frame.current = window.requestAnimationFrame(() => {
-        frame.current = 0;
-        const point = queued.current;
-        queued.current = null;
-        if (point) applyMove(point.x, point.y);
-      });
+      queue(event.clientX, event.clientY);
     };
     const releaseCapture = () => {
       const captured = captureRef.current;
@@ -196,6 +204,20 @@ export function PlanningWorkspace() {
       queued.current = null;
       if (point) applyMove(point.x, point.y);
     };
+    const finish = () => {
+      const current = dragRef.current;
+      if (!current) return;
+      flush();
+      const latest = dragRef.current ?? current;
+      dragRef.current = null;
+      touchLost.current = false;
+      setDrag(null);
+      setPendingId(null);
+      setGesture("idle");
+      releaseCapture();
+      setNote(null);
+      commit(latest, bag.current);
+    };
     const up = (event: PointerEvent) => {
       const hold = pending.current;
       if (hold && event.pointerId === hold.pointerId) {
@@ -208,20 +230,13 @@ export function PlanningWorkspace() {
       }
       const current = dragRef.current;
       if (!current || event.pointerId !== current.pointerId) return;
-      flush();
-      const latest = dragRef.current ?? current;
-      dragRef.current = null;
-      setDrag(null);
-      setPendingId(null);
-      setGesture("idle");
-      releaseCapture();
-      setNote(null);
-      commit(latest, bag.current);
+      finish();
     };
     const abort = () => {
       const hold = pending.current;
       if (hold) window.clearTimeout(hold.timer);
       pending.current = null;
+      touchLost.current = false;
       stopEdge();
       if (frame.current) {
         window.cancelAnimationFrame(frame.current);
@@ -243,15 +258,66 @@ export function PlanningWorkspace() {
       const matchesHold = Boolean(hold && event.pointerId === hold.pointerId);
       const matchesDrag = Boolean(current && event.pointerId === current.pointerId);
       if (!matchesHold && !matchesDrag) return;
+      // iOS annule le pointer quand il croit prendre le défilement, le doigt encore posé.
+      if (matchesDrag && event.pointerType === "touch" && fingers.has(event.pointerId)) {
+        touchLost.current = true;
+        return;
+      }
+      abort();
+    };
+    const remember = (event: TouchEvent) => {
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        const touch = event.changedTouches.item(i);
+        if (touch) fingers.add(touch.identifier);
+      }
+    };
+    const forget = (event: TouchEvent) => {
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        const touch = event.changedTouches.item(i);
+        if (touch) fingers.delete(touch.identifier);
+      }
+    };
+    // Posé au montage, non passif : iOS ignore un preventDefault branché après le contact,
+    // et ignore touch-action changé pendant que le doigt est là. Rien n'est bloqué pendant l'appui long.
+    const onTouchMove = (event: TouchEvent) => {
+      const current = dragRef.current;
+      if (!current) return;
+      if (event.cancelable) event.preventDefault();
+      if (!touchLost.current) return;
+      const touch = touchById(event.touches, current.pointerId);
+      if (!touch) return;
+      queue(touch.clientX, touch.clientY);
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      const current = dragRef.current;
+      const lifted = current ? touchById(event.changedTouches, current.pointerId) : undefined;
+      forget(event);
+      if (!touchLost.current || !lifted) return;
+      queued.current = { x: lifted.clientX, y: lifted.clientY };
+      finish();
+    };
+    const onTouchCancel = (event: TouchEvent) => {
+      const id = dragRef.current?.pointerId ?? pending.current?.pointerId;
+      const hit = id != null && touchById(event.changedTouches, id);
+      forget(event);
+      if (!hit) return;
       abort();
     };
     window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
+    window.addEventListener("touchstart", remember, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchCancel);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("touchstart", remember);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchCancel);
       if (pending.current) window.clearTimeout(pending.current.timer);
       if (frame.current) window.cancelAnimationFrame(frame.current);
       stopEdge();
@@ -538,6 +604,14 @@ function labelFor(
   const transport = transports.get(id);
   const patient = transport ? patients.get(transport.patientId) : undefined;
   return patient ? personName(patient) : "Course";
+}
+
+function touchById(list: TouchList, id: number): Touch | undefined {
+  for (let i = 0; i < list.length; i++) {
+    const touch = list.item(i);
+    if (touch?.identifier === id) return touch;
+  }
+  return undefined;
 }
 
 function readHover(

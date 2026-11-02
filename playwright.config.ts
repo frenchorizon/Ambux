@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "e2e",
@@ -9,7 +9,6 @@ export default defineConfig({
   reporter: "line",
   use: {
     baseURL: "http://127.0.0.1:5280",
-    channel: "chrome",
     locale: "fr-FR",
   },
   webServer: {
@@ -19,7 +18,22 @@ export default defineConfig({
     timeout: 120_000,
   },
   projects: [
-    { name: "phone", use: { viewport: { width: 390, height: 844 } } },
-    { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
+    {
+      name: "phone",
+      use: { browserName: "chromium", channel: "chrome", viewport: { width: 390, height: 844 } },
+    },
+    {
+      name: "desktop",
+      use: { browserName: "chromium", channel: "chrome", viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "iphone",
+      testMatch: /gantt-ios\.spec\.ts/,
+      use: {
+        ...devices["iPhone 13"],
+        // Le descripteur Playwright laisse 664 px au viewport (barre Safari). Le lot et le projet phone sont en 390×844.
+        viewport: { width: 390, height: 844 },
+      },
+    },
   ],
 });
