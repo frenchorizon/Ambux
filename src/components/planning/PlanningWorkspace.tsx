@@ -15,10 +15,16 @@ import { formatKm, formatMin, personName, postureLabel } from "../../lib/format"
 import { Button } from "../ui/button";
 import {
   dragCommitKey,
+  dragRelease,
+  dragReturnsHome,
   ganttEdgeDelta,
+  ganttEdgeRect,
+  HOLD_MS,
   noteDrag,
   previewCacheKey,
+  RETURN_MS,
   sameAssignment,
+  SCROLL_SLOP,
   scrollGanttEdge,
   type DragState,
 } from "./drag";
@@ -26,8 +32,6 @@ import { DPad, type PadDir } from "./DPad";
 import { GanttBoard } from "./GanttBoard";
 import { closeTimelineSheet, setTimelineQuery, useTimelineUi } from "./timelineUi";
 
-const HOLD_MS = 420;
-const SCROLL_SLOP = 18;
 const DRAG_SLOP = 8;
 
 type Hold = {
@@ -49,6 +53,7 @@ export function PlanningWorkspace() {
   );
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
   const [note, setNote] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -65,6 +70,11 @@ export function PlanningWorkspace() {
   const queued = useRef<{ x: number; y: number } | null>(null);
   const frame = useRef(0);
   const edgeLoop = useRef(0);
+  const returnRef = useRef<{ id: string; dx: number; dy: number; started: boolean } | null>(null);
+  const returnTimer = useRef(0);
+  const returnFrame = useRef(0);
+  const returnGen = useRef(0);
+  const queueReturnRef = useRef<(drag: DragState) => void>(() => {});
   const abortRef = useRef<() => void>(() => {});
   const bag = useRef({ data, clock, pxPerMin });
   const nudgeRef = useRef<(dir: PadDir, coalesce: boolean) => void>(() => {});
@@ -76,7 +86,39 @@ export function PlanningWorkspace() {
     setNote(null);
   }, [data.selectedId]);
 
+  queueReturnRef.current = (drag) => {
+    if (drag.dx === 0 && drag.dy === 0) return;
+    if (returnTimer.current) {
+      window.clearTimeout(returnTimer.current);
+      returnTimer.current = 0;
+    }
+    if (returnFrame.current) {
+      window.cancelAnimationFrame(returnFrame.current);
+      returnFrame.current = 0;
+    }
+    returnGen.current += 1;
+    returnRef.current = { id: drag.transportId, dx: drag.dx, dy: drag.dy, started: false };
+    setReturningId(drag.transportId);
+  };
+
+  const cancelReturn = () => {
+    returnGen.current += 1;
+    const back = returnRef.current;
+    returnRef.current = null;
+    if (returnTimer.current) {
+      window.clearTimeout(returnTimer.current);
+      returnTimer.current = 0;
+    }
+    if (returnFrame.current) {
+      window.cancelAnimationFrame(returnFrame.current);
+      returnFrame.current = 0;
+    }
+    if (back) clearDragPaint(null, back.id);
+    setReturningId((id) => (id === back?.id ? null : id));
+  };
+
   const begin = (transportId: string, pointerId: number, x: number, y: number, el: HTMLElement) => {
+    cancelReturn();
     const next: DragState = {
       transportId,
       pointerId,
@@ -168,7 +210,7 @@ export function PlanningWorkspace() {
     if (!current?.moved) return;
     const scroller = document.querySelector(".gantt-scroll");
     if (!(scroller instanceof HTMLElement)) return;
-    const { dx, dy } = ganttEdgeDelta(current.x, current.y, scroller.getBoundingClientRect());
+    const { dx, dy } = ganttEdgeDelta(current.x, current.y, ganttEdgeRect(scroller));
     if (!dx && !dy) return;
     const step = () => {
       edgeLoop.current = 0;
@@ -240,7 +282,6 @@ export function PlanningWorkspace() {
       if (!current) return;
       flush();
       const latest = dragRef.current ?? current;
-      clearDragPaint(dragNodeRef.current, latest.transportId);
       dragRef.current = null;
       commitKeyRef.current = null;
       touchLost.current = false;
@@ -249,6 +290,9 @@ export function PlanningWorkspace() {
       setGesture("idle");
       releaseCapture();
       setNote(null);
+      const release = dragRelease(latest, samePlaceOf(latest, bag.current.data));
+      if (dragReturnsHome(latest, release)) queueReturnRef.current(latest);
+      else clearDragPaint(dragNodeRef.current, latest.transportId);
       commit(latest, bag.current);
     };
     const up = (event: PointerEvent) => {
@@ -277,11 +321,13 @@ export function PlanningWorkspace() {
       }
       queued.current = null;
       if (dragRef.current) {
-        clearDragPaint(dragNodeRef.current, dragRef.current.transportId);
+        const latest = dragRef.current;
         dragRef.current = null;
         commitKeyRef.current = null;
         setDrag(null);
         releaseCapture();
+        if (latest.dx !== 0 || latest.dy !== 0) queueReturnRef.current(latest);
+        else clearDragPaint(dragNodeRef.current, latest.transportId);
       }
       setPendingId(null);
       setGesture("idle");
@@ -327,7 +373,8 @@ export function PlanningWorkspace() {
       const current = dragRef.current;
       const lifted = current ? touchById(event.changedTouches, current.pointerId) : undefined;
       forget(event);
-      if (!touchLost.current || !lifted) return;
+      if (!lifted) return;
+      // Le pointerup suit d'habitude. S'il ne vient pas, le doigt levé termine quand même.
       queued.current = { x: lifted.clientX, y: lifted.clientY };
       finish();
     };
@@ -355,6 +402,8 @@ export function PlanningWorkspace() {
       window.removeEventListener("touchcancel", onTouchCancel);
       if (pending.current) window.clearTimeout(pending.current.timer);
       if (frame.current) window.cancelAnimationFrame(frame.current);
+      if (returnFrame.current) window.cancelAnimationFrame(returnFrame.current);
+      if (returnTimer.current) window.clearTimeout(returnTimer.current);
       stopEdge();
       abortRef.current = () => {};
     };
@@ -362,8 +411,50 @@ export function PlanningWorkspace() {
 
   useLayoutEffect(() => {
     const current = dragRef.current;
-    if (!current) return;
-    paintDrag(dragNodeRef.current, current.transportId, current.dx, current.dy);
+    if (current) {
+      paintDrag(dragNodeRef.current, current.transportId, current.dx, current.dy);
+      return;
+    }
+    const back = returnRef.current;
+    if (!back || back.started) return;
+    const gen = returnGen.current;
+    const node = dragTarget(null, back.id);
+    if (!(node instanceof HTMLElement)) {
+      back.started = true;
+      setReturningId((id) => (id === back.id ? null : id));
+      return;
+    }
+    back.started = true;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node.style.transition = "none";
+    node.style.zIndex = "25";
+    node.style.transform = `translate(${back.dx}px, ${back.dy}px)`;
+    void node.offsetWidth;
+    node.style.transition = reduce ? "none" : `transform ${RETURN_MS}ms ease-out`;
+    const finishReturn = () => {
+      if (returnGen.current !== gen) return;
+      const el = node.isConnected ? node : dragTarget(null, back.id);
+      if (el) {
+        el.style.transform = "";
+        el.style.zIndex = "";
+        el.style.transition = "";
+      }
+      if (returnRef.current?.id === back.id) returnRef.current = null;
+      setReturningId((id) => (id === back.id ? null : id));
+    };
+    const go = () => {
+      returnFrame.current = 0;
+      if (returnGen.current !== gen) return;
+      const el = node.isConnected ? node : dragTarget(null, back.id);
+      if (!el) {
+        finishReturn();
+        return;
+      }
+      el.style.transform = "translate(0px, 0px)";
+      returnTimer.current = window.setTimeout(finishReturn, RETURN_MS + 220);
+    };
+    if (reduce) go();
+    else returnFrame.current = window.requestAnimationFrame(go);
   });
 
   useEffect(() => {
@@ -404,6 +495,7 @@ export function PlanningWorkspace() {
       const hold = pending.current;
       if (!hold || hold.timer !== timer || hold.mode !== "pending") return;
       pending.current = null;
+      buzz();
       begin(hold.id, hold.pointerId, hold.x, hold.y, hold.el);
     }, HOLD_MS);
     pending.current = {
@@ -438,6 +530,7 @@ export function PlanningWorkspace() {
       <GanttBoard
         drag={drag}
         pendingId={pendingId}
+        returningId={returningId}
         pxPerMin={pxPerMin}
         query={ui.query}
         onStart={onStart}
@@ -555,11 +648,11 @@ export function PlanningWorkspace() {
             </Button>
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le
-            planning défile si le doigt part avant, et au bord pendant le glisser. Le fantôme teal ou corail montre
-            l'heure calée ; un refus porte le motif. Reposer au même endroit n'est pas une modification. Échap annule.
-            Les flèches décalent de 5 minutes ou changent de véhicule. Le rendez-vous reste dans l'infobulle et le
-            détail.
+            Un tap sélectionne la course et affiche la croix. Maintenez : le bloc se soulève, puis glissez. Le planning
+            défile si le doigt part avant, et plus vite au bord. Le fantôme teal ou corail montre l'heure calée ; un
+            refus porte le motif. Reposer au même endroit n'est pas une modification. Échap, ou relâcher hors de la
+            grille, annule. Les flèches décalent de 5 minutes ou changent de véhicule. Le rendez-vous reste dans
+            l'infobulle et le détail.
           </p>
         </Sheet>
       )}
@@ -628,6 +721,14 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+function buzz() {
+  try {
+    navigator.vibrate?.(10);
+  } catch {
+    /* iOS : vibrate absent ou refusé. */
+  }
+}
+
 function dragTarget(node: HTMLElement | null, transportId: string): HTMLElement | null {
   if (node?.isConnected) return node;
   if (typeof document === "undefined") return null;
@@ -638,6 +739,7 @@ function dragTarget(node: HTMLElement | null, transportId: string): HTMLElement 
 function paintDrag(node: HTMLElement | null, transportId: string, dx: number, dy: number) {
   const target = dragTarget(node, transportId);
   if (!target) return;
+  target.style.transition = "none";
   target.style.zIndex = "25";
   target.style.transform = `translate(${dx}px, ${dy}px)`;
 }
@@ -647,6 +749,21 @@ function clearDragPaint(node: HTMLElement | null, transportId: string) {
   if (!target) return;
   target.style.zIndex = "";
   target.style.transform = "";
+  target.style.transition = "";
+}
+
+function samePlaceOf(drag: DragState, data: ReturnType<typeof useData>): boolean {
+  if (!drag.preview?.ok || !drag.hoverCrewId) return false;
+  const transport = data.transportById.get(drag.transportId);
+  const leg = [...data.schedules.values()]
+    .flatMap((schedule) => schedule.legs)
+    .find((item) => item.transportId === drag.transportId);
+  return sameAssignment(
+    transport?.crewId,
+    leg?.departMin ?? transport?.departMin,
+    drag.hoverCrewId,
+    drag.preview.departMin,
+  );
 }
 
 function touchById(list: TouchList, id: number): Touch | undefined {
@@ -680,38 +797,18 @@ function readHover(
   return { overUnassigned: false };
 }
 
-function commit(
-  drag: DragState,
-  bag: {
-    data: ReturnType<typeof useData>;
-    clock: ReturnType<typeof useClock>;
-  },
-) {
+function commit(drag: DragState, bag: { data: ReturnType<typeof useData> }) {
   const { data } = bag;
-  if (!drag.moved) {
+  const release = dragRelease(drag, samePlaceOf(drag, data));
+  if (release === "select" || release === "same") {
     data.dispatch({ type: "SELECT", id: drag.transportId });
     return;
   }
-  if (drag.overUnassigned) {
+  if (release === "unassign") {
     data.dispatch({ type: "UNASSIGN", transportId: drag.transportId });
     return;
   }
-  if (drag.preview?.ok && drag.hoverCrewId && drag.preview.departMin % 5 === 0) {
-    const transport = data.transportById.get(drag.transportId);
-    const leg = [...data.schedules.values()]
-      .flatMap((schedule) => schedule.legs)
-      .find((item) => item.transportId === drag.transportId);
-    if (
-      sameAssignment(
-        transport?.crewId,
-        leg?.departMin ?? transport?.departMin,
-        drag.hoverCrewId,
-        drag.preview.departMin,
-      )
-    ) {
-      data.dispatch({ type: "SELECT", id: drag.transportId });
-      return;
-    }
+  if (release === "assign" && drag.preview?.ok && drag.hoverCrewId) {
     data.dispatch({
       type: "ASSIGN",
       transportId: drag.transportId,
@@ -720,11 +817,11 @@ function commit(
     });
     return;
   }
-  if (drag.preview && !drag.preview.ok) {
+  if (release === "refuse" && drag.preview && !drag.preview.ok) {
     data.dispatch({ type: "TOAST", message: drag.preview.message, tone: "warn" });
     return;
   }
-  if (drag.hoverCrewId) {
+  if (release === "conflict") {
     data.dispatch({
       type: "TOAST",
       message: "Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.",

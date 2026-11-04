@@ -47,8 +47,10 @@ test("un drag de 300 px redessine selon les créneaux, pas selon les frames", as
     if (!box || !view) continue;
     const x = from.x;
     const y = from.y;
-    if (x < box.x + 48 || x + DISTANCE > box.x + box.width - 48) continue;
-    if (y < box.y + 48 || y > box.y + box.height - 48) continue;
+    const columnRight = await page.locator("[data-crew-column]").evaluate((node) => node.getBoundingClientRect().right);
+    // Hors de la zone de 56 px : le défilement au bord fausserait la mesure.
+    if (x < columnRight + 72 || x + DISTANCE > box.x + box.width - 72) continue;
+    if (y < box.y + 72 || y > box.y + box.height - 72) continue;
     if (x + DISTANCE > view.width - 24) continue;
 
     const scrollBefore = await scrollOf(page);

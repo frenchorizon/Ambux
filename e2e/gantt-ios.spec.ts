@@ -72,6 +72,9 @@ async function dragCandidates(
   );
   expect(candidates.length).toBeGreaterThan(0);
   for (const candidate of candidates.slice(0, 6)) {
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "idle");
+    await expect(page.locator("[data-return]")).toHaveCount(0);
     await center(page, candidate.id);
     const from = await barById(page, candidate.id);
     await gesture(from);

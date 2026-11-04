@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { rememberTravel } from "../src/lib/routing.ts";
-import { ganttEdgeDelta, previewCacheKey, refusalMotif, sameAssignment } from "../src/components/planning/drag.ts";
+import {
+  crewColumnWidth,
+  dragRelease,
+  dragReturnsHome,
+  edgeSpeed,
+  ganttEdgeDelta,
+  previewCacheKey,
+  refusalMotif,
+  sameAssignment,
+  type DragState,
+} from "../src/components/planning/drag.ts";
 import {
   displayedDepart,
   previewOnGrid,
@@ -289,11 +299,77 @@ describe("segments du Gantt", () => {
     seedRoads();
   });
 
-  it("décale le planning seulement près du bord visible", () => {
-    const rect = { left: 0, top: 100, right: 400, bottom: 700 };
-    assert.deepEqual(ganttEdgeDelta(10, 400, rect), { dx: -12, dy: 0 });
-    assert.deepEqual(ganttEdgeDelta(390, 680, rect), { dx: 12, dy: 12 });
-    assert.deepEqual(ganttEdgeDelta(200, 400, rect), { dx: 0, dy: 0 });
-    assert.deepEqual(ganttEdgeDelta(-4, 400, rect), { dx: 0, dy: 0 });
+  it("décale le planning plus vite au bord, à partir de la colonne", () => {
+    assert.equal(crewColumnWidth(390), 104);
+    assert.equal(crewColumnWidth(1024), 104);
+    assert.equal(crewColumnWidth(1025), 156);
+    assert.equal(crewColumnWidth(1440), 156);
+    assert.equal(edgeSpeed(0), 2);
+    assert.equal(edgeSpeed(1), 24);
+    assert.equal(edgeSpeed(0.25), 5.4375);
+    assert.ok(edgeSpeed(0.25) < edgeSpeed(0.5));
+    assert.ok(edgeSpeed(0.5) < edgeSpeed(1));
+    assert.ok(edgeSpeed(0.25) < 2 + 22 * 0.25);
+
+    const desk = { left: 0, top: 0, right: 900, bottom: 600, contentLeft: 156 };
+    const phone = { left: 0, top: 80, right: 390, bottom: 800, contentLeft: 104 };
+    assert.equal(ganttEdgeDelta(156, 300, desk).dx, -24);
+    assert.equal(ganttEdgeDelta(156 + 42, 300, desk).dx, -5.4375);
+    assert.equal(ganttEdgeDelta(156 + 42, 300, desk).dy, 0);
+    assert.ok(Math.abs(ganttEdgeDelta(156 + 4, 300, desk).dx) > Math.abs(ganttEdgeDelta(156 + 42, 300, desk).dx));
+    assert.equal(ganttEdgeDelta(80, 300, desk).dx, 0);
+    assert.equal(ganttEdgeDelta(900, 300, desk).dx, 24);
+    assert.equal(ganttEdgeDelta(400, 0, desk).dy, -24);
+    assert.equal(ganttEdgeDelta(400, 600, desk).dy, 24);
+    assert.ok(Math.abs(ganttEdgeDelta(400, 4, desk).dy) > Math.abs(ganttEdgeDelta(400, 42, desk).dy));
+    assert.deepEqual(ganttEdgeDelta(500, 300, desk), { dx: 0, dy: 0 });
+    assert.deepEqual(ganttEdgeDelta(-4, 300, desk), { dx: 0, dy: 0 });
+    assert.equal(ganttEdgeDelta(40, 400, phone).dx, 0);
+    assert.equal(ganttEdgeDelta(104, 400, phone).dx, -24);
+    assert.equal(ganttEdgeDelta(104 + 42, 400, phone).dx, -5.4375);
+    const corner = ganttEdgeDelta(890, 590, desk);
+    assert.ok(corner.dx > 2 && corner.dx < 24);
+    assert.ok(corner.dy > 2 && corner.dy < 24);
+  });
+
+  it("relâcher hors grille annule, un refus revient sans écrire", () => {
+    const home = gesture({ dx: 40, dy: 8 });
+    assert.equal(dragRelease(home, false), "cancel");
+    assert.equal(dragReturnsHome(home, "cancel"), true);
+    const refused = gesture({
+      hoverCrewId: "vsl",
+      hoverMinute: 600,
+      preview: { ok: false, reason: "incompatible", message: "Ce patient requiert une ambulance, pas un VSL." },
+    });
+    assert.equal(dragRelease(refused, false), "refuse");
+    assert.equal(dragReturnsHome(refused, "refuse"), true);
+    const placed = gesture({
+      hoverCrewId: "c2",
+      hoverMinute: 600,
+      preview: { ok: true, departMin: 600, leg: {} as never },
+    });
+    assert.equal(dragRelease(placed, false), "assign");
+    assert.equal(dragReturnsHome(placed, "assign"), false);
+    assert.equal(dragRelease(placed, true), "same");
+    assert.equal(dragReturnsHome(placed, "same"), true);
+    assert.equal(dragRelease(gesture({ overUnassigned: true }), false), "unassign");
+    assert.equal(dragRelease(gesture({ moved: false, dx: 0, dy: 0 }), false), "select");
+    assert.equal(dragReturnsHome(gesture({ dx: 0, dy: 0 }), "cancel"), false);
   });
 });
+
+function gesture(partial: Partial<DragState>): DragState {
+  return {
+    transportId: "t1",
+    pointerId: 1,
+    x: 0,
+    y: 0,
+    originX: 0,
+    originY: 0,
+    dx: 24,
+    dy: 0,
+    moved: true,
+    overUnassigned: false,
+    ...partial,
+  };
+}

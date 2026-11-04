@@ -116,10 +116,10 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await expect(page.locator(".dpad-times")).toContainText(/Prise en charge \d{2}:\d{2} · prévue \d{2}:\d{2}/);
 
     await touch(page, "pointerdown", from.x, from.y, 9);
-    await touch(page, "pointermove", from.x + 14, from.y, 9);
-    await page.waitForTimeout(480);
+    await touch(page, "pointermove", from.x + 8, from.y, 9);
+    await page.waitForTimeout(360);
     await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
-    await touch(page, "pointerup", from.x + 14, from.y, 9);
+    await touch(page, "pointerup", from.x + 8, from.y, 9);
     expect((await barById(page, from.id)).depart).toBe(from.depart);
   });
 
@@ -129,6 +129,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     );
     let moved = false;
     for (const candidate of candidates.slice(0, 6)) {
+      await expect(page.locator("[data-return]")).toHaveCount(0);
       await center(page, candidate.id);
       const from = await barById(page, candidate.id);
       await touch(page, "pointerdown", from.x, from.y, 11);
@@ -338,8 +339,12 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
         const px = box.width / Math.max(1, end - depart);
         const snapped = Math.round(depart / 5) * 5;
         const raw = box.x + (snapped - depart) * px + 2;
-        const left = Math.max(box.left + 2, 110);
-        const right = Math.min(box.right - 2, window.innerWidth - 8);
+        const column = document.querySelector("[data-crew-column]");
+        const scroller = document.querySelector(".gantt-scroll");
+        const columnRight = column instanceof HTMLElement ? column.getBoundingClientRect().right : box.left;
+        const edge = scroller instanceof HTMLElement ? scroller.getBoundingClientRect() : null;
+        const left = Math.max(box.left + 2, columnRight + 64);
+        const right = Math.min(box.right - 2, (edge?.right ?? window.innerWidth) - 64, window.innerWidth - 8);
         const y = box.y + box.height / 2;
         if (right - left < 4 || y < 90 || y > window.innerHeight - 90) return null;
         const x = Math.min(right, Math.max(left, raw));
@@ -426,6 +431,7 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
   await page.mouse.move(from.x + 36, from.y, { steps: 4 });
   await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "drag");
   await page.keyboard.press("Escape");
+  await expect(page.locator("[data-return]")).toHaveCount(0);
   await page.mouse.up();
   await expect(page.locator("[data-gesture]")).toHaveAttribute("data-gesture", "idle");
   expect((await barById(page, from.id)).depart).toBe(from.depart);

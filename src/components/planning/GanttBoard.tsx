@@ -11,6 +11,7 @@ import { noteDrag, refusalMotif, type DragState } from "./drag";
 export function GanttBoard({
   drag,
   pendingId,
+  returningId,
   pxPerMin,
   query,
   onStart,
@@ -18,6 +19,7 @@ export function GanttBoard({
 }: {
   drag: DragState | null;
   pendingId: string | null;
+  returningId: string | null;
   pxPerMin: number;
   query: string;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
@@ -77,6 +79,7 @@ export function GanttBoard({
         <div className="relative" style={{ width: label + width }}>
           <div className="sticky top-0 z-30 flex border-b border-line bg-card">
             <div
+              data-crew-column=""
               className="sticky left-0 z-40 flex items-end border-r border-line bg-card px-2 pb-2 text-[13px] font-semibold uppercase tracking-wide text-muted"
               style={{ width: label }}
             >
@@ -106,6 +109,7 @@ export function GanttBoard({
                 query={query}
                 drag={drag}
                 pendingId={pendingId}
+                returningId={returningId}
                 ownsDrag={Boolean(
                   drag?.transportId &&
                   data.schedules.get(crew.id)?.legs.some((leg) => leg.transportId === drag.transportId),
@@ -150,6 +154,7 @@ type CrewRowProps = {
   query: string;
   drag: DragState | null;
   pendingId: string | null;
+  returningId: string | null;
   ownsDrag: boolean;
   dragNodeRef: { current: HTMLButtonElement | null };
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
@@ -159,7 +164,9 @@ type CrewRowProps = {
 function sameCrewRow(prev: CrewRowProps, next: CrewRowProps): boolean {
   if (prev.crew !== next.crew) return false;
   if (prev.width !== next.width || prev.label !== next.label || prev.pxPerMin !== next.pxPerMin) return false;
-  if (prev.query !== next.query || prev.pendingId !== next.pendingId) return false;
+  if (prev.query !== next.query || prev.pendingId !== next.pendingId || prev.returningId !== next.returningId) {
+    return false;
+  }
   if (prev.onStart !== next.onStart || prev.onTip !== next.onTip || prev.dragNodeRef !== next.dragNodeRef) return false;
   if (prev.ownsDrag !== next.ownsDrag) return false;
   return sameRowDrag(prev.crew.id, prev.drag, next.drag, prev.ownsDrag);
@@ -183,6 +190,7 @@ const CrewRow = memo(function CrewRow({
   query,
   drag,
   pendingId,
+  returningId,
   dragNodeRef,
   onStart,
   onTip,
@@ -282,6 +290,7 @@ const CrewRow = memo(function CrewRow({
           const selected = selectedId === transport.id;
           const dragging = drag?.transportId === transport.id;
           const pending = pendingId === transport.id && !dragging;
+          const returning = returningId === transport.id;
           const off = Math.abs(leg.deviationMin) >= 5;
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
@@ -294,6 +303,7 @@ const CrewRow = memo(function CrewRow({
                   "gantt-block absolute rounded-md border border-black/15 text-left text-[13px] font-semibold text-white shadow-sm",
                   pending && "gantt-pending",
                   dragging && "gantt-dragging",
+                  returning && "gantt-returning",
                   (leg.conflict || leg.incompatible || leg.lateMin >= 1) && "ring-2 ring-alert",
                   selected && "outline outline-2 outline-offset-1 outline-navy",
                 )}
@@ -314,6 +324,7 @@ const CrewRow = memo(function CrewRow({
                   zIndex: dragging ? 25 : undefined,
                 }}
                 data-armed={dragging && !drag.moved ? "1" : undefined}
+                data-return={returning ? "1" : undefined}
                 onContextMenu={(event) => event.preventDefault()}
                 onDragStart={(event) => event.preventDefault()}
                 data-transport-id={transport.id}
