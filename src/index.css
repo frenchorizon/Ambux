@@ -880,6 +880,34 @@ html.dark .version-chip {
   color: #2ec4b6;
 }
 
+.gantt-row-off {
+  background-color: rgba(148, 163, 184, 0.16);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 6px,
+    rgba(100, 116, 139, 0.28) 6px,
+    rgba(100, 116, 139, 0.28) 7px
+  );
+}
+
+.gantt-hatch {
+  background-color: rgba(226, 232, 240, 0.92);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(71, 85, 105, 0.18),
+    rgba(71, 85, 105, 0.18) 5px,
+    rgba(248, 250, 252, 0.2) 5px,
+    rgba(248, 250, 252, 0.2) 10px
+  );
+  color: #1e293b;
+}
+
+html.dark .gantt-hatch {
+  background-color: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+}
+
 .shell-menu {
   position: absolute;
   top: 100%;

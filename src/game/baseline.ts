@@ -84,6 +84,7 @@ export function naiveBaseline(input: {
 function compatible(crew: Crew, transport: Transport): boolean {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return false;
   if (crew.vehicleType === "ambulance" && !crew.dea) return false;
+  if (crew.vehicleType === "ambulance" && crew.mate.trim() === "") return false;
   return true;
 }
 

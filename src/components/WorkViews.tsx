@@ -8,6 +8,7 @@ import { useRoutingVersion } from "../lib/routing";
 import { toggleTheme, useDark } from "../lib/theme";
 import { cn } from "../lib/utils";
 import { KpiBar } from "./KpiBar";
+import { RandomDayPanel } from "./RandomDayPanel";
 import { setTimelineSheet } from "./planning/timelineUi";
 
 export function SyntheseView() {
@@ -86,6 +87,7 @@ export function ReglagesView() {
             {dark ? "Mode clair" : "Mode sombre"}
           </button>
         </section>
+        <RandomDayPanel />
         <section>
           <h2 className="text-sm font-semibold">Données</h2>
           <p className="mt-1 text-sm text-muted">Équipages, véhicules, patients et demande du lendemain.</p>

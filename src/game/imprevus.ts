@@ -7,6 +7,7 @@ import {
   legHitsBlock,
   previewOnGrid,
   scheduleCrew,
+  unavailableAt,
   scheduleFleet,
   smartDepart,
   snap5,
@@ -127,6 +128,9 @@ export function planRipple(input: {
   if (crew.vehicleType === "ambulance" && !crew.dea) {
     return { ok: false, message: "Incompatibilité : cette ambulance n'a pas de DEA enregistré." };
   }
+  if (crew.vehicleType === "ambulance" && crew.mate.trim() === "") {
+    return { ok: false, message: "Équipage incomplet : cette ambulance n'a pas d'auxiliaire." };
+  }
   const current = scheduleFleet([crew], input.transports, blocks, locMap, "anchored", rules)
     .get(crew.id)
     ?.legs.find((leg) => leg.transportId === transport.id);
@@ -135,6 +139,8 @@ export function planRipple(input: {
   }
 
   const depart = snap5(input.requestedDepart);
+  const blocked = unavailableAt(crew, blocks, depart);
+  if (blocked) return { ok: false, message: `Indisponible : ${blocked.label}.` };
   const others = input.transports
     .filter((item) => item.crewId === crew.id && item.id !== transport.id && !item.cancelled && item.departMin != null)
     .slice()

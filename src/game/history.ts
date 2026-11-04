@@ -3,6 +3,7 @@ import type { GameState } from "./types";
 
 const TRACKED = new Set<Action["type"]>([
   "START",
+  "START_RANDOM",
   "ASSIGN",
   "UNASSIGN",
   "PIN",

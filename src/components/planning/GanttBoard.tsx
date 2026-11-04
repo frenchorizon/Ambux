@@ -148,6 +148,9 @@ function CrewRow({
   const { schedules, blocks, transports, selectedId, patientById, rules } = useData();
   const schedule = schedules.get(crew.id);
   const crewBlocks = blocks.filter((block) => block.crewId === crew.id);
+  const offBlock = crewBlocks.find((block) => block.kind === "absence" || block.kind === "panne");
+  const motif = offBlock?.label || crew.tag;
+  const rowOff = offBlock != null && offBlock.startMin <= crew.shiftStart + 5 && offBlock.endMin >= crew.shiftEnd - 5;
   const meal = crewBlocks.find((block) => block.kind === "repas");
   const mealWarn = mealIssue(meal, rules);
   const needle = query.trim().toLowerCase();
@@ -166,17 +169,18 @@ function CrewRow({
   const barTop = Math.round((rowH - barH) / 2);
   const family = crew.driver.split(" ").slice(-1)[0] ?? crew.driver;
   return (
-    <div className="flex border-b border-line">
+    <div className={cn("flex border-b border-line", rowOff && "gantt-row-off")} data-constraint={motif || undefined}>
       <div
         className="sticky left-0 z-20 flex items-center gap-1.5 border-r border-line bg-card px-1.5"
         style={{ width: label, height: rowH }}
-        title={`${crew.driver}${crew.mate ? ` · ${crew.mate}` : ""} · ${formatMin(crew.shiftStart)}–${formatMin(crew.shiftEnd)}`}
+        title={`${crew.driver}${crew.mate ? ` · ${crew.mate}` : ""} · ${formatMin(crew.shiftStart)}–${formatMin(crew.shiftEnd)}${motif ? ` · ${motif}` : ""}`}
       >
         <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: crew.color }} />
         <span className="min-w-0">
           <span className="block truncate text-[13px] font-semibold leading-tight">{crew.code}</span>
           <span className="block truncate text-[13px] leading-tight text-ink">{family}</span>
-          {mealWarn && <span className="block truncate text-[13px] text-alert">{mealWarn}</span>}
+          {motif && <span className="block truncate text-[13px] text-muted">{motif}</span>}
+          {mealWarn && !rowOff && <span className="block truncate text-[13px] text-alert">{mealWarn}</span>}
         </span>
       </div>
       <div
@@ -196,12 +200,14 @@ function CrewRow({
         {crewBlocks.map((block) => (
           <div
             key={block.id}
-            title={block.kind === "repas" ? "Pause repas obligatoire" : block.label}
+            title={block.kind === "repas" && block.label === "Repas" ? "Pause repas obligatoire" : block.label}
             className={cn(
               "absolute flex items-center overflow-hidden rounded-md px-1 text-[13px] font-semibold",
               block.kind === "repas"
                 ? "border border-meal bg-meal text-meal-ink"
-                : "border border-dashed border-line bg-ice text-muted",
+                : block.kind === "absence" || block.kind === "panne"
+                  ? "gantt-hatch border border-dashed border-line"
+                  : "border border-dashed border-line bg-ice text-muted",
             )}
             style={{
               top: barTop,

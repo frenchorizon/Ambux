@@ -1,6 +1,7 @@
 import { CREW_COLORS } from "../data/world";
 import { pickMealSlot } from "./breaks";
 import { generateDay } from "./generate";
+import { clampMissions, constraintSummary, freshSeedLabel, randomDay } from "./randomDay";
 import { applyUnavailability, placeTransport, planRipple, reoptimizeStable, rippleMessage } from "./imprevus";
 import {
   bestSlotFor,
@@ -16,6 +17,7 @@ import {
 } from "./schedule";
 import type {
   Call,
+  ConstraintIntensity,
   Density,
   GameState,
   Location,
@@ -42,6 +44,7 @@ export type Choice = "accept" | "refuse" | "expire";
 
 export type Action =
   | { type: "START"; amb: number; vsl: number; density: Density; seed: number }
+  | { type: "START_RANDOM"; seed: string; missions: number; intensity: ConstraintIntensity }
   | { type: "TICK"; dt: number }
   | { type: "PAUSE" }
   | { type: "SET_SPEED"; speed: Speed }
@@ -221,6 +224,63 @@ export function reducer(state: GameState, action: Action): GameState {
           tone: "info",
           message: "Demande de demain chargée. Générez le planning, puis ajustez les feuilles de route.",
         },
+      };
+    }
+    case "START_RANDOM": {
+      const rules = loadRules();
+      const missions = clampMissions(action.missions);
+      const seedLabel = action.seed.trim() || freshSeedLabel();
+      const world = randomDay({ seedLabel, missions, intensity: action.intensity, rules });
+      const fleet = fleetOf(world.crews);
+      const size = {
+        amb: world.crews.filter((crew) => crew.vehicleType === "ambulance").length,
+        vsl: world.crews.filter((crew) => crew.vehicleType === "vsl").length,
+      };
+      return {
+        ...initialState,
+        ...world,
+        rules,
+        crews: fleet.crews.map((crew, index) => {
+          const src = world.crews[index]!;
+          return {
+            ...crew,
+            shiftStart: src.shiftStart,
+            shiftEnd: src.shiftEnd,
+            mate: src.mate,
+            mateId: src.mate.trim() ? crew.mateId : undefined,
+            tag: src.tag,
+            dea: src.vehicleType === "ambulance",
+          };
+        }),
+        vehicles: fleet.vehicles.map((vehicle) => {
+          const src = world.crews.find((crew) => vehicle.id === `veh-${crew.id}`);
+          const garaged =
+            src != null &&
+            world.blocks.some(
+              (block) =>
+                block.crewId === src.id &&
+                block.label === "Garage" &&
+                block.startMin <= src.shiftStart + 1 &&
+                block.endMin >= src.shiftEnd - 1,
+            );
+          return garaged ? { ...vehicle, active: false, availability: "Garage" } : vehicle;
+        }),
+        staff: fleet.staff.filter((person) => person.name.trim() !== ""),
+        dayNote: world.dayNote,
+        live: false,
+        phase: "playing",
+        view: "gantt",
+        modal: null,
+        ambCount: size.amb,
+        vslCount: size.vsl,
+        nowMin: DAY_START,
+        paused: true,
+        speed: 1,
+        regulationMs: 0,
+        tomorrowStops: null,
+        toastSeq: 1,
+        followNow: false,
+        toast: { id: 1, tone: "info", message: constraintSummary(world.dayNote, world.transports.length) },
       };
     }
     case "TICK": {

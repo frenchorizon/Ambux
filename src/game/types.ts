@@ -125,6 +125,8 @@ export interface Crew {
   vehicleId?: string;
   driverId?: string;
   mateId?: string;
+  /** Motif court affiché sur la ligne du Gantt (horaire réduit, renfort). */
+  tag?: string;
 }
 
 export interface Transport {
@@ -240,6 +242,26 @@ export interface PlanStop {
   departMin: number;
 }
 
+export type ConstraintIntensity = "faible" | "moyenne" | "forte";
+
+export type DayConstraintKind = "garage" | "absence" | "horaire" | "repas" | "annulation" | "urgence" | "panne";
+
+/** Contrainte tirée pour une journée aléatoire, affichée telle quelle. */
+export interface DayConstraint {
+  id: string;
+  kind: DayConstraintKind;
+  label: string;
+  detail: string;
+  crewId?: string;
+}
+
+export interface DayNote {
+  seedLabel: string;
+  missions: number;
+  intensity: ConstraintIntensity;
+  constraints: DayConstraint[];
+}
+
 export interface GameState {
   phase: Phase;
   view: ViewId;
@@ -274,4 +296,6 @@ export interface GameState {
   staff: StaffMember[];
   missionIso: string;
   missionLabel: string;
+  /** Présent seulement après « Journée aléatoire ». La journée type n'en a pas. */
+  dayNote?: DayNote;
 }

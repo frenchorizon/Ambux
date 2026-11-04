@@ -22,7 +22,9 @@ import { isTracked, recordHistory } from "./history";
 import { initialState, reducer, type Action } from "./reducer";
 import type {
   Call,
+  ConstraintIntensity,
   Crew,
+  DayNote,
   Density,
   GameState,
   Location,
@@ -79,6 +81,7 @@ export interface DataValue {
   staff: StaffMember[];
   missionIso: string;
   missionLabel: string;
+  dayNote?: DayNote;
   canUndo: boolean;
   canRedo: boolean;
   undo: () => void;
@@ -96,7 +99,7 @@ const ClockContext = createContext<ClockValue | null>(null);
 const DataContext = createContext<DataValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState, bootState);
   const stateRef = useRef(state);
   const pastRef = useRef<GameState[]>([]);
   const futureRef = useRef<GameState[]>([]);
@@ -273,6 +276,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       staff: state.staff,
       missionIso: state.missionIso,
       missionLabel: state.missionLabel,
+      dayNote: state.dayNote,
       canUndo: pastRef.current.length > 0,
       canRedo: futureRef.current.length > 0,
       undo,
@@ -314,6 +318,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       state.staff,
       state.missionIso,
       state.missionLabel,
+      state.dayNote,
       historyTick,
       undo,
       redo,
@@ -332,6 +337,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
       <DataContext.Provider value={data}>{children}</DataContext.Provider>
     </ClockContext.Provider>
   );
+}
+
+function bootState(base: GameState): GameState {
+  if (typeof window === "undefined") return base;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const seed = params.get("seed")?.trim();
+    if (!seed) return base;
+    const missions = Number(params.get("missions"));
+    const raw = params.get("intensite");
+    const intensity: ConstraintIntensity = raw === "faible" || raw === "moyenne" || raw === "forte" ? raw : "moyenne";
+    return reducer(base, {
+      type: "START_RANDOM",
+      seed,
+      missions: Number.isFinite(missions) && missions > 0 ? missions : 48,
+      intensity,
+    });
+  } catch {
+    return base;
+  }
 }
 
 export function useClock(): ClockValue {

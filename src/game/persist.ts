@@ -27,6 +27,7 @@ export interface DraftSnapshot {
   stats: GameState["stats"];
   calls: GameState["calls"];
   lomaco: GameState["lomaco"];
+  dayNote?: GameState["dayNote"];
 }
 
 export interface DraftSummary {
@@ -60,6 +61,7 @@ function fingerprint(state: GameState): string {
       crew.plate,
       crew.driverId ?? "",
       crew.mateId ?? "",
+      crew.tag ?? "",
     ]),
     b: state.blocks.map((block) => [block.id, block.startMin, block.endMin, block.crewId]),
     r: state.rules,
@@ -136,6 +138,7 @@ export function saveDraft(state: GameState): number | null {
     stats: state.stats,
     calls: state.calls,
     lomaco: state.lomaco,
+    dayNote: state.dayNote,
   };
   const kept = [...drafts, next].slice(-MAX_VERSIONS);
   try {

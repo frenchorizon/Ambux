@@ -101,6 +101,16 @@ export function legHitsBlock(
   return blocks.find((block) => block.crewId === crewId && start < block.endMin - 0.05 && end > block.startMin + 0.05);
 }
 
+/** Absence ou panne qui couvre le départ demandé, ou toute la vacation (garage, salarié absent). */
+export function unavailableAt(crew: Crew, blocks: readonly TimeBlock[], departMin: number): TimeBlock | undefined {
+  const hard = blocks.filter(
+    (block) => block.crewId === crew.id && (block.kind === "absence" || block.kind === "panne"),
+  );
+  const full = hard.find((block) => block.startMin <= crew.shiftStart + 1 && block.endMin >= crew.shiftEnd - 1);
+  if (full) return full;
+  return hard.find((block) => departMin >= block.startMin - 0.05 && departMin < block.endMin - 0.05);
+}
+
 export function serviceDurations(crew: Crew, rules: Rules = DEFAULT_RULES): { pecMin: number; dropoffMin: number } {
   return {
     pecMin:
@@ -399,6 +409,7 @@ export function candidatePlacements(
 ): Leg[] {
   if (transport.posture === "allonge" && crew.vehicleType === "vsl") return [];
   if (crew.vehicleType === "ambulance" && !crew.dea) return [];
+  if (crew.vehicleType === "ambulance" && crew.mate.trim() === "") return [];
   const gaps = freeGaps(
     crew,
     transports.filter((item) => item.id !== transport.id),
@@ -472,6 +483,17 @@ export function previewPlacement(
       message: "Incompatibilité : cette ambulance n'a pas de DEA enregistré.",
     };
   }
+  if (crew.vehicleType === "ambulance" && crew.mate.trim() === "") {
+    return {
+      ok: false,
+      reason: "incompatible",
+      message: "Équipage incomplet : cette ambulance n'a pas d'auxiliaire.",
+    };
+  }
+  const blocked = unavailableAt(crew, blocks, requestedDepart);
+  if (blocked) {
+    return { ok: false, reason: "conflict", message: `Indisponible : ${blocked.label}.` };
+  }
   const gaps = freeGaps(
     crew,
     transports.filter((item) => item.id !== transport.id),
@@ -492,6 +514,14 @@ export function previewPlacement(
     }
   }
   if (!leg) {
+    const near = blocks.find(
+      (block) =>
+        block.crewId === crew.id &&
+        (block.kind === "absence" || block.kind === "panne") &&
+        requestedDepart < block.endMin &&
+        requestedDepart + 45 > block.startMin,
+    );
+    if (near) return { ok: false, reason: "conflict", message: `Indisponible : ${near.label}.` };
     return {
       ok: false,
       reason: "conflict",
