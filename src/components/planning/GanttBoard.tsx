@@ -6,7 +6,7 @@ import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabe
 import { mealIssue } from "../../game/breaks";
 import { useNarrow } from "../../lib/useMedia";
 import { cn } from "../../lib/utils";
-import { noteDrag, refusalMotif, type DragState } from "./drag";
+import { blockAriaLabel, isKeyboardDrag, noteDrag, refusalMotif, type DragState } from "./drag";
 
 export function GanttBoard({
   drag,
@@ -289,20 +289,27 @@ const CrewRow = memo(function CrewRow({
           const bar = Math.max(5, span * pxPerMin);
           const selected = selectedId === transport.id;
           const dragging = drag?.transportId === transport.id;
+          const keyboard = isKeyboardDrag(drag) && drag.transportId === transport.id;
           const pending = pendingId === transport.id && !dragging;
           const returning = returningId === transport.id;
           const off = Math.abs(leg.deviationMin) >= 5;
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
+          const patientLabel = patient ? personName(patient) : "Patient";
           return (
             <span key={leg.transportId} className="contents">
               <button
                 type="button"
+                role="button"
                 draggable={false}
+                aria-label={blockAriaLabel(patientLabel, formatMin(shownDepart), crew.code)}
+                aria-pressed={keyboard ? true : undefined}
+                data-keyboard={keyboard ? "1" : undefined}
                 className={cn(
                   "gantt-block absolute rounded-md border border-black/15 text-left text-[13px] font-semibold text-white shadow-sm",
                   pending && "gantt-pending",
                   dragging && "gantt-dragging",
+                  keyboard && "gantt-key",
                   returning && "gantt-returning",
                   (leg.conflict || leg.incompatible || leg.lateMin >= 1) && "ring-2 ring-alert",
                   selected && "outline outline-2 outline-offset-1 outline-navy",
@@ -471,6 +478,8 @@ function DragGhost({
       data-ghost=""
       data-preview={refused ? "invalid" : "ok"}
       data-depart={minute}
+      data-aim={snap5(drag.hoverMinute ?? minute)}
+      data-crew={drag.hoverCrewId}
       data-reason={refused ? preview.message : undefined}
       title={refused ? preview.message : `Prise en charge ${formatMin(minute)}`}
       className="gantt-ghost pointer-events-none absolute"

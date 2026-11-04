@@ -110,6 +110,16 @@ body {
   box-shadow: 0 0 0 3px rgba(26, 163, 224, 0.95);
 }
 
+.gantt-block:focus-visible,
+.gantt-block.gantt-key {
+  z-index: 26;
+  outline: 3px solid var(--color-teal);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--color-paper),
+    0 0 0 5px var(--color-teal);
+}
+
 .gantt-block.gantt-returning {
   z-index: 24;
   transition: transform 180ms ease-out;

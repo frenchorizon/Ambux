@@ -14,12 +14,23 @@ import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { Button } from "../ui/button";
 import {
+  announceAim,
+  announceCancel,
+  announceDrop,
+  announceEdge,
+  announceGrab,
+  announceNoCrew,
+  announceRefuse,
+  CONFLICT_MESSAGE,
   dragCommitKey,
   dragRelease,
   dragReturnsHome,
   ganttEdgeDelta,
   ganttEdgeRect,
   HOLD_MS,
+  isKeyboardDrag,
+  keyboardDrag,
+  nextKeyboardAim,
   noteDrag,
   previewCacheKey,
   RETURN_MS,
@@ -56,6 +67,7 @@ export function PlanningWorkspace() {
   const [returningId, setReturningId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
   const [note, setNote] = useState<string | null>(null);
+  const [live, setLive] = useState("");
   const dragRef = useRef<DragState | null>(null);
   const dragNodeRef = useRef<HTMLButtonElement | null>(null);
   const commitKeyRef = useRef<string | null>(null);
@@ -76,8 +88,20 @@ export function PlanningWorkspace() {
   const returnGen = useRef(0);
   const queueReturnRef = useRef<(drag: DragState) => void>(() => {});
   const abortRef = useRef<() => void>(() => {});
+  const finishRef = useRef<() => void>(() => {});
+  const liveRef = useRef<(message: string) => void>(() => {});
+  const keyboardApi = useRef<{
+    grab: (id: string) => void;
+    move: (dir: PadDir, shift: boolean) => void;
+    drop: () => void;
+  }>({
+    grab: () => {},
+    move: () => {},
+    drop: () => {},
+  });
   const bag = useRef({ data, clock, pxPerMin });
   const nudgeRef = useRef<(dir: PadDir, coalesce: boolean) => void>(() => {});
+  liveRef.current = setLive;
   useEffect(() => {
     bag.current = { data, clock, pxPerMin };
   });
@@ -118,6 +142,7 @@ export function PlanningWorkspace() {
   };
 
   const begin = (transportId: string, pointerId: number, x: number, y: number, el: HTMLElement) => {
+    if (isKeyboardDrag(dragRef.current)) setLive("");
     cancelReturn();
     const next: DragState = {
       transportId,
@@ -295,6 +320,7 @@ export function PlanningWorkspace() {
       else clearDragPaint(dragNodeRef.current, latest.transportId);
       commit(latest, bag.current);
     };
+    finishRef.current = finish;
     const up = (event: PointerEvent) => {
       const hold = pending.current;
       if (hold && event.pointerId === hold.pointerId) {
@@ -322,12 +348,14 @@ export function PlanningWorkspace() {
       queued.current = null;
       if (dragRef.current) {
         const latest = dragRef.current;
+        const keyboard = isKeyboardDrag(latest);
         dragRef.current = null;
         commitKeyRef.current = null;
         setDrag(null);
         releaseCapture();
         if (latest.dx !== 0 || latest.dy !== 0) queueReturnRef.current(latest);
         else clearDragPaint(dragNodeRef.current, latest.transportId);
+        if (keyboard) liveRef.current(announceCancel());
       }
       setPendingId(null);
       setGesture("idle");
@@ -458,23 +486,69 @@ export function PlanningWorkspace() {
   });
 
   useEffect(() => {
+    const onFocusIn = (event: FocusEvent) => {
+      const current = dragRef.current;
+      if (!isKeyboardDrag(current)) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target === document.body || target === document.documentElement) return;
+      const block = document.querySelector(`[data-transport-id="${current.transportId}"]`);
+      if (block?.contains(target)) return;
+      abortRef.current();
+    };
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
       if (event.key === "Escape") {
-        const field = event.target;
-        if (field instanceof HTMLElement && field.closest("input, textarea, select, [contenteditable='true']")) return;
         abortRef.current();
         return;
       }
+      if (isKeyboardDrag(dragRef.current)) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        const dir = arrowDir(event.key);
+        if (dir) {
+          event.preventDefault();
+          keyboardApi.current.move(dir, event.shiftKey);
+          return;
+        }
+        if (event.key === "Enter" && !event.repeat) {
+          event.preventDefault();
+          keyboardApi.current.drop();
+          return;
+        }
+        if (event.key === " ") {
+          event.preventDefault();
+          return;
+        }
+        return;
+      }
+      if (
+        (event.key === "Enter" || event.key === " ") &&
+        !event.repeat &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        target instanceof Element
+      ) {
+        const block = target.closest(".gantt-block");
+        if (block instanceof HTMLElement && block.dataset.transportId) {
+          event.preventDefault();
+          keyboardApi.current.grab(block.dataset.transportId);
+          return;
+        }
+      }
       const dir = arrowDir(event.key);
-      if (!dir) return;
-      const target = event.target;
-      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (!dir || event.ctrlKey || event.metaKey || event.altKey) return;
       if (!bag.current.data.selectedId) return;
       event.preventDefault();
       nudgeRef.current(dir, event.repeat);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("focusin", onFocusIn);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("focusin", onFocusIn);
+    };
   }, []);
 
   const start = (transportId: string, event: ReactPointerEvent<HTMLElement>) => {
@@ -514,6 +588,116 @@ export function PlanningWorkspace() {
 
   nudgeRef.current = (dir, coalesce) => nudgeMission(dir, coalesce, data, clock.nowMin, setNote);
 
+  keyboardApi.current = {
+    grab(id: string) {
+      const { data: current, clock: now } = bag.current;
+      if (dragRef.current && !isKeyboardDrag(dragRef.current)) return;
+      const transport = current.transportById.get(id);
+      if (!transport) return;
+      const leg = [...current.schedules.values()]
+        .flatMap((schedule) => schedule.legs)
+        .find((item) => item.transportId === id);
+      const raw = leg?.departMin ?? transport.departMin ?? transport.appointmentMin ?? transport.windowStart;
+      const depart = snap5(raw);
+      const crew = current.crews.find((item) => item.id === transport.crewId);
+      const patient = current.patientById.get(transport.patientId);
+      const patientLabel = patient ? personName(patient) : "Patient";
+      if (!crew) {
+        setLive("La course n'est sur aucun équipage.");
+        return;
+      }
+      const preview = previewOnGrid(
+        crew,
+        transport,
+        depart,
+        current.transports,
+        current.blocks,
+        current.locMap,
+        now.nowMin,
+        current.rules,
+      );
+      if (!preview.ok && preview.reason === "started") {
+        current.dispatch({ type: "TOAST", message: preview.message, tone: "warn" });
+        current.dispatch({ type: "SELECT", id });
+        setLive(announceRefuse(preview.message));
+        return;
+      }
+      current.dispatch({ type: "SELECT", id });
+      setNote(null);
+      const sentence = announceGrab(patientLabel, formatMin(displayedDepart(raw)), crew.code);
+      const next = keyboardDrag(id, crew.id, depart, preview);
+      dragRef.current = next;
+      commitKeyRef.current = dragCommitKey(next);
+      setPendingId(null);
+      setDrag(next);
+      setGesture("drag");
+      setLive(!preview.ok ? `${sentence} ${preview.message}` : sentence);
+    },
+    move(dir: PadDir, shift: boolean) {
+      const currentDrag = dragRef.current;
+      if (!isKeyboardDrag(currentDrag) || !currentDrag.hoverCrewId || currentDrag.hoverMinute == null) return;
+      const { data: current, clock: now, pxPerMin: scale } = bag.current;
+      const crews = current.crews.filter((crew) => !current.crewFilter || crew.id === current.crewFilter);
+      const aim = { crewId: currentDrag.hoverCrewId, departMin: snap5(currentDrag.hoverMinute) };
+      const nextAim = nextKeyboardAim(crews, aim, dir, shift);
+      if (nextAim === "no-crew") {
+        setLive(announceNoCrew());
+        return;
+      }
+      if (nextAim === "edge") {
+        setLive(announceEdge(dir === "left" ? "left" : "right"));
+        return;
+      }
+      const crew = current.crews.find((item) => item.id === nextAim.crewId);
+      const transport = current.transportById.get(currentDrag.transportId);
+      if (!crew || !transport) return;
+      const preview = previewOnGrid(
+        crew,
+        transport,
+        nextAim.departMin,
+        current.transports,
+        current.blocks,
+        current.locMap,
+        now.nowMin,
+        current.rules,
+      );
+      const time = formatMin(preview.ok ? preview.departMin : nextAim.departMin);
+      const next = keyboardDrag(currentDrag.transportId, nextAim.crewId, nextAim.departMin, preview);
+      dragRef.current = next;
+      commitKeyRef.current = dragCommitKey(next);
+      setDrag(next);
+      setLive(announceAim(time, crew.code, preview.ok ? undefined : preview.message));
+      if (nextAim.crewId !== aim.crewId) {
+        document
+          .querySelector(`[data-track][data-crew-id="${nextAim.crewId}"]`)
+          ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      revealMinute(preview.ok ? preview.departMin : nextAim.departMin, scale);
+    },
+    drop() {
+      const currentDrag = dragRef.current;
+      if (!isKeyboardDrag(currentDrag)) return;
+      const { data: current } = bag.current;
+      const release = dragRelease(currentDrag, samePlaceOf(currentDrag, current));
+      const crew = current.crews.find((item) => item.id === currentDrag.hoverCrewId);
+      const time = formatMin(
+        currentDrag.preview?.ok ? currentDrag.preview.departMin : snap5(currentDrag.hoverMinute ?? DAY_START),
+      );
+      const refusal = currentDrag.preview && !currentDrag.preview.ok ? currentDrag.preview.message : CONFLICT_MESSAGE;
+      setLive(announceDrop(release, time, crew?.code ?? "", refusal));
+      const id = currentDrag.transportId;
+      finishRef.current();
+      const focusBlock = () => {
+        const node = document.querySelector(`[data-transport-id="${id}"]`);
+        if (!(node instanceof HTMLElement) || document.activeElement === node) return;
+        node.focus({ preventScroll: true });
+        node.scrollIntoView({ block: "nearest", inline: "nearest" });
+      };
+      window.requestAnimationFrame(focusBlock);
+      window.setTimeout(focusBlock, 0);
+    },
+  };
+
   const selected = data.selectedId ? data.transportById.get(data.selectedId) : undefined;
   const selectedPatient = selected ? data.patientById.get(selected.patientId) : undefined;
   const selectedLeg = selected
@@ -526,7 +710,14 @@ export function PlanningWorkspace() {
   const shownDepart = liveDepart == null ? undefined : displayedDepart(liveDepart);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col" data-gesture={gesture}>
+    <div
+      className="relative flex h-full min-h-0 flex-col"
+      data-gesture={gesture}
+      data-keyboard={isKeyboardDrag(drag) ? "1" : undefined}
+    >
+      <p className="sr-only" aria-live="polite" aria-atomic="true" data-live="keyboard">
+        {live}
+      </p>
       <GanttBoard
         drag={drag}
         pendingId={pendingId}
@@ -651,8 +842,9 @@ export function PlanningWorkspace() {
             Un tap sélectionne la course et affiche la croix. Maintenez : le bloc se soulève, puis glissez. Le planning
             défile si le doigt part avant, et plus vite au bord. Le fantôme teal ou corail montre l'heure calée ; un
             refus porte le motif. Reposer au même endroit n'est pas une modification. Échap, ou relâcher hors de la
-            grille, annule. Les flèches décalent de 5 minutes ou changent de véhicule. Le rendez-vous reste dans
-            l'infobulle et le détail.
+            grille, annule. Les flèches de la croix décalent de 5 minutes ou changent de véhicule. Entrée ou Espace
+            saisit le bloc : gauche et droite de 5 minutes, Maj de 15, haut et bas changent d'équipage, Entrée pose,
+            Échap annule. Le rendez-vous reste dans l'infobulle et le détail.
           </p>
         </Sheet>
       )}
@@ -766,6 +958,19 @@ function samePlaceOf(drag: DragState, data: ReturnType<typeof useData>): boolean
   );
 }
 
+function revealMinute(departMin: number, pxPerMin: number) {
+  const scroller = document.querySelector(".gantt-scroll");
+  if (!(scroller instanceof HTMLElement)) return;
+  const column = scroller.querySelector("[data-crew-column]");
+  const label = column instanceof HTMLElement ? column.getBoundingClientRect().width : 0;
+  const x = label + (departMin - DAY_START) * pxPerMin;
+  const pad = 72;
+  const left = scroller.scrollLeft;
+  const right = left + scroller.clientWidth;
+  if (x < left + label + pad) scroller.scrollLeft = Math.max(0, x - label - pad);
+  else if (x > right - pad) scroller.scrollLeft = x - scroller.clientWidth + pad;
+}
+
 function touchById(list: TouchList, id: number): Touch | undefined {
   for (let i = 0; i < list.length; i++) {
     const touch = list.item(i);
@@ -824,7 +1029,7 @@ function commit(drag: DragState, bag: { data: ReturnType<typeof useData> }) {
   if (release === "conflict") {
     data.dispatch({
       type: "TOAST",
-      message: "Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.",
+      message: CONFLICT_MESSAGE,
       tone: "warn",
     });
   }

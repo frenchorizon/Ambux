@@ -1,5 +1,6 @@
 import type { PlacementPreview } from "../../game/schedule";
 import { snap5 } from "../../game/schedule";
+import { DAY_END, DAY_START } from "../../game/types";
 
 type Refusal = Extract<PlacementPreview, { ok: false }>;
 
@@ -115,6 +116,105 @@ export function dragRelease(drag: DragState, samePlace: boolean): DragRelease {
 export function dragReturnsHome(drag: DragState, release: DragRelease): boolean {
   if (drag.dx === 0 && drag.dy === 0) return false;
   return release === "same" || release === "refuse" || release === "conflict" || release === "cancel";
+}
+
+export const CONFLICT_MESSAGE = "Conflit horaire : le créneau de 5 minutes ne tient pas sur cet équipage.";
+
+/** Pointeur fictif : le clavier réutilise l'état du glisser, pas la souris. */
+export const KEYBOARD_POINTER = -1;
+export const KEY_MINUTE = 5;
+export const KEY_MINUTE_SHIFT = 15;
+
+export function isKeyboardDrag(drag: DragState | null | undefined): drag is DragState {
+  return drag?.pointerId === KEYBOARD_POINTER;
+}
+
+export type KeyboardAim = { crewId: string; departMin: number };
+export type KeyboardMove = "left" | "right" | "up" | "down";
+
+/** Même grille que le glisser. Maj avance de 15 minutes, sinon de 5. Haut et bas changent d'équipage. */
+export function nextKeyboardAim(
+  crews: readonly { id: string }[],
+  current: KeyboardAim,
+  move: KeyboardMove,
+  shift: boolean,
+): KeyboardAim | "no-crew" | "edge" {
+  const depart = snap5(current.departMin);
+  if (move === "left" || move === "right") {
+    const step = shift ? KEY_MINUTE_SHIFT : KEY_MINUTE;
+    const raw = depart + (move === "left" ? -step : step);
+    const clamped = Math.min(DAY_END, Math.max(DAY_START, raw));
+    if (clamped === depart) return "edge";
+    return { crewId: current.crewId, departMin: clamped };
+  }
+  const index = crews.findIndex((crew) => crew.id === current.crewId);
+  const nextIndex = move === "up" ? index - 1 : index + 1;
+  if (index < 0 || nextIndex < 0 || nextIndex >= crews.length) return "no-crew";
+  return { crewId: crews[nextIndex]!.id, departMin: depart };
+}
+
+export function keyboardDrag(
+  transportId: string,
+  crewId: string,
+  departMin: number,
+  preview: PlacementPreview,
+): DragState {
+  const minute = snap5(departMin);
+  return {
+    transportId,
+    pointerId: KEYBOARD_POINTER,
+    x: 0,
+    y: 0,
+    originX: 0,
+    originY: 0,
+    dx: 0,
+    dy: 0,
+    moved: true,
+    hoverCrewId: crewId,
+    hoverMinute: minute,
+    overUnassigned: false,
+    preview,
+    previewKey: previewCacheKey(crewId, minute),
+  };
+}
+
+export function blockAriaLabel(patient: string, time: string, crew: string): string {
+  return `${patient}, ${time}, ${crew}`;
+}
+
+export function announceGrab(patient: string, time: string, crew: string): string {
+  return `Course saisie. ${patient}, ${time}, ${crew}.`;
+}
+
+export function announceAim(time: string, crew: string, refusal?: string): string {
+  const place = `${time}, ${crew}.`;
+  return refusal ? `${place} ${refusal}` : place;
+}
+
+export function announceAccept(time: string, crew: string): string {
+  return `Course posée. ${time}, ${crew}.`;
+}
+
+export function announceRefuse(message: string): string {
+  return `Refus. ${message}`;
+}
+
+export function announceCancel(): string {
+  return "Déplacement annulé.";
+}
+
+export function announceNoCrew(): string {
+  return "Pas d'autre équipage.";
+}
+
+export function announceEdge(move: "left" | "right"): string {
+  return move === "left" ? "Pas plus tôt." : "Pas plus tard.";
+}
+
+export function announceDrop(release: DragRelease, time: string, crew: string, refusal: string): string {
+  if (release === "assign" || release === "same") return announceAccept(time, crew);
+  if (release === "refuse" || release === "conflict") return announceRefuse(refusal);
+  return announceCancel();
 }
 
 export interface GanttViewport {

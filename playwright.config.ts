@@ -28,7 +28,7 @@ export default defineConfig({
     },
     {
       name: "iphone",
-      testMatch: /gantt-(ios|fantome)\.spec\.ts/,
+      testMatch: /gantt-(ios|fantome|dnd5)\.spec\.ts/,
       use: {
         ...devices["iPhone 13"],
         // Le descripteur Playwright laisse 664 px au viewport (barre Safari). Le lot et le projet phone sont en 390×844.
