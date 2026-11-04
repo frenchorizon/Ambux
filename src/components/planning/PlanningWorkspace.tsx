@@ -1,11 +1,27 @@
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { useClock, useData } from "../../game/context";
 import { displayedDepart, previewOnGrid, snap5 } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { Button } from "../ui/button";
-import { ganttEdgeDelta, previewCacheKey, sameAssignment, scrollGanttEdge, type DragState } from "./drag";
+import {
+  dragCommitKey,
+  ganttEdgeDelta,
+  noteDrag,
+  previewCacheKey,
+  sameAssignment,
+  scrollGanttEdge,
+  type DragState,
+} from "./drag";
 import { DPad, type PadDir } from "./DPad";
 import { GanttBoard } from "./GanttBoard";
 import { closeTimelineSheet, setTimelineQuery, useTimelineUi } from "./timelineUi";
@@ -36,6 +52,12 @@ export function PlanningWorkspace() {
   const [gesture, setGesture] = useState<"idle" | "pending" | "scroll" | "drag">("idle");
   const [note, setNote] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const dragNodeRef = useRef<HTMLButtonElement | null>(null);
+  const commitKeyRef = useRef<string | null>(null);
+  const startRef = useRef<(transportId: string, event: ReactPointerEvent<HTMLElement>) => void>(() => {});
+  const onStart = useCallback((transportId: string, event: ReactPointerEvent<HTMLElement>) => {
+    startRef.current(transportId, event);
+  }, []);
   /** Pointer events coupés par iOS, le doigt est encore là : touchmove et touchend suivent. */
   const touchLost = useRef(false);
   const pending = useRef<Hold | null>(null);
@@ -68,6 +90,8 @@ export function PlanningWorkspace() {
       overUnassigned: false,
     };
     dragRef.current = next;
+    commitKeyRef.current = dragCommitKey(next);
+    noteDrag("commits");
     touchLost.current = false;
     captureRef.current = { el, pointerId };
     setPendingId(null);
@@ -127,7 +151,14 @@ export function PlanningWorkspace() {
       previewKey: moved ? previewKey : current.previewKey,
     };
     dragRef.current = next;
-    setDrag(next);
+    paintDrag(dragNodeRef.current, next.transportId, next.dx, next.dy);
+    noteDrag("frames");
+    const key = dragCommitKey(next);
+    if (key !== commitKeyRef.current) {
+      commitKeyRef.current = key;
+      noteDrag("commits");
+      setDrag(next);
+    }
     if (moved) kickEdge();
   };
 
@@ -209,7 +240,9 @@ export function PlanningWorkspace() {
       if (!current) return;
       flush();
       const latest = dragRef.current ?? current;
+      clearDragPaint(dragNodeRef.current, latest.transportId);
       dragRef.current = null;
+      commitKeyRef.current = null;
       touchLost.current = false;
       setDrag(null);
       setPendingId(null);
@@ -244,7 +277,9 @@ export function PlanningWorkspace() {
       }
       queued.current = null;
       if (dragRef.current) {
+        clearDragPaint(dragNodeRef.current, dragRef.current.transportId);
         dragRef.current = null;
+        commitKeyRef.current = null;
         setDrag(null);
         releaseCapture();
       }
@@ -325,6 +360,12 @@ export function PlanningWorkspace() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const current = dragRef.current;
+    if (!current) return;
+    paintDrag(dragNodeRef.current, current.transportId, current.dx, current.dy);
+  });
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -377,6 +418,7 @@ export function PlanningWorkspace() {
     setPendingId(transportId);
     setGesture("pending");
   };
+  startRef.current = start;
 
   nudgeRef.current = (dir, coalesce) => nudgeMission(dir, coalesce, data, clock.nowMin, setNote);
 
@@ -393,7 +435,14 @@ export function PlanningWorkspace() {
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" data-gesture={gesture}>
-      <GanttBoard drag={drag} pendingId={pendingId} pxPerMin={pxPerMin} query={ui.query} onStart={start} />
+      <GanttBoard
+        drag={drag}
+        pendingId={pendingId}
+        pxPerMin={pxPerMin}
+        query={ui.query}
+        onStart={onStart}
+        dragNodeRef={dragNodeRef}
+      />
       {selected && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
           <div className="min-w-0 flex-1">
@@ -509,7 +558,8 @@ export function PlanningWorkspace() {
             Un tap sélectionne la course et affiche la croix. Maintenez jusqu'à l'anneau bleu pour la glisser : le
             planning défile si le doigt part avant, et au bord pendant le glisser. Le fantôme teal ou corail montre
             l'heure calée ; un refus porte le motif. Reposer au même endroit n'est pas une modification. Échap annule.
-            Les flèches décalent de 5 minutes ou changent de véhicule. La pastille marine est l'heure prévue.
+            Les flèches décalent de 5 minutes ou changent de véhicule. Le rendez-vous reste dans l'infobulle et le
+            détail.
           </p>
         </Sheet>
       )}
@@ -576,6 +626,27 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
       </div>
     </div>
   );
+}
+
+function dragTarget(node: HTMLElement | null, transportId: string): HTMLElement | null {
+  if (node?.isConnected) return node;
+  if (typeof document === "undefined") return null;
+  const found = document.querySelector(`[data-transport-id="${transportId}"]`);
+  return found instanceof HTMLElement ? found : null;
+}
+
+function paintDrag(node: HTMLElement | null, transportId: string, dx: number, dy: number) {
+  const target = dragTarget(node, transportId);
+  if (!target) return;
+  target.style.zIndex = "25";
+  target.style.transform = `translate(${dx}px, ${dy}px)`;
+}
+
+function clearDragPaint(node: HTMLElement | null, transportId: string) {
+  const target = dragTarget(node, transportId);
+  if (!target) return;
+  target.style.zIndex = "";
+  target.style.transform = "";
 }
 
 function touchById(list: TouchList, id: number): Touch | undefined {

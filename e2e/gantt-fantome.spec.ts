@@ -22,11 +22,12 @@ test("le fantôme suit le créneau aimanté pendant le drag", async ({ page }, t
     await expectFaded(page, held!.id);
     await expect(page.locator("[data-drag-label]")).toHaveCount(0);
     await expect(page.locator("[data-unassigned] [data-ghost]")).toHaveCount(0);
+    await expect(page.locator("[title^='Heure prévue']")).toHaveCount(0);
     if (testInfo.project.name === "phone") {
-      await page.screenshot({ path: "/opt/cursor/artifacts/dnd2-fantome-faisable-390.png", scale: "css" });
+      await page.screenshot({ path: "/opt/cursor/artifacts/dnd3-drag-390.png", scale: "css" });
     }
     if (testInfo.project.name === "desktop") {
-      await page.screenshot({ path: "/opt/cursor/artifacts/dnd2-fantome-faisable-1440.png", scale: "css" });
+      await page.screenshot({ path: "/opt/cursor/artifacts/dnd3-drag-1440.png", scale: "css" });
     }
     const before = await barById(page, held!.id);
     await page.keyboard.press("Escape");

@@ -95,8 +95,8 @@ export function GameDialogs() {
           <li>Importer lit les exports Lomaco (xlsx, xls, csv), puis Générer le planning pose les tournées.</li>
           <li>Générer le planning affecte les équipages, pose la pause repas et compte les trajets à vide.</li>
           <li>
-            Sur la timeline, déplacez une prise en charge : le carré marine est l'heure prévue, l'écart s'affiche en
-            orange. Revenir à l'heure prévue recale le rendez-vous.
+            Sur la timeline, déplacez une prise en charge : l'écart au rendez-vous s'affiche en orange. Revenir à
+            l'heure prévue recale le rendez-vous.
           </li>
           <li>
             Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est

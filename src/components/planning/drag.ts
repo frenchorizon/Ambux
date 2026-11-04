@@ -40,6 +40,38 @@ export function refusalMotif(preview: Refusal): string {
   return "Engagée";
 }
 
+export interface DragStats {
+  board: number;
+  row: number;
+  frames: number;
+  commits: number;
+}
+
+declare global {
+  interface Window {
+    __ambuxDragStats?: DragStats;
+  }
+}
+
+/** Compteur de la mesure de drag. Inerte tant que le test n'a pas posé le seau. */
+export function noteDrag(part: keyof DragStats) {
+  if (typeof window === "undefined") return;
+  const stats = window.__ambuxDragStats;
+  if (!stats) return;
+  stats[part] += 1;
+}
+
+/**
+ * Ce qui doit repeindre le fantôme, la ligne visée ou l'état moved.
+ * Le translate du bloc tiré n'en fait pas partie : il suit le pointeur hors React.
+ */
+export function dragCommitKey(drag: DragState): string {
+  if (!drag.moved) return "armed";
+  if (drag.overUnassigned) return "unassigned";
+  if (drag.hoverCrewId != null && drag.hoverMinute != null) return previewCacheKey(drag.hoverCrewId, drag.hoverMinute);
+  return "away";
+}
+
 /** Même équipage et même départ calé sur 5 minutes : rien à enregistrer. */
 export function sameAssignment(
   currentCrew: string | undefined,

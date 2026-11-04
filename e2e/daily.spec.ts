@@ -12,7 +12,7 @@ test("gestes, exports, brouillon et demande vide", async ({ page }, testInfo) =>
   test.setTimeout(150_000);
   await openPlanning(page);
 
-  await expect(page.locator("[title^='Heure prévue']").first()).toBeAttached();
+  await expect(page.locator("[title^='Heure prévue']")).toHaveCount(0);
   if (testInfo.project.name === "phone") await touchRejectsOverlap(page);
   else await mouseRejectsOverlap(page);
   await expectNoOverlap(page);

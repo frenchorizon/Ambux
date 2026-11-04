@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
 import { displayedDepart, snap5, visualParts, type Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
@@ -6,7 +6,7 @@ import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabe
 import { mealIssue } from "../../game/breaks";
 import { useNarrow } from "../../lib/useMedia";
 import { cn } from "../../lib/utils";
-import { refusalMotif, type DragState } from "./drag";
+import { noteDrag, refusalMotif, type DragState } from "./drag";
 
 export function GanttBoard({
   drag,
@@ -14,15 +14,21 @@ export function GanttBoard({
   pxPerMin,
   query,
   onStart,
+  dragNodeRef,
 }: {
   drag: DragState | null;
   pendingId: string | null;
   pxPerMin: number;
   query: string;
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
+  dragNodeRef: { current: HTMLButtonElement | null };
 }) {
   const data = useData();
   const { nowMin } = useClock();
+  // Après le commit : StrictMode rappelle le corps sans peindre, on ne le compte pas.
+  useEffect(() => {
+    noteDrag("board");
+  });
   const narrow = useNarrow();
   const label = narrow ? 104 : 156;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -49,6 +55,13 @@ export function GanttBoard({
       node.removeEventListener("selectstart", blockOnly);
       node.removeEventListener("contextmenu", blockOnly);
     };
+  }, []);
+
+  const dragLive = useRef(drag);
+  dragLive.current = drag;
+  const onTip = useCallback((next: { x: number; y: number; transportId: string } | null) => {
+    if (dragLive.current) return;
+    setTip(next);
   }, []);
 
   const tipTransport = tip ? data.transportById.get(tip.transportId) : undefined;
@@ -93,8 +106,13 @@ export function GanttBoard({
                 query={query}
                 drag={drag}
                 pendingId={pendingId}
+                ownsDrag={Boolean(
+                  drag?.transportId &&
+                  data.schedules.get(crew.id)?.legs.some((leg) => leg.transportId === drag.transportId),
+                )}
+                dragNodeRef={dragNodeRef}
                 onStart={onStart}
-                onTip={(next) => setTip(next)}
+                onTip={onTip}
               />
             ))}
           {data.live && (
@@ -124,17 +142,7 @@ export function GanttBoard({
   );
 }
 
-function CrewRow({
-  crew,
-  width,
-  label,
-  pxPerMin,
-  query,
-  drag,
-  pendingId,
-  onStart,
-  onTip,
-}: {
+type CrewRowProps = {
   crew: Crew;
   width: number;
   label: number;
@@ -142,10 +150,47 @@ function CrewRow({
   query: string;
   drag: DragState | null;
   pendingId: string | null;
+  ownsDrag: boolean;
+  dragNodeRef: { current: HTMLButtonElement | null };
   onStart: (transportId: string, event: PointerEvent<HTMLElement>) => void;
   onTip: (tip: { x: number; y: number; transportId: string } | null) => void;
-}) {
+};
+
+function sameCrewRow(prev: CrewRowProps, next: CrewRowProps): boolean {
+  if (prev.crew !== next.crew) return false;
+  if (prev.width !== next.width || prev.label !== next.label || prev.pxPerMin !== next.pxPerMin) return false;
+  if (prev.query !== next.query || prev.pendingId !== next.pendingId) return false;
+  if (prev.onStart !== next.onStart || prev.onTip !== next.onTip || prev.dragNodeRef !== next.dragNodeRef) return false;
+  if (prev.ownsDrag !== next.ownsDrag) return false;
+  return sameRowDrag(prev.crew.id, prev.drag, next.drag, prev.ownsDrag);
+}
+
+function sameRowDrag(crewId: string, prev: DragState | null, next: DragState | null, owns: boolean): boolean {
+  if (owns && ((prev?.moved ?? false) !== (next?.moved ?? false) || prev?.transportId !== next?.transportId))
+    return false;
+  const prevHot = Boolean(prev?.moved && prev.hoverCrewId === crewId);
+  const nextHot = Boolean(next?.moved && next.hoverCrewId === crewId);
+  if (prevHot !== nextHot) return false;
+  if (!prevHot && !nextHot) return true;
+  return prev?.previewKey === next?.previewKey && Boolean(prev?.preview?.ok) === Boolean(next?.preview?.ok);
+}
+
+const CrewRow = memo(function CrewRow({
+  crew,
+  width,
+  label,
+  pxPerMin,
+  query,
+  drag,
+  pendingId,
+  dragNodeRef,
+  onStart,
+  onTip,
+}: CrewRowProps) {
   const { schedules, blocks, transports, selectedId, patientById, rules } = useData();
+  useEffect(() => {
+    noteDrag("row");
+  });
   const schedule = schedules.get(crew.id);
   const crewBlocks = blocks.filter((block) => block.crewId === crew.id);
   const meal = crewBlocks.find((block) => block.kind === "repas");
@@ -252,6 +297,13 @@ function CrewRow({
                   (leg.conflict || leg.incompatible || leg.lateMin >= 1) && "ring-2 ring-alert",
                   selected && "outline outline-2 outline-offset-1 outline-navy",
                 )}
+                ref={
+                  dragging
+                    ? (node) => {
+                        dragNodeRef.current = node;
+                      }
+                    : undefined
+                }
                 style={{
                   left,
                   width: bar,
@@ -259,7 +311,6 @@ function CrewRow({
                   height: barH,
                   background: "color-mix(in srgb, var(--crew) 16%, transparent)",
                   ["--crew" as string]: crew.color,
-                  transform: dragging ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined,
                   zIndex: dragging ? 25 : undefined,
                 }}
                 data-armed={dragging && !drag.moved ? "1" : undefined}
@@ -335,21 +386,6 @@ function CrewRow({
             </span>
           );
         })}
-        {legs.map((leg) => {
-          const transport = transports.find((item) => item.id === leg.transportId);
-          if (!transport) return null;
-          const planned = transport.appointmentMin ?? transport.windowStart;
-          return (
-            <div
-              key={`ghost-${leg.transportId}`}
-              title={`Heure prévue ${formatMin(planned)}`}
-              className="pointer-events-none absolute top-1 z-10 h-3 w-px bg-ink"
-              style={{ left: (planned - DAY_START) * pxPerMin }}
-            >
-              <span className="absolute -left-1 top-0 h-2 w-2 rounded-sm bg-ink" />
-            </div>
-          );
-        })}
         {drag?.moved && drag.hoverCrewId === crew.id && drag.preview && (
           <DragGhost
             drag={drag}
@@ -362,7 +398,7 @@ function CrewRow({
       </div>
     </div>
   );
-}
+}, sameCrewRow);
 
 function TipBody({ transport, leg }: { transport: Transport; leg?: Leg }) {
   const { patientById, locMap } = useData();
