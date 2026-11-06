@@ -33,4 +33,19 @@ npm run sim
 8. **Simuler la journée** est dans Aide, rubrique Démo : horloge accélérée et appels, à part du planning.
 9. Si OSRM ne répond pas, un bandeau rouge signale les kilomètres estimés, repris sur la timeline et le PDF.
 
+## Adresses et routage
+
+« Pas d'envoi d'adresse » est dans Réglages, rubrique Routage, et dans l'assistant entreprise. Le mode coupe Photon (`photon.komoot.io`), OSRM (`router.project-osrm.org`), le miroir `routing.openstreetmap.de` et OpenRouteService. Les coordonnées se saisissent à la main. Les kilomètres sont estimés dans le navigateur. Un bandeau indique que les adresses ne sont pas envoyées.
+
+Sans ce mode, un avertissement est demandé une fois avant le premier envoi. Il est mémorisé dans `ambux.routing.notice.v1` et se révoque dans Réglages.
+
+Clés de ce navigateur, jamais envoyées vers un compte Ambux :
+
+- `ambux.routing` = `estimate` : kilomètres estimés, sans OSRM. Le géocodage Photon reste possible.
+- `ambux.routing.private.v1` : mode privé.
+- `ambux.ors` : clé OpenRouteService facultative. Elle sert seulement si le mode privé est éteint, l'avertissement accepté, et si OSRM ne répond pas.
+- `ambux.tiles` : modèle d'URL `https` avec `{z}`, `{x}` et `{y}`. Sinon, tuiles OpenStreetMap publiques, avec repli. L'attribution OpenStreetMap reste affichée.
+
+Les appels ont un délai de 8 secondes et quelques essais. En cas d'échec, le bandeau de routage dégradé signale les kilomètres estimés.
+
 Véhicules, équipages (DEA compris), patients et la demande se modifient dans Réglages, rubrique Données. La synthèse compare le planning affiché au planning initial (ordre des rendez-vous, premier équipage compatible).

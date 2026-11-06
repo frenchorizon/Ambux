@@ -10,6 +10,7 @@ import {
   type WorkspaceProfile,
 } from "../game/workspace";
 import { geocodeAddress } from "../lib/routing";
+import { readPrivateMode, setPrivateMode, usePrivateMode } from "../lib/routingPrivacy";
 import { cn } from "../lib/utils";
 import { BetaNotice } from "./legal/Legal";
 import { Logo } from "./Sidebar";
@@ -98,6 +99,7 @@ export function CompanyWizard({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState<WorkspaceProfile | null>(null);
+  const privateMode = usePrivateMode();
 
   const fail = (message: string): null => {
     setError(message);
@@ -106,6 +108,10 @@ export function CompanyWizard({
 
   const locate = async () => {
     setError("");
+    if (readPrivateMode()) {
+      setError("Mode privé : saisissez la latitude et la longitude. Aucune adresse n'est envoyée.");
+      return;
+    }
     const place = city.trim();
     const area = region.trim();
     if (!address.trim()) {
@@ -120,7 +126,11 @@ export function CompanyWizard({
     const hit = await geocodeAddress(qualifyAddress(address.trim(), place, area), { rouengate: false });
     setBusy(false);
     if (!hit) {
-      setError("Adresse introuvable. Saisissez la latitude et la longitude.");
+      setError(
+        readPrivateMode()
+          ? "Mode privé : saisissez la latitude et la longitude. Aucune adresse n'est envoyée."
+          : "Adresse introuvable. Saisissez la latitude et la longitude.",
+      );
       return;
     }
     setLat(String(hit.lat));
@@ -245,6 +255,29 @@ export function CompanyWizard({
         </label>
       </div>
       <p className="text-xs leading-relaxed text-muted">Ajoutées aux adresses lors du géocodage.</p>
+      <label className="flex min-h-11 items-start gap-3 text-sm font-semibold">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-5 shrink-0"
+          checked={privateMode}
+          onChange={(event) => {
+            if (!setPrivateMode(event.target.checked)) {
+              setError("Ce navigateur a refusé d'enregistrer le mode privé.");
+            }
+          }}
+        />
+        <span>
+          Pas d'envoi d'adresse
+          <span className="mt-0.5 block text-xs font-normal text-muted">
+            Les adresses restent dans ce navigateur. Saisissez les coordonnées à la main.
+          </span>
+        </span>
+      </label>
+      {privateMode && (
+        <p role="status" className="rounded-xl bg-ice px-3 py-2 text-sm text-navy">
+          Adresses non envoyées.
+        </p>
+      )}
       <label className="text-sm font-semibold">
         Adresse du dépôt
         <input
@@ -254,7 +287,7 @@ export function CompanyWizard({
           className={input}
         />
       </label>
-      <Button type="button" variant="secondary" disabled={busy} onClick={() => void locate()}>
+      <Button type="button" variant="secondary" disabled={busy || privateMode} onClick={() => void locate()}>
         {busy ? "Localisation…" : "Localiser"}
       </Button>
       {located && <p className="text-xs text-muted">{located}</p>}

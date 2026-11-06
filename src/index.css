@@ -361,7 +361,27 @@ body {
 
 .leaflet-control-attribution {
   font-size: 13px;
-  max-width: 70%;
+  line-height: 18px;
+  max-width: min(70%, 18rem);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0c2e4d;
+}
+
+.osm-attribution {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 8px 6px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-muted);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-line);
+}
+
+.osm-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Noms de rues lisibles : tuiles OSM claires, ou les mêmes inversées en mode sombre. */
@@ -1006,6 +1026,22 @@ html.dark .routing-banner {
   border-color: rgba(255, 122, 107, 0.55);
 }
 
+.routing-banner.is-private {
+  color: #0c2e4d;
+  background: rgba(46, 196, 182, 0.2);
+  border: 1px solid rgba(12, 110, 102, 0.45);
+}
+
+.routing-banner.is-private::before {
+  background: #0c6e66;
+}
+
+html.dark .routing-banner.is-private {
+  color: #fff;
+  background: rgba(46, 196, 182, 0.18);
+  border-color: rgba(46, 196, 182, 0.55);
+}
+
 .routing-banner::before {
   content: "";
   width: 8px;
@@ -1041,6 +1077,16 @@ html.dark .routing-banner {
     background: #ffe4e0;
     color: #4a1512;
   }
+
+  html:not(.dark) .routing-banner.is-private {
+    background: #e7f7f5;
+    color: #0c2e4d;
+  }
+
+  html.dark .routing-banner.is-private {
+    background: #12383a;
+    color: #fff;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1060,6 +1106,16 @@ html.dark .routing-banner {
   html:not(.dark) .routing-banner {
     background: #ffe4e0;
     color: #4a1512;
+  }
+
+  html:not(.dark) .routing-banner.is-private {
+    background: #e7f7f5;
+    color: #0c2e4d;
+  }
+
+  html.dark .routing-banner.is-private {
+    background: #12383a;
+    color: #fff;
   }
 }
 

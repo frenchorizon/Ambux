@@ -4,6 +4,7 @@ import { seanceReturnMin } from "../game/schedule";
 import { DAY_END, DAY_START, type Posture, type Transport, type VehicleType } from "../game/types";
 import { formatKm, formatMin, kindLabel, personName, postureLabel, vehicleLabel } from "../lib/format";
 import { addressForGeocode, defaultGeocoder, workspaceCity } from "../game/workspace";
+import { readPrivateMode, usePrivateMode } from "../lib/routingPrivacy";
 import { CsvImport } from "./CsvImport";
 import { CrewCsvImport, VehicleCsvImport } from "./FleetCsv";
 import { Badge } from "./ui/badge";
@@ -307,6 +308,9 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
   const [note, setNote] = useState(patient?.note ?? "");
   const [mobility, setMobility] = useState<Posture>(patient?.mobility ?? "assis");
   const [address, setAddress] = useState(home ? `${home.name}, ${home.city}` : "");
+  const [lat, setLat] = useState(home ? String(home.lat) : "");
+  const [lng, setLng] = useState(home ? String(home.lng) : "");
+  const privateMode = usePrivateMode();
   if (!patient) return null;
   return (
     <form
@@ -317,24 +321,57 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
           let location = home;
           if (address.trim() && address.trim() !== (home ? `${home.name}, ${home.city}` : "")) {
             const city = workspaceCity();
-            const hit = await defaultGeocoder(addressForGeocode(address.trim()));
-            if (hit) {
+            if (privateMode) {
+              const latitude = parseCoord(lat);
+              const longitude = parseCoord(lng);
+              if (
+                latitude == null ||
+                longitude == null ||
+                latitude < -90 ||
+                latitude > 90 ||
+                longitude < -180 ||
+                longitude > 180
+              ) {
+                data.dispatch({
+                  type: "TOAST",
+                  message: "Saisissez la latitude et la longitude. Aucune adresse n'est envoyée.",
+                  tone: "warn",
+                });
+                return;
+              }
               location = {
                 id: `adr-${patient.id}`,
-                name: hit.label,
-                short: hit.label,
+                name: address.trim(),
+                short: address.trim(),
                 kind: "domicile",
-                lat: hit.lat,
-                lng: hit.lng,
+                lat: latitude,
+                lng: longitude,
                 city,
               };
             } else {
-              data.dispatch({
-                type: "TOAST",
-                message: city ? `Adresse introuvable autour de ${city}.` : "Adresse introuvable.",
-                tone: "warn",
-              });
-              return;
+              const hit = await defaultGeocoder(addressForGeocode(address.trim()));
+              if (hit) {
+                location = {
+                  id: `adr-${patient.id}`,
+                  name: hit.label,
+                  short: hit.label,
+                  kind: "domicile",
+                  lat: hit.lat,
+                  lng: hit.lng,
+                  city,
+                };
+              } else {
+                data.dispatch({
+                  type: "TOAST",
+                  message: readPrivateMode()
+                    ? "Mode privé : saisissez la latitude et la longitude. Aucune adresse n'est envoyée."
+                    : city
+                      ? `Adresse introuvable autour de ${city}.`
+                      : "Adresse introuvable.",
+                  tone: "warn",
+                });
+                return;
+              }
             }
           }
           data.dispatch({
@@ -366,6 +403,29 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
         className="h-9 rounded-lg border border-line px-2 text-sm sm:col-span-2"
         placeholder="Adresse"
       />
+      {privateMode && (
+        <>
+          <input
+            aria-label="Latitude"
+            inputMode="decimal"
+            value={lat}
+            onChange={(event) => setLat(event.target.value)}
+            className="h-11 rounded-lg border border-line px-2 text-sm"
+            placeholder="Latitude"
+          />
+          <input
+            aria-label="Longitude"
+            inputMode="decimal"
+            value={lng}
+            onChange={(event) => setLng(event.target.value)}
+            className="h-11 rounded-lg border border-line px-2 text-sm"
+            placeholder="Longitude"
+          />
+          <p className="text-xs text-muted sm:col-span-2">
+            Adresses non envoyées. Les coordonnées restent dans ce navigateur.
+          </p>
+        </>
+      )}
       <select
         value={mobility}
         onChange={(event) => setMobility(event.target.value as Posture)}
@@ -704,6 +764,11 @@ function TransportForm({
       </Button>
     </form>
   );
+}
+
+function parseCoord(value: string): number | null {
+  const parsed = Number(value.trim().replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function clockOf(value: string): number {

@@ -1,6 +1,7 @@
 import { revokeImportConsent } from "../legal/consent";
 import { clearAmbuxKeys, writeLocal } from "../lib/browserStore";
 import { geocodeAddress, type GeocodeContext } from "../lib/routing";
+import { forgetRoutingPrivacy, readPrivateMode, readRoutingNotice } from "../lib/routingPrivacy";
 import type { Location } from "./types";
 
 /** Profil du navigateur. Séparé des brouillons `ambux-drafts-v1`. */
@@ -99,6 +100,7 @@ export function eraseAmbuxBrowser(): string[] {
   const removed = clearAmbuxKeys();
   forgetWorkspaceCache();
   revokeImportConsent();
+  forgetRoutingPrivacy();
   return removed;
 }
 
@@ -126,6 +128,14 @@ export function geocodeContext(): GeocodeContext {
 
 export function defaultGeocoder(query: string): Promise<GeocodeHit | null> {
   return geocodeAddress(query, geocodeContext());
+}
+
+export function unknownAddressReason(query: string): string {
+  if (readPrivateMode()) {
+    return `Mode privé : « ${query} » n'est pas envoyée. Saisissez la latitude et la longitude.`;
+  }
+  if (!readRoutingNotice()) return `Envoi d'adresse non confirmé pour « ${query} ». Aucun remplacement.`;
+  return `Adresse inconnue « ${query} ». Aucun remplacement.`;
 }
 
 /** Ville de la configuration, Rouen en démo ou tant qu'aucun mode n'est choisi. */

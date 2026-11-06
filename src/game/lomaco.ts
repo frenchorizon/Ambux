@@ -1,7 +1,7 @@
 import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
 import { writeLocal } from "../lib/browserStore";
-import { addressForGeocode, defaultGeocoder, workspaceCity } from "./workspace";
+import { addressForGeocode, defaultGeocoder, unknownAddressReason, workspaceCity } from "./workspace";
 import { formatMin } from "../lib/format";
 import { suggestExtraField } from "../io/mapping/suggest";
 import { checkPatient, checkPersonnel, parseAttente, readAvailability } from "../io/validators/rows";
@@ -1006,7 +1006,7 @@ async function resolvePlace(
   if (hits.length > 1) return { ok: false, reason: `Adresse ambiguë « ${query} ».` };
   if (hits.length === 1) return { ok: true, location: hits[0]! };
   const geo = await geocode(addressForGeocode(query));
-  if (!geo) return { ok: false, reason: `Adresse inconnue « ${query} ». Aucun remplacement.` };
+  if (!geo) return { ok: false, reason: unknownAddressReason(query) };
   const created: Location = {
     id: `loc-${id}`,
     name: geo.label,

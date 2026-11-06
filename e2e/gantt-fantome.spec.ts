@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("ambux.tour.v1", "1");
     localStorage.setItem("ambux.theme", "light");
+    localStorage.setItem("ambux.routing", "estimate");
   });
 });
 

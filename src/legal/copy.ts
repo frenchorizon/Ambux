@@ -43,7 +43,7 @@ export const MENTIONS: LegalSection[] = [
   {
     title: "Données",
     paragraphs: [
-      "Les courses, les noms, les adresses et le planning restent sur l'appareil, dans ce navigateur. Le détail est dans la politique de confidentialité. Les adresses peuvent être envoyées au géocodage ou au routage seulement si ces services sont utilisés.",
+      "Les courses, les noms, les adresses et le planning restent sur l'appareil, dans ce navigateur. Le détail est dans la politique de confidentialité. Les adresses peuvent être envoyées au géocodage ou au routage seulement si ces services sont utilisés et si le mode privé est éteint.",
       "Un avis facultatif peut quitter l'appareil : une note, un texte, une capture choisie, et des compteurs anonymes. Aucun patient, aucune adresse et aucun planning détaillé n'est joint par Ambux.",
     ],
   },
@@ -70,9 +70,11 @@ export const PRIVACY: LegalSection[] = [
   {
     title: "Adresses envoyées si un service est utilisé",
     paragraphs: [
+      "Le mode « Pas d'envoi d'adresse », dans Réglages, rubrique Routage, coupe Photon, OSRM, son miroir et OpenRouteService. Les coordonnées se saisissent à la main. Les kilomètres sont estimés dans le navigateur. Aucune adresse n'est envoyée. En mode entreprise, ce choix est proposé dans l'assistant, avant le premier géocodage.",
+      "Si ce mode est éteint, un avertissement s'affiche avant le premier envoi. La case est mémorisée dans ce navigateur, sous la clé versionnée ambux.routing.notice.v1. Elle se révoque dans Réglages. La révocation bloque l'envoi suivant. Elle n'efface pas les durées déjà calculées.",
       "Le géocodage (bouton Localiser, ou résolution d'une adresse à l'import) envoie le texte de l'adresse à Photon, photon.komoot.io. Le nom d'une personne n'est pas ajouté à cette requête.",
-      "Le routage, lorsqu'il n'est pas laissé en estimation locale, envoie des coordonnées à router.project-osrm.org. En secours, routing.openstreetmap.de peut être appelé. Si une clé OpenRouteService est présente dans ce navigateur, les coordonnées peuvent aussi être envoyées à api.openrouteservice.org. Sans ces usages, ces envois n'ont pas lieu.",
-      "La carte charge des tuiles du secteur affiché auprès d'OpenStreetMap (tile.openstreetmap.org, ou un miroir). Aucun nom de patient n'est dans cette requête.",
+      "Le routage, lorsqu'il n'est pas laissé en estimation locale, envoie des coordonnées à router.project-osrm.org. En secours, routing.openstreetmap.de peut être appelé. Si une clé OpenRouteService est présente dans ce navigateur (ambux.ors), les coordonnées peuvent aussi être envoyées à api.openrouteservice.org. La clé ambux.routing = estimate force les kilomètres estimés sans couper le géocodage. Sans ces usages, ou en mode privé, ces envois n'ont pas lieu. Un délai et quelques essais s'appliquent. Si le service ne répond pas, les kilomètres estimés sont signalés.",
+      "La carte charge des tuiles du secteur affiché auprès d'OpenStreetMap (tile.openstreetmap.org, ou un miroir). L'attribution OpenStreetMap reste visible. Un modèle https peut être indiqué dans ambux.tiles. Aucun nom de patient n'est dans cette requête.",
     ],
   },
   {

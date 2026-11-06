@@ -4,6 +4,7 @@ import { BrowserData } from "./BrowserData";
 import { FeedbackButton } from "./feedback/FeedbackForm";
 import { openImportGuide } from "./ImportGuide";
 import { ImportConsentSettings } from "./legal/Legal";
+import { RoutingSettings } from "./RoutingPrivacy";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
 import { emptyDriveMin, naiveBaseline } from "../game/baseline";
@@ -81,6 +82,7 @@ export function ReglagesView() {
           </p>
         </div>
         <ImportConsentSettings />
+        <RoutingSettings />
         <section>
           <h2 className="text-sm font-semibold">Avis</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">

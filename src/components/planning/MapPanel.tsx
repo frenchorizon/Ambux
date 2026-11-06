@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Tooltip, ZoomControl, useMap } from "react-leaflet";
-import { Basemap } from "./Basemap";
+import { Basemap, OsmAttribution } from "./Basemap";
 import { useClock, useData } from "../../game/context";
 import type { CrewSchedule, Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Location, type Transport } from "../../game/types";
@@ -20,59 +20,63 @@ export function MapPanel() {
   const depot = locations.find((location) => location.kind === "depot");
   const center: [number, number] = depot ? [depot.lat, depot.lng] : [49.443, 1.099];
   return (
-    <div className="relative h-full min-h-[220px]">
-      <MapContainer
-        key={`${seed}-${center[0]}-${center[1]}`}
-        center={center}
-        zoom={14}
-        minZoom={10}
-        maxZoom={18}
-        zoomControl={false}
-        className="h-full w-full"
-      >
-        <ZoomControl zoomInTitle="Zoom avant" zoomOutTitle="Zoom arrière" />
-        <Basemap />
-        <ResizeMap />
-        <Sites />
-        {crews.map((crew) => (shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null))}
-      </MapContainer>
-      <div className="map-chrome absolute bottom-2 left-2 right-16 z-[500] rounded-xl px-3 py-2">
-        <div className="mb-1 flex items-center justify-between text-[13px] text-muted">
-          <span>
-            {live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}
-          </span>
-          <span>
-            {source === "osrm" ? "Routes OSRM" : source === "estimate" ? "Tracés estimés" : "Calcul des routes…"}
-          </span>
+    <div className="flex h-full min-h-[220px] flex-col">
+      <div className="relative min-h-0 flex-1">
+        <MapContainer
+          key={`${seed}-${center[0]}-${center[1]}`}
+          center={center}
+          zoom={14}
+          minZoom={10}
+          maxZoom={18}
+          zoomControl={false}
+          attributionControl={false}
+          className="h-full w-full"
+        >
+          <ZoomControl zoomInTitle="Zoom avant" zoomOutTitle="Zoom arrière" />
+          <Basemap />
+          <ResizeMap />
+          <Sites />
+          {crews.map((crew) => (shown(crew.id) ? <CrewRoute key={crew.id} crew={crew} time={time} /> : null))}
+        </MapContainer>
+        <div className="map-chrome absolute bottom-2 left-2 right-2 z-[500] rounded-xl px-3 py-2">
+          <div className="mb-1 flex items-center justify-between text-[13px] text-muted">
+            <span>
+              {live ? "Position en simulation" : "Position simulée sur l'itinéraire"} · {formatMin(time, "floor")}
+            </span>
+            <span>
+              {source === "osrm" ? "Routes OSRM" : source === "estimate" ? "Tracés estimés" : "Calcul des routes…"}
+            </span>
+          </div>
+          {!live && (
+            <input
+              type="range"
+              min={DAY_START}
+              max={DAY_END}
+              value={scrub}
+              onChange={(event) => setScrub(Number(event.target.value))}
+              className="w-full"
+              aria-label="Heure de position des véhicules"
+            />
+          )}
         </div>
-        {!live && (
-          <input
-            type="range"
-            min={DAY_START}
-            max={DAY_END}
-            value={scrub}
-            onChange={(event) => setScrub(Number(event.target.value))}
-            className="w-full"
-            aria-label="Heure de position des véhicules"
-          />
-        )}
+        <div className="absolute left-2 top-2 z-[500] flex max-w-[70%] flex-wrap gap-1">
+          {crews.map((crew) => (
+            <button
+              key={crew.id}
+              type="button"
+              onClick={() => setVisible((current) => ({ ...current, [crew.id]: !shown(crew.id) }))}
+              className={cn(
+                "rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm",
+                shown(crew.id) ? "text-white" : "map-chrome text-muted",
+              )}
+              style={shown(crew.id) ? { background: crew.color, borderColor: crew.color } : undefined}
+            >
+              {crew.code}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="absolute left-2 top-2 z-[500] flex max-w-[70%] flex-wrap gap-1">
-        {crews.map((crew) => (
-          <button
-            key={crew.id}
-            type="button"
-            onClick={() => setVisible((current) => ({ ...current, [crew.id]: !shown(crew.id) }))}
-            className={cn(
-              "rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm",
-              shown(crew.id) ? "text-white" : "map-chrome text-muted",
-            )}
-            style={shown(crew.id) ? { background: crew.color, borderColor: crew.color } : undefined}
-          >
-            {crew.code}
-          </button>
-        ))}
-      </div>
+      <OsmAttribution />
     </div>
   );
 }

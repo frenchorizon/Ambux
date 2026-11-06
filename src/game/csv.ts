@@ -1,4 +1,4 @@
-import { addressForGeocode, defaultGeocoder, workspaceCity, type Geocoder } from "./workspace";
+import { addressForGeocode, defaultGeocoder, unknownAddressReason, workspaceCity, type Geocoder } from "./workspace";
 import {
   MISSION_ISO,
   type Location,
@@ -359,7 +359,7 @@ async function resolvePlace(
   }
   if (hits.length === 1) return { ok: true, location: hits[0]! };
   const geo = await geocode(addressForGeocode(query));
-  if (!geo) return { ok: false, reason: `Adresse inconnue « ${query} ». Aucun remplacement.` };
+  if (!geo) return { ok: false, reason: unknownAddressReason(query) };
   const created: Location = {
     id: `loc-${id}-${Date.now().toString(36)}`,
     name: geo.label,

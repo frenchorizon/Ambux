@@ -1,5 +1,23 @@
 import { useSyncExternalStore } from "react";
 import { minutesForKm, roadKm, type LatLng } from "./geo";
+import {
+  readPrivateMode,
+  readRoutingNotice,
+  requestRoutingNotice,
+  setRoutingPolicyListener,
+  type RoutingNoticeOrigin,
+} from "./routingPrivacy";
+
+/**
+ * Réseau des adresses. Le mode privé (`ambux.routing.private.v1`) coupe Photon,
+ * OSRM, le miroir et OpenRouteService. `ambux.routing.notice.v1` mémorise
+ * l'avertissement avant le premier envoi. `ambux.routing=estimate` coupe le
+ * routage sans couper Photon. `ambux.ors` est une clé facultative, dans ce
+ * navigateur seulement. `ambux.tiles` est un modèle de tuiles (voir tiles.ts).
+ */
+export const ROUTING_TIMEOUT_MS = 8_000;
+export const ROUTING_ATTEMPTS = 3;
+export const routingNet = { timeoutMs: ROUTING_TIMEOUT_MS, attempts: ROUTING_ATTEMPTS };
 
 export interface Travel {
   km: number;
@@ -14,6 +32,9 @@ const pathByCoord = new Map<string, { line: LatLng[]; source: "osrm" | "estimate
 const pending = new Set<string>();
 let version = 0;
 let matrixState: "idle" | "loading" | "osrm" | "estimate" = "idle";
+let sessionEstimate = false;
+let choiceEstimate = false;
+let appliedPrivate = false;
 const listeners = new Set<() => void>();
 
 const OSRM = "https://router.project-osrm.org";
@@ -109,7 +130,7 @@ export function pointAlong(line: readonly LatLng[], t: number): LatLng {
   return line[line.length - 1]!;
 }
 
-export function routingForcedEstimate(): boolean {
+function routingStorageEstimate(): boolean {
   try {
     return localStorage.getItem("ambux.routing") === "estimate";
   } catch {
@@ -117,11 +138,46 @@ export function routingForcedEstimate(): boolean {
   }
 }
 
+/** Estimation locale : clé de test, mode privé, ou repli après échec réseau. */
+export function routingForcedEstimate(): boolean {
+  return sessionEstimate || appliedPrivate || readPrivateMode() || routingStorageEstimate();
+}
+
+export function resetRoutingCaches(): void {
+  travelById.clear();
+  pathByCoord.clear();
+  pending.clear();
+  legQueue.length = 0;
+  legPending.clear();
+  queue.length = 0;
+  sessionEstimate = false;
+  choiceEstimate = false;
+  appliedPrivate = readPrivateMode();
+  matrixState = appliedPrivate || routingStorageEstimate() ? "estimate" : "idle";
+  version = 0;
+}
+
+function markEstimate(): void {
+  sessionEstimate = true;
+  matrixState = "estimate";
+  bump();
+}
+
+async function allowNetwork(origin: RoutingNoticeOrigin): Promise<boolean> {
+  if (readPrivateMode()) return false;
+  const choice = await requestRoutingNotice(origin);
+  return choice === "send";
+}
+
 export async function warmMatrix(locations: readonly { id: string; lat: number; lng: number }[]): Promise<boolean> {
   if (locations.length < 2) return false;
-  if (routingForcedEstimate()) {
+  if (routingStorageEstimate() || readPrivateMode() || sessionEstimate) {
     matrixState = "estimate";
     bump();
+    return false;
+  }
+  if (!(await allowNetwork("auto"))) {
+    markEstimate();
     return false;
   }
   matrixState = "loading";
@@ -129,7 +185,7 @@ export async function warmMatrix(locations: readonly { id: string; lat: number; 
   const usable = locations.slice(0, 90);
   const coords = usable.map((location) => `${location.lng},${location.lat}`).join(";");
   try {
-    const response = await fetchRouting(`${OSRM}/table/v1/driving/${coords}?annotations=duration,distance`);
+    const response = await fetchLimited(`${OSRM}/table/v1/driving/${coords}?annotations=duration,distance`);
     if (!response.ok) throw new Error(String(response.status));
     const data = (await response.json()) as {
       code?: string;
@@ -154,8 +210,7 @@ export async function warmMatrix(locations: readonly { id: string; lat: number; 
     bump();
     return true;
   } catch {
-    if (matrixState === "loading") matrixState = "idle";
-    bump();
+    markEstimate();
     return false;
   }
 }
@@ -197,6 +252,16 @@ async function pumpLegs(): Promise<void> {
 
 async function fetchLeg(pair: LegPair): Promise<void> {
   const key = idKey(pair.fromId, pair.toId);
+  const blocked = routingForcedEstimate();
+  if (blocked || !(await allowNetwork("auto"))) {
+    travelById.set(key, estimateTravel(pair.from, pair.to));
+    if (!blocked) choiceEstimate = true;
+    sessionEstimate = true;
+    if (matrixState !== "osrm") matrixState = "estimate";
+    legPending.delete(key);
+    bump();
+    return;
+  }
   try {
     const osrm = await osrmLeg(OSRM, pair.from, pair.to);
     if (osrm) {
@@ -217,6 +282,7 @@ async function fetchLeg(pair: LegPair): Promise<void> {
       return;
     }
     travelById.set(key, estimateTravel(pair.from, pair.to));
+    sessionEstimate = true;
     matrixState = "estimate";
   } finally {
     legPending.delete(key);
@@ -226,7 +292,7 @@ async function fetchLeg(pair: LegPair): Promise<void> {
 
 async function osrmLeg(base: string, from: LatLng, to: LatLng): Promise<{ km: number; min: number } | null> {
   try {
-    const response = await fetchRouting(
+    const response = await fetchLimited(
       `${base}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=false`,
     );
     if (!response.ok) return null;
@@ -254,7 +320,7 @@ async function orsLeg(from: LatLng, to: LatLng): Promise<{ km: number; min: numb
   const key = orsKey();
   if (!key) return null;
   try {
-    const response = await fetch(ORS, {
+    const response = await fetchLimited(ORS, {
       method: "POST",
       headers: {
         Authorization: key,
@@ -308,14 +374,20 @@ async function pump(): Promise<void> {
 
 async function fetchPath(from: LatLng, to: LatLng): Promise<void> {
   const key = coordKey(from, to);
-  if (routingForcedEstimate()) {
+  const blocked = routingForcedEstimate();
+  if (blocked || !(await allowNetwork("auto"))) {
     pathByCoord.set(key, { line: estimatePath(from, to), source: "estimate" });
-    bump();
+    if (!blocked) {
+      choiceEstimate = true;
+      sessionEstimate = true;
+    }
+    if (matrixState !== "osrm") matrixState = "estimate";
     pending.delete(key);
+    queueMicrotask(bump);
     return;
   }
   try {
-    const response = await fetchRouting(
+    const response = await fetchLimited(
       `${OSRM}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`,
     );
     if (!response.ok) throw new Error(String(response.status));
@@ -332,6 +404,10 @@ async function fetchPath(from: LatLng, to: LatLng): Promise<void> {
     bump();
   } catch {
     pathByCoord.set(key, { line: estimatePath(from, to), source: "estimate" });
+    if (matrixState !== "osrm") {
+      sessionEstimate = true;
+      matrixState = "estimate";
+    }
     bump();
   } finally {
     pending.delete(key);
@@ -342,22 +418,48 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchRouting(url: string): Promise<Response> {
+export async function fetchLimited(url: string, init?: RequestInit, attempts = routingNet.attempts): Promise<Response> {
   let last = "réseau";
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const tries = Math.max(1, attempts);
+  for (let attempt = 0; attempt < tries; attempt++) {
     if (attempt > 0) await sleep(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 180));
+    const timeout = startTimeout(routingNet.timeoutMs);
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { ...init, signal: timeout.signal });
+      timeout.clear();
       if (response.status === 429 || response.status >= 500) {
         last = String(response.status);
         continue;
       }
       return response;
-    } catch {
-      last = "réseau";
+    } catch (error) {
+      timeout.clear();
+      last = isTimeout(error) ? "délai" : "réseau";
     }
   }
   throw new Error(last);
+}
+
+function startTimeout(ms: number): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(timeoutError());
+  }, ms);
+  const clear = () => clearTimeout(timer);
+  controller.signal.addEventListener("abort", clear, { once: true });
+  return { signal: controller.signal, clear };
+}
+
+function timeoutError(): Error {
+  const error = new Error("Délai dépassé");
+  error.name = "TimeoutError";
+  return error;
+}
+
+function isTimeout(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const name = "name" in error ? String(error.name) : "";
+  return name === "TimeoutError" || name === "AbortError";
 }
 
 function estimatePath(from: LatLng, to: LatLng): LatLng[] {
@@ -404,8 +506,10 @@ export async function geocodeAddress(
   query: string,
   context?: GeocodeContext,
 ): Promise<{ lat: number; lng: number; label: string } | null> {
+  if (readPrivateMode()) return null;
+  if (!(await allowNetwork("gesture"))) return null;
   try {
-    const response = await fetch(geocodePhotonUrl(query, context));
+    const response = await fetchLimited(geocodePhotonUrl(query, context), undefined, 2);
     if (!response.ok) return null;
     const data = (await response.json()) as {
       features?: {
@@ -426,6 +530,29 @@ export async function geocodeAddress(
     return null;
   }
 }
+
+setRoutingPolicyListener(() => {
+  const privateMode = readPrivateMode();
+  if (privateMode !== appliedPrivate) {
+    if (privateMode) {
+      sessionEstimate = true;
+      matrixState = "estimate";
+    } else {
+      choiceEstimate = false;
+      sessionEstimate = false;
+      if (matrixState === "estimate") matrixState = "idle";
+    }
+    appliedPrivate = privateMode;
+    bump();
+    return;
+  }
+  if (choiceEstimate && readRoutingNotice() && !privateMode) {
+    choiceEstimate = false;
+    sessionEstimate = false;
+    if (matrixState === "estimate") matrixState = "idle";
+    bump();
+  }
+});
 
 function haversineKm(a: LatLng, b: LatLng): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;

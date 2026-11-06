@@ -203,7 +203,8 @@ export function ImportConsentPanel() {
       <h3 className="text-sm font-semibold">Avant d'importer un fichier</h3>
       <p className="text-sm leading-relaxed">
         CSV, Excel ou export Lomaco. {BETA_NOTICE} Ambux n'héberge pas de données de santé. Les fichiers restent dans ce
-        navigateur. Les adresses peuvent être envoyées au géocodage ou au routage si ces services sont utilisés.
+        navigateur. Les adresses peuvent être envoyées au géocodage ou au routage si ces services sont utilisés. Le mode
+        « Pas d'envoi d'adresse » coupe cet envoi.
       </p>
       <p className="text-xs leading-relaxed text-muted">{LEGAL_DRAFT_TITLE}</p>
       <p className="text-sm">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, Polyline } from "react-leaflet";
-import { Basemap } from "../planning/Basemap";
+import { Basemap, OsmAttribution } from "../planning/Basemap";
 import { useData } from "../../game/context";
 import { optimizePlan, type PlanResult } from "../../game/optimizer";
 import { scheduleFleet } from "../../game/schedule";
@@ -83,7 +83,7 @@ export function Cinema({ onClose }: { onClose: () => void }) {
           zoom={12}
           zoomControl={false}
           className="h-full w-full"
-          attributionControl
+          attributionControl={false}
         >
           <Basemap />
           {plan && <Reveal plan={plan} shown={visible} version={version} />}
@@ -94,6 +94,7 @@ export function Cinema({ onClose }: { onClose: () => void }) {
           <Pill>{plan ? `${plan.unassignedIds.length} à traiter` : "Pause, charge, amplitude"}</Pill>
         </div>
       </div>
+      <OsmAttribution />
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <p className="max-w-xl text-xs leading-relaxed text-white/75">
           {error ??

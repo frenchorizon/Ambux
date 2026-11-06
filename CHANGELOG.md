@@ -2,6 +2,16 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b4 — 2026-11-06
+
+Branche `feat/beta-b4-routage-prive`, ouverte depuis `feat/beta-b3-import-guide`. Confidentialité du routage et du géocodage. Pas de tag. Pas de serveur.
+
+- Réglages, rubrique Routage : « Pas d'envoi d'adresse ». Photon, OSRM, le miroir et OpenRouteService sont coupés. Coordonnées saisies à la main, kilomètres estimés. Bandeau « Adresses non envoyées ». Le même choix est dans l'assistant entreprise.
+- Avant le premier envoi, si le mode privé est éteint : avertissement, case mémorisée dans `ambux.routing.notice.v1`, révocable dans Réglages.
+- Les appels de `routing.ts` ont un délai et quelques essais. L'échec passe au kilométrage estimé, avec le bandeau de routage dégradé.
+- Attribution OpenStreetMap visible. `ambux.routing`, `ambux.ors` et `ambux.tiles` sont documentés. La clé OpenRouteService reste facultative.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b4.html`.
+
 ## v0.9.0-alpha.3-b3 — 2026-11-06
 
 Branche `feat/beta-b3-import-guide`, ouverte depuis `feat/beta-b6-feedback`. Import guidé. Pas de tag. Pas de serveur.

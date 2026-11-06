@@ -7,6 +7,10 @@
         {
           "name": "ambux-workspace-v1",
           "value": "{\"schema\":1,\"mode\":\"demo\",\"companyName\":\"\",\"city\":\"Rouen\",\"region\":\"\",\"depot\":null,\"amplitudeMin\":660}"
+        },
+        {
+          "name": "ambux.routing.notice.v1",
+          "value": "{\"version\":1,\"acceptedAt\":\"2026-11-06T08:00:00.000Z\"}"
         }
       ]
     }

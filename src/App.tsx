@@ -33,13 +33,16 @@ import { EnterpriseNotice, LegalDocument, useLegalPage } from "./components/lega
 import { useData } from "./game/context";
 import { DEMO_PROFILE, depotFromProfile, loadWorkspace, saveWorkspace, subscribeWorkspace } from "./game/workspace";
 import type { ModalId, ViewId } from "./game/types";
+import { RoutingNoticeHost } from "./components/RoutingPrivacy";
 import { matrixSource, useRoutingVersion } from "./lib/routing";
+import { usePrivateMode } from "./lib/routingPrivacy";
 
 export function App() {
   const legal = useLegalPage();
   return (
     <>
       {legal ? <LegalDocument id={legal} /> : <AppScreen />}
+      <RoutingNoticeHost />
       <Toaster />
     </>
   );
@@ -149,6 +152,14 @@ function DataScreen({ children }: { children: ReactNode }) {
 
 function RoutingBanner() {
   useRoutingVersion();
+  const privateMode = usePrivateMode();
+  if (privateMode) {
+    return (
+      <div className="routing-banner is-private" role="status">
+        Adresses non envoyées. Photon et OSRM sont coupés. Les kilomètres sont estimés dans ce navigateur.
+      </div>
+    );
+  }
   const source = matrixSource();
   if (source !== "estimate") return null;
   return (
