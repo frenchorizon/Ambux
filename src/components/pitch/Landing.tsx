@@ -4,6 +4,7 @@ import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
 import { MISSION_DATE } from "../../game/types";
 import { toggleTheme, useDark } from "../../lib/theme";
+import { FeedbackDialog } from "../feedback/FeedbackForm";
 import { BetaNotice } from "../legal/Legal";
 import { Logo } from "../Sidebar";
 import { Button } from "../ui/button";
@@ -41,6 +42,7 @@ export function Landing() {
   const { dispatch } = useData();
   const dark = useDark();
   const [ask, setAsk] = useState(false);
+  const [feedback, setFeedback] = useState(false);
   return (
     <div className="min-h-dvh bg-transparent text-ink">
       <a
@@ -99,6 +101,9 @@ export function Landing() {
               </Button>
               <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
                 Demander une démo
+              </Button>
+              <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
+                Donner mon avis
               </Button>
             </div>
             <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
@@ -203,6 +208,13 @@ export function Landing() {
           <BetaNotice tone="inline" />
         </div>
         <nav aria-label="Pages légales" className="mt-2 flex flex-wrap items-center justify-center gap-x-4">
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center font-semibold text-brand"
+            onClick={() => setFeedback(true)}
+          >
+            Donner mon avis
+          </button>
           <a className="inline-flex min-h-11 items-center font-semibold text-brand" href="#mentions-legales">
             Mentions légales
           </a>
@@ -212,6 +224,7 @@ export function Landing() {
         </nav>
       </footer>
       {ask && <DemoAsk onClose={() => setAsk(false)} />}
+      {feedback ? <FeedbackDialog ecran="accueil" onClose={() => setFeedback(false)} /> : null}
     </div>
   );
 }

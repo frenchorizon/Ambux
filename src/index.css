@@ -1155,9 +1155,33 @@ html.dark .routing-banner {
   white-space: nowrap;
 }
 
+.mode-banner .feedback-link,
+.mode-banner-inline .feedback-link {
+  max-width: none;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .mode-banner-inline.is-enterprise {
+    flex: 1 0 100%;
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+  }
+}
+
 @media (min-width: 1025px) {
   .mode-banner-inline {
     max-width: 18rem;
+  }
+
+  .mode-banner-inline.is-enterprise {
+    max-width: none;
   }
 
   .mode-banner-inline button {

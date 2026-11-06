@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b6 — 2026-11-06
+
+Branche `feat/beta-b6-feedback`. Canal d'avis. Pas de tag. Pas de mesure d'audience. Les patients, adresses, noms d'équipage et le planning détaillé ne partent pas.
+
+- Bouton « Donner mon avis » sur l'accueil, dans le bandeau quand le mode est entreprise, et dans Réglages.
+- Note de 1 à 5, texte libre, capture d'écran facultative (fichier image choisi). Le contexte joint est limité à la version, l'écran, le mode et les compteurs de courses, d'équipages et de véhicules.
+- Envoi : `FEEDBACK_URL` ou `VITE_FEEDBACK_URL` (Formspree en POST, Tally en ouverture préremplie). Sinon `mailto:` vers `FEEDBACK_EMAIL` / `VITE_FEEDBACK_EMAIL`. La valeur livrée est le placeholder `a-completer@exemple.invalid`, à remplacer par Nicolas.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b6.html`.
+
 ## v0.9.0-alpha.3-b5 — 2026-11-06
 
 Branche `feat/beta-b5-legal`. Pages légales et avertissement. Pas de tag. Le texte juridique est un brouillon à faire relire par un humain. Aucun SIRET ni aucune adresse n'est inventé.

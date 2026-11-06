@@ -1,5 +1,7 @@
 import { CircleHelp, Ellipsis, FileText, Pause, Play, Redo2, Search, Send, Sparkles, Undo2 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { FeedbackButton } from "./feedback/FeedbackForm";
+import { screenFromApp } from "../feedback/channel";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
 import { loadWorkspace, subscribeWorkspace } from "../game/workspace";
@@ -17,6 +19,11 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
   const data = useData();
   const { view, dispatch, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = data;
   const narrow = useNarrow();
+  const enterprise = useSyncExternalStore(
+    subscribeWorkspace,
+    () => loadWorkspace()?.mode === "entreprise",
+    () => false,
+  );
   const [menu, setMenu] = useState(false);
   const reviewCount = issues.filter((issue) => issue.kind !== "km_estime").length;
   const progress = Math.min(1, Math.max(0, (clock.nowMin - DAY_START) / (DAY_END - DAY_START)));
@@ -152,7 +159,7 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
         </div>
       )}
       {narrow && (
-        <div className="flex items-center gap-2 px-2 pb-2">
+        <div className={cn("flex items-center gap-2 px-2 pb-2", enterprise && "flex-wrap")}>
           <IconButton label="Annuler" disabled={!canUndo} onClick={undo}>
             <Undo2 size={18} />
           </IconButton>
@@ -260,23 +267,28 @@ function DraftVersion({ missionIso, courses }: { missionIso: string; courses: nu
 
 function ModeChip({ onChange, compact = false }: { onChange: () => void; compact?: boolean }) {
   const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
+  const { phase, view } = useData();
   if (!profile) return null;
-  const label = profile.mode === "demo" ? "Démo" : profile.companyName || "Entreprise";
+  const enterprise = profile.mode === "entreprise";
+  const label = enterprise ? profile.companyName || "Entreprise" : "Démo";
+  const feedback = enterprise ? <FeedbackButton ecran={screenFromApp(phase, view)} /> : null;
   if (compact) {
     return (
-      <span className="mode-banner mode-banner-inline">
+      <span className={cn("mode-banner mode-banner-inline", enterprise && "is-enterprise")}>
         <button type="button" aria-label="Changer" title="Changer de mode" onClick={onChange}>
           <span>{label}</span>
         </button>
+        {feedback}
       </span>
     );
   }
   return (
-    <span className="mode-banner mode-banner-inline">
+    <span className={cn("mode-banner mode-banner-inline", enterprise && "is-enterprise")}>
       <span className="truncate">
         <span className="sr-only">Mode </span>
         {label}
       </span>
+      {feedback}
       <button type="button" onClick={onChange}>
         Changer
       </button>

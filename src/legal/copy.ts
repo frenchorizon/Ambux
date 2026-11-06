@@ -44,6 +44,7 @@ export const MENTIONS: LegalSection[] = [
     title: "Données",
     paragraphs: [
       "Les courses, les noms, les adresses et le planning restent sur l'appareil, dans ce navigateur. Le détail est dans la politique de confidentialité. Les adresses peuvent être envoyées au géocodage ou au routage seulement si ces services sont utilisés.",
+      "Un avis facultatif peut quitter l'appareil : une note, un texte, une capture choisie, et des compteurs anonymes. Aucun patient, aucune adresse et aucun planning détaillé n'est joint par Ambux.",
     ],
   },
   {
@@ -97,5 +98,12 @@ export const PRIVACY: LegalSection[] = [
   {
     title: "Formulaire de démo",
     paragraphs: ["« Demander une démo » enregistre le formulaire dans ce navigateur. Aucun message n'est envoyé."],
+  },
+  {
+    title: "Avis",
+    paragraphs: [
+      "« Donner mon avis » est facultatif. Ambux peut envoyer la note, le texte saisi, une capture seulement si un fichier image est choisi, et un contexte technique : version, écran, mode démo ou entreprise, nombre de courses, d'équipages et de véhicules. Les patients, les adresses, les noms d'équipage et le planning détaillé ne sont pas joints.",
+      "Tant que l'adresse d'envoi n'est pas renseignée, le message s'ouvre dans le logiciel de courriel de l'appareil. Il n'y a pas de mesure d'audience.",
+    ],
   },
 ];

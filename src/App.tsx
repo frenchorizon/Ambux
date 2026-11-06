@@ -48,7 +48,7 @@ function AppScreen() {
   if (picking === "wizard") {
     return (
       <>
-        <ModeBanner onChange={onChange} />
+        <ModeBanner onChange={onChange} ecran="assistant-entreprise" />
         <CompanyWizard
           initial={profile?.mode === "entreprise" ? profile : null}
           onBack={() => setPicking("choice")}
@@ -61,7 +61,7 @@ function AppScreen() {
   if (picking === "choice" || !profile) {
     return (
       <>
-        <ModeBanner onChange={onChange} />
+        <ModeBanner onChange={onChange} ecran="choix-mode" />
         <EnterpriseNotice />
         <ModeChoice
           canCancel={Boolean(profile)}
@@ -81,7 +81,7 @@ function AppScreen() {
   if (profile.mode === "entreprise" && phase === "briefing") {
     return (
       <>
-        <ModeBanner onChange={onChange} />
+        <ModeBanner onChange={onChange} ecran="ouverture" />
         <EnterpriseNotice />
         <p className="px-4 py-6 text-sm text-muted">Ouverture de {profile.companyName}…</p>
       </>
@@ -91,7 +91,7 @@ function AppScreen() {
   if (phase === "briefing") {
     return (
       <div className="min-h-dvh">
-        <ModeBanner onChange={onChange} />
+        <ModeBanner onChange={onChange} ecran="accueil" />
         <Landing />
       </div>
     );
@@ -99,7 +99,7 @@ function AppScreen() {
   if (phase === "report") {
     return (
       <div className="min-h-dvh bg-paper">
-        <ModeBanner onChange={onChange} />
+        <ModeBanner onChange={onChange} ecran="bilan" />
         <EnterpriseNotice />
         <Report />
       </div>

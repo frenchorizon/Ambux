@@ -1,6 +1,7 @@
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { BrowserData } from "./BrowserData";
+import { FeedbackButton } from "./feedback/FeedbackForm";
 import { ImportConsentSettings } from "./legal/Legal";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
@@ -79,6 +80,16 @@ export function ReglagesView() {
           </p>
         </div>
         <ImportConsentSettings />
+        <section>
+          <h2 className="text-sm font-semibold">Avis</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            Un retour sur cette bêta. Les données métier ne sont pas jointes.
+          </p>
+          <FeedbackButton
+            ecran="reglages"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand"
+          />
+        </section>
         <section className="glass flex items-center justify-between gap-3 px-3 py-2">
           <div>
             <h2 className="text-sm font-semibold">Affichage</h2>

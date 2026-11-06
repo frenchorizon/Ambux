@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
+import { FeedbackButton } from "./feedback/FeedbackForm";
 import type { ModalId, ViewId } from "../game/types";
 import {
   clampAmplitude,
@@ -8,6 +9,7 @@ import {
   type WorkspaceProfile,
 } from "../game/workspace";
 import { geocodeAddress } from "../lib/routing";
+import { cn } from "../lib/utils";
 import { BetaNotice } from "./legal/Legal";
 import { Logo } from "./Sidebar";
 import { Button } from "./ui/button";
@@ -15,16 +17,18 @@ import { Button } from "./ui/button";
 const input =
   "mt-1 h-12 w-full rounded-xl border border-line bg-card px-3 text-base text-ink outline-none focus:ring-2 focus:ring-teal/40";
 
-export function ModeBanner({ onChange }: { onChange: () => void }) {
+export function ModeBanner({ onChange, ecran }: { onChange: () => void; ecran?: string }) {
   const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
   if (!profile) return null;
-  const label = profile.mode === "demo" ? "Démo" : profile.companyName || "Entreprise";
+  const enterprise = profile.mode === "entreprise";
+  const label = enterprise ? profile.companyName || "Entreprise" : "Démo";
   return (
-    <div className="mode-banner">
+    <div className={cn("mode-banner", enterprise && "is-enterprise")}>
       <p className="min-w-0 truncate">
         <span className="sr-only">Mode </span>
         {label}
       </p>
+      {enterprise ? <FeedbackButton ecran={ecran} /> : null}
       <button type="button" onClick={onChange}>
         Changer
       </button>
