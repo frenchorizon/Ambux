@@ -2,6 +2,7 @@ import { ChevronRight, Moon, Sun } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { BrowserData } from "./BrowserData";
 import { FeedbackButton } from "./feedback/FeedbackForm";
+import { openImportGuide } from "./ImportGuide";
 import { ImportConsentSettings } from "./legal/Legal";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
@@ -126,6 +127,27 @@ export function ReglagesView() {
             ))}
           </div>
         </section>
+        {enterprise && (
+          <section aria-labelledby="imports-titre">
+            <h2 id="imports-titre" className="text-sm font-semibold">
+              Imports
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              Flotte, personnel, puis missions. Un modèle CSV ou Excel, un aperçu, puis l'enregistrement.
+            </p>
+            <button
+              type="button"
+              className="min-h-11 text-sm font-semibold text-brand"
+              onClick={() => openImportGuide()}
+            >
+              Ouvrir l'assistant
+            </button>
+            <p className="text-[13px] leading-relaxed text-muted">
+              Les imports CSV des véhicules, des équipages et des courses, et l'import Lomaco, restent dans leurs
+              écrans.
+            </p>
+          </section>
+        )}
         <h2 className="text-sm font-semibold">Règles de planification</h2>
         <Field label="Pause repas (minutes)">
           <input

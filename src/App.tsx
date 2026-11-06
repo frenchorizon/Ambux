@@ -1,4 +1,10 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  ImportGuide,
+  clearImportGuideRequest,
+  importGuideRequested,
+  subscribeImportGuide,
+} from "./components/ImportGuide";
 import { CallDock } from "./components/CallDock";
 import { GameDialogs } from "./components/GameDialogs";
 import { PlanningWorkspace } from "./components/planning/PlanningWorkspace";
@@ -161,6 +167,16 @@ function LiveCalls() {
 
 function Dashboard({ onChangeMode }: { onChangeMode: () => void }) {
   const { phase, view, dispatch } = useData();
+  const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
+  const [guide, setGuide] = useState(importGuideRequested);
+  useEffect(() => {
+    if (guide) clearImportGuideRequest();
+  }, [guide]);
+  useEffect(() => subscribeImportGuide(() => setGuide(true)), []);
+  useEffect(() => {
+    if (view !== "reglages") setGuide(false);
+  }, [view]);
+  const showGuide = guide && profile?.mode === "entreprise";
   const [entry] = useState(claimEntry);
   const [cinema, setCinema] = useState(entry.cinema);
   const [tour, setTour] = useState(() => entry.tour && !entry.cinema && !tourSeen());
@@ -186,38 +202,44 @@ function Dashboard({ onChangeMode }: { onChangeMode: () => void }) {
         <TopBar onChangeMode={onChangeMode} />
         <RoutingBanner />
         <main className="min-h-0 flex-1">
-          {view === "gantt" && <PlanningWorkspace />}
-          {view === "carte" && (
-            <div className="h-full">
-              <MapPanel />
-            </div>
+          {showGuide ? (
+            <ImportGuide onClose={() => setGuide(false)} />
+          ) : (
+            <>
+              {view === "gantt" && <PlanningWorkspace />}
+              {view === "carte" && (
+                <div className="h-full">
+                  <MapPanel />
+                </div>
+              )}
+              {view === "file" && <UnassignedPanel />}
+              {view === "synthese" && <SyntheseView />}
+              {view === "reglages" && <ReglagesView />}
+              {view === "tomorrow" && (
+                <DataScreen>
+                  <TomorrowView />
+                </DataScreen>
+              )}
+              {view === "crews" && (
+                <DataScreen>
+                  <CrewsView />
+                </DataScreen>
+              )}
+              {view === "vehicles" && (
+                <DataScreen>
+                  <VehiclesView />
+                </DataScreen>
+              )}
+              {view === "patients" && (
+                <DataScreen>
+                  <PatientsView />
+                </DataScreen>
+              )}
+              {view === "companies" && <CompaniesView />}
+              {view === "lomaco" && <LomacoView />}
+              {view === "feuille" && <CrewSheet />}
+            </>
           )}
-          {view === "file" && <UnassignedPanel />}
-          {view === "synthese" && <SyntheseView />}
-          {view === "reglages" && <ReglagesView />}
-          {view === "tomorrow" && (
-            <DataScreen>
-              <TomorrowView />
-            </DataScreen>
-          )}
-          {view === "crews" && (
-            <DataScreen>
-              <CrewsView />
-            </DataScreen>
-          )}
-          {view === "vehicles" && (
-            <DataScreen>
-              <VehiclesView />
-            </DataScreen>
-          )}
-          {view === "patients" && (
-            <DataScreen>
-              <PatientsView />
-            </DataScreen>
-          )}
-          {view === "companies" && <CompaniesView />}
-          {view === "lomaco" && <LomacoView />}
-          {view === "feuille" && <CrewSheet />}
         </main>
         <BottomNav />
       </div>

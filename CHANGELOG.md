@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b3 — 2026-11-06
+
+Branche `feat/beta-b3-import-guide`, ouverte depuis `feat/beta-b6-feedback`. Import guidé. Pas de tag. Pas de serveur.
+
+- Modèles CSV et Excel pour la flotte, le personnel et les missions. Une ligne d'exemple fictive, à Lyon. Les colonnes sont celles déjà lues par les imports CSV.
+- Assistant en trois étapes, en mode entreprise : flotte, personnel, missions. Chaque étape propose le modèle, l'import, l'aperçu des lignes acceptées et rejetées, puis la suite. Une étape peut être passée. Le consentement d'import reste exigé avant de lire un fichier réel.
+- Entrée depuis l'écran qui suit l'assistant entreprise, et depuis Réglages, rubrique Imports. Les imports CSV et Lomaco déjà en place ne changent pas.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b3.html`.
+
 ## v0.9.0-alpha.3-b6 — 2026-11-06
 
 Branche `feat/beta-b6-feedback`. Canal d'avis. Pas de tag. Pas de mesure d'audience. Les patients, adresses, noms d'équipage et le planning détaillé ne partent pas.

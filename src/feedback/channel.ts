@@ -25,7 +25,7 @@ export const FEEDBACK_EMAIL_PLACEHOLDER = "a-completer@exemple.invalid";
 /** Remplacer par l'adresse réelle. Ne pas inventer une adresse personnelle. */
 export const FEEDBACK_EMAIL = FEEDBACK_EMAIL_PLACEHOLDER;
 
-export const APP_VERSION = "0.9.0-alpha.3-b6";
+export const APP_VERSION = "0.9.0-alpha.3-b3";
 
 export const TECHNICAL_FIELDS = ["version", "ecran", "mode", "courses", "equipages", "vehicules"] as const;
 

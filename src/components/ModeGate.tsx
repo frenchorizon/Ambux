@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { FeedbackButton } from "./feedback/FeedbackForm";
+import { openImportGuide } from "./ImportGuide";
 import type { ModalId, ViewId } from "../game/types";
 import {
   clampAmplitude,
@@ -166,10 +167,20 @@ export function CompanyWizard({
         <BetaNotice tone="inline" />
         <h1 className="font-display text-3xl font-light text-navy">{ready.companyName}</h1>
         <p className="text-sm leading-relaxed text-muted">
-          L'espace part vide. Continuez avec les écrans d'ajout et d'import déjà en place.
+          L'espace part vide. Importez la flotte, le personnel et les missions, ou ouvrez les écrans d'ajout.
         </p>
         <div className="grid gap-2">
-          <Button onClick={() => open("crews")}>Équipages</Button>
+          <Button
+            onClick={() => {
+              openImportGuide();
+              open("reglages");
+            }}
+          >
+            Assistant d'import
+          </Button>
+          <Button variant="secondary" onClick={() => open("crews")}>
+            Équipages
+          </Button>
           <Button variant="secondary" onClick={() => open("vehicles")}>
             Véhicules
           </Button>
