@@ -17,6 +17,7 @@ import {
   type SheetKind,
   type SourceSheet,
 } from "../game/lomaco";
+import { ImportConsentPanel, useImportBlocked } from "./legal/Legal";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
 
@@ -31,6 +32,7 @@ const KINDS: { id: SheetKind; label: string }[] = [
 
 export function LomacoImportDialog({ open }: { open: boolean }) {
   const data = useData();
+  const blocked = useImportBlocked();
   const [step, setStep] = useState<"fichiers" | "colonnes" | "apercu">("fichiers");
   const [profiles, setProfiles] = useState<ImportProfile[]>(() => loadImportProfiles());
   const [profileId, setProfileId] = useState(LOMACO_IMPORT_PROFILE.id);
@@ -98,6 +100,20 @@ export function LomacoImportDialog({ open }: { open: boolean }) {
       rejected: preview.rejected.length,
     };
   }, [preview]);
+
+  if (blocked) {
+    return (
+      <Modal
+        open={open}
+        wide
+        onClose={close}
+        title="Importer"
+        description="CSV ou Excel. Patients, courses, personnel et véhicules. Rien n'est écrit avant la fusion, qui s'annule d'un seul geste."
+      >
+        <ImportConsentPanel />
+      </Modal>
+    );
+  }
 
   return (
     <Modal

@@ -1,6 +1,7 @@
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { BrowserData } from "./BrowserData";
+import { ImportConsentSettings } from "./legal/Legal";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
 import { emptyDriveMin, naiveBaseline } from "../game/baseline";
@@ -77,6 +78,7 @@ export function ReglagesView() {
             pas un paramétrage réglementaire certifié.
           </p>
         </div>
+        <ImportConsentSettings />
         <section className="glass flex items-center justify-between gap-3 px-3 py-2">
           <div>
             <h2 className="text-sm font-semibold">Affichage</h2>

@@ -4,6 +4,7 @@ import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
 import { MISSION_DATE } from "../../game/types";
 import { toggleTheme, useDark } from "../../lib/theme";
+import { BetaNotice } from "../legal/Legal";
 import { Logo } from "../Sidebar";
 import { Button } from "../ui/button";
 import { FleetPanel } from "./FleetPanel";
@@ -89,6 +90,9 @@ export function Landing() {
               Ambux prépare les feuilles du lendemain pour une société d'ambulance et de VSL. Votre logiciel de
               régulation — Lomaco ou un autre — reste en place. Ambux lui rend un CSV, il ne le remplace pas.
             </p>
+            <div className="mt-4 max-w-lg">
+              <BetaNotice tone="inline" />
+            </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <Button size="lg" onClick={() => oneClick(dispatch)}>
                 Planning de demain en 1 clic
@@ -191,8 +195,21 @@ export function Landing() {
         </section>
       </main>
       <footer className="border-t border-line px-4 py-8 text-center text-xs text-muted">
-        Ambux · démonstration · {MISSION_DATE} · patients fictifs · compagnon possible d'un logiciel de régulation, pas
-        son remplaçant.
+        <p>
+          Ambux · démonstration · {MISSION_DATE} · patients fictifs · compagnon possible d'un logiciel de régulation,
+          pas son remplaçant.
+        </p>
+        <div className="mt-2">
+          <BetaNotice tone="inline" />
+        </div>
+        <nav aria-label="Pages légales" className="mt-2 flex flex-wrap items-center justify-center gap-x-4">
+          <a className="inline-flex min-h-11 items-center font-semibold text-brand" href="#mentions-legales">
+            Mentions légales
+          </a>
+          <a className="inline-flex min-h-11 items-center font-semibold text-brand" href="#confidentialite">
+            Politique de confidentialité
+          </a>
+        </nav>
       </footer>
       {ask && <DemoAsk onClose={() => setAsk(false)} />}
     </div>

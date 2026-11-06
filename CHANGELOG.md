@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b5 — 2026-11-06
+
+Branche `feat/beta-b5-legal`. Pages légales et avertissement. Pas de tag. Le texte juridique est un brouillon à faire relire par un humain. Aucun SIRET ni aucune adresse n'est inventé.
+
+- Mentions légales et politique de confidentialité, depuis le pied de la page d'accueil et depuis Réglages. Les données restent dans ce navigateur. Les adresses partent vers le géocodage ou le routage seulement si ces services sont utilisés.
+- Mention permanente : pas un dispositif médical, version bêta, sans garantie. Sur l'accueil, et en bandeau en mode entreprise.
+- En mode entreprise, le premier import CSV, Excel ou Lomaco attend une case cochée. Le consentement est dans `ambux.consent.v1`. Il se révoque dans Réglages. La démo n'est pas bloquée.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b5.html`.
+
 ## v0.9.0-alpha.3-b2 — 2026-11-06
 
 Branche `feat/beta-b2-persistance`. Persistance locale. Pas de tag. Les clés `ambux-drafts-v1` et `ambux-workspace-v1` ne changent pas de format. Pas d'IndexedDB : le brouillon reste dans localStorage, la copie complète part dans un fichier.

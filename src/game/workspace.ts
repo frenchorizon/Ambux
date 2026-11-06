@@ -1,3 +1,4 @@
+import { revokeImportConsent } from "../legal/consent";
 import { clearAmbuxKeys, writeLocal } from "../lib/browserStore";
 import { geocodeAddress, type GeocodeContext } from "../lib/routing";
 import type { Location } from "./types";
@@ -97,6 +98,7 @@ export function forgetWorkspaceCache(): void {
 export function eraseAmbuxBrowser(): string[] {
   const removed = clearAmbuxKeys();
   forgetWorkspaceCache();
+  revokeImportConsent();
   return removed;
 }
 

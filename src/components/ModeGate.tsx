@@ -8,6 +8,7 @@ import {
   type WorkspaceProfile,
 } from "../game/workspace";
 import { geocodeAddress } from "../lib/routing";
+import { BetaNotice } from "./legal/Legal";
 import { Logo } from "./Sidebar";
 import { Button } from "./ui/button";
 
@@ -158,6 +159,7 @@ export function CompanyWizard({
     const open = (view: ViewId, modal?: ModalId) => onEnter(ready, view, modal);
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-8 text-ink">
+        <BetaNotice tone="inline" />
         <h1 className="font-display text-3xl font-light text-navy">{ready.companyName}</h1>
         <p className="text-sm leading-relaxed text-muted">
           L'espace part vide. Continuez avec les écrans d'ajout et d'import déjà en place.
@@ -204,6 +206,9 @@ export function CompanyWizard({
         <p className="mt-2 text-sm leading-relaxed text-muted">
           Société, dépôt, ville de géocodage, amplitude. Ensuite, les écrans d'ajout.
         </p>
+        <div className="mt-3">
+          <BetaNotice tone="inline" />
+        </div>
       </div>
       <label className="text-sm font-semibold">
         Nom de la société

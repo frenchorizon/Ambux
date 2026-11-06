@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useData } from "../game/context";
 import { CSV_COLUMNS, csvSpec, previewCsv, type CsvReject, type CsvRow } from "../game/csv";
+import { ImportConsentPanel, useImportBlocked } from "./legal/Legal";
 import { Button } from "./ui/button";
 
 export function CsvImport() {
   const data = useData();
+  const blocked = useImportBlocked();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [accepted, setAccepted] = useState<CsvRow[] | null>(null);
@@ -25,6 +27,8 @@ export function CsvImport() {
       setBusy(false);
     }
   };
+
+  if (blocked) return <ImportConsentPanel />;
 
   return (
     <section className="glass mb-4 p-3">

@@ -23,15 +23,17 @@ import { Toaster } from "./components/Toaster";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/button";
 import { CompanyWizard, ModeBanner, ModeChoice } from "./components/ModeGate";
+import { EnterpriseNotice, LegalDocument, useLegalPage } from "./components/legal/Legal";
 import { useData } from "./game/context";
 import { DEMO_PROFILE, depotFromProfile, loadWorkspace, saveWorkspace, subscribeWorkspace } from "./game/workspace";
 import type { ModalId, ViewId } from "./game/types";
 import { matrixSource, useRoutingVersion } from "./lib/routing";
 
 export function App() {
+  const legal = useLegalPage();
   return (
     <>
-      <AppScreen />
+      {legal ? <LegalDocument id={legal} /> : <AppScreen />}
       <Toaster />
     </>
   );
@@ -60,6 +62,7 @@ function AppScreen() {
     return (
       <>
         <ModeBanner onChange={onChange} />
+        <EnterpriseNotice />
         <ModeChoice
           canCancel={Boolean(profile)}
           onCancel={() => setPicking(null)}
@@ -79,6 +82,7 @@ function AppScreen() {
     return (
       <>
         <ModeBanner onChange={onChange} />
+        <EnterpriseNotice />
         <p className="px-4 py-6 text-sm text-muted">Ouverture de {profile.companyName}…</p>
       </>
     );
@@ -96,6 +100,7 @@ function AppScreen() {
     return (
       <div className="min-h-dvh bg-paper">
         <ModeBanner onChange={onChange} />
+        <EnterpriseNotice />
         <Report />
       </div>
     );
@@ -177,6 +182,7 @@ function Dashboard({ onChangeMode }: { onChangeMode: () => void }) {
             </Button>
           </div>
         )}
+        <EnterpriseNotice />
         <TopBar onChangeMode={onChangeMode} />
         <RoutingBanner />
         <main className="min-h-0 flex-1">

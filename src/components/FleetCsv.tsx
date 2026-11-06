@@ -11,6 +11,7 @@ import {
   type VehicleCsvRow,
 } from "../game/fleetCsv";
 import { useData } from "../game/context";
+import { ImportConsentPanel, useImportBlocked } from "./legal/Legal";
 import { Button } from "./ui/button";
 
 export function VehicleCsvImport() {
@@ -116,6 +117,9 @@ function FleetBox({
   onFile: (raw: string) => void;
   onMerge: () => void;
 }) {
+  const blocked = useImportBlocked();
+  if (blocked) return <ImportConsentPanel />;
+
   return (
     <section className="glass mb-4 p-3">
       <h3 className="text-sm font-semibold">{title}</h3>
