@@ -1,6 +1,6 @@
 import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
-import { geocodeAddress } from "../lib/routing";
+import { addressForGeocode, defaultGeocoder, workspaceCity } from "./workspace";
 import { formatMin } from "../lib/format";
 import { suggestExtraField } from "../io/mapping/suggest";
 import { checkPatient, checkPersonnel, parseAttente, readAvailability } from "../io/validators/rows";
@@ -406,7 +406,7 @@ export async function previewLomaco(
     geocode?: (query: string) => Promise<{ lat: number; lng: number; label: string } | null>;
   },
 ): Promise<LomacoPreview> {
-  const geocode = options.geocode ?? geocodeAddress;
+  const geocode = options.geocode ?? defaultGeocoder;
   const known = options.locations.slice();
   const transports: LomacoTransportRow[] = [];
   const vehicles: LomacoVehicleRow[] = [];
@@ -1004,7 +1004,7 @@ async function resolvePlace(
   });
   if (hits.length > 1) return { ok: false, reason: `Adresse ambiguë « ${query} ».` };
   if (hits.length === 1) return { ok: true, location: hits[0]! };
-  const geo = await geocode(query.includes("Rouen") ? query : `${query}, Rouen`);
+  const geo = await geocode(addressForGeocode(query));
   if (!geo) return { ok: false, reason: `Adresse inconnue « ${query} ». Aucun remplacement.` };
   const created: Location = {
     id: `loc-${id}`,
@@ -1013,7 +1013,7 @@ async function resolvePlace(
     kind: "domicile",
     lat: geo.lat,
     lng: geo.lng,
-    city: "Rouen",
+    city: workspaceCity(),
   };
   return { ok: true, location: created, created };
 }

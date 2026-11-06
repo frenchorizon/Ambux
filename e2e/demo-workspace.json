@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:5280",
+      "localStorage": [
+        {
+          "name": "ambux-workspace-v1",
+          "value": "{\"schema\":1,\"mode\":\"demo\",\"companyName\":\"\",\"city\":\"Rouen\",\"region\":\"\",\"depot\":null,\"amplitudeMin\":660}"
+        }
+      ]
+    }
+  ]
+}

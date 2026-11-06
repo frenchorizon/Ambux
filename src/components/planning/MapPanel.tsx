@@ -10,18 +10,20 @@ import { matrixSource, pathBetween, pointAlong, useRoutingVersion, warmPaths } f
 import { cn } from "../../lib/utils";
 
 export function MapPanel() {
-  const { crews, seed, live } = useData();
+  const { crews, seed, live, locations } = useData();
   const { nowMin } = useClock();
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [scrub, setScrub] = useState(8 * 60);
   const time = live ? nowMin : scrub;
   const source = matrixSource();
   const shown = (id: string) => visible[id] !== false;
+  const depot = locations.find((location) => location.kind === "depot");
+  const center: [number, number] = depot ? [depot.lat, depot.lng] : [49.443, 1.099];
   return (
     <div className="relative h-full min-h-[220px]">
       <MapContainer
-        key={seed}
-        center={[49.443, 1.099]}
+        key={`${seed}-${center[0]}-${center[1]}`}
+        center={center}
         zoom={14}
         minZoom={10}
         maxZoom={18}

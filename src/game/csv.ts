@@ -1,4 +1,4 @@
-import { geocodeAddress } from "../lib/routing";
+import { addressForGeocode, defaultGeocoder, workspaceCity, type Geocoder } from "./workspace";
 import {
   MISSION_ISO,
   type Location,
@@ -52,6 +52,7 @@ export async function previewCsv(
   locations: readonly Location[],
   rules: Rules,
   missionIso: string = MISSION_ISO,
+  geocode: Geocoder = defaultGeocoder,
 ): Promise<{ accepted: CsvRow[]; rejected: CsvReject[] }> {
   const lines = raw.split(/\r?\n/);
   const accepted: CsvRow[] = [];
@@ -68,7 +69,7 @@ export async function previewCsv(
       continue;
     }
     header = false;
-    const parsed = await parseLine(index + 1, rawLine, cells, known, rules, missionIso);
+    const parsed = await parseLine(index + 1, rawLine, cells, known, rules, missionIso, geocode);
     if ("reason" in parsed) {
       rejected.push(parsed);
       continue;
@@ -225,6 +226,7 @@ async function parseLine(
   locations: Location[],
   rules: Rules,
   missionIso: string,
+  geocode: Geocoder,
 ): Promise<{ row: CsvRow; location?: Location; retourLocation?: Location } | CsvReject> {
   const header = CSV_COLUMNS.split(";");
   const record: Record<string, string> = {};
@@ -267,9 +269,9 @@ async function parseLine(
   if (!record.adresse_depart) return { line, raw, reason: "Adresse de départ manquante." };
   if (!record.adresse_arrivee) return { line, raw, reason: "Adresse d'arrivée manquante." };
 
-  const depart = await resolvePlace(record.adresse_depart, locations, `dep-${line}`);
+  const depart = await resolvePlace(record.adresse_depart, locations, `dep-${line}`, geocode);
   if (!depart.ok) return { line, raw, reason: depart.reason };
-  const arrivee = await resolvePlace(record.adresse_arrivee, locations, `arr-${line}`);
+  const arrivee = await resolvePlace(record.adresse_arrivee, locations, `arr-${line}`, geocode);
   if (!arrivee.ok) return { line, raw, reason: arrivee.reason };
 
   const tolerance = rules.toleranceMin;
@@ -335,6 +337,7 @@ async function resolvePlace(
   query: string,
   locations: Location[],
   id: string,
+  geocode: Geocoder,
 ): Promise<{ ok: true; location: Location; created?: Location } | { ok: false; reason: string }> {
   const q = norm(query);
   const hits = locations.filter((location) => {
@@ -355,7 +358,7 @@ async function resolvePlace(
     };
   }
   if (hits.length === 1) return { ok: true, location: hits[0]! };
-  const geo = await geocodeAddress(query.includes("Rouen") ? query : `${query}, Rouen`);
+  const geo = await geocode(addressForGeocode(query));
   if (!geo) return { ok: false, reason: `Adresse inconnue « ${query} ». Aucun remplacement.` };
   const created: Location = {
     id: `loc-${id}-${Date.now().toString(36)}`,
@@ -364,7 +367,7 @@ async function resolvePlace(
     kind: "domicile",
     lat: geo.lat,
     lng: geo.lng,
-    city: "Rouen",
+    city: workspaceCity(),
   };
   return { ok: true, location: created, created };
 }

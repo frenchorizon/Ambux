@@ -2,6 +2,17 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b1 — 2026-11-06
+
+Branche `feat/beta-b1-mode-entreprise`. Premier lot de la bêta gratuite. Pas de tag.
+
+- Au premier lancement : « Essayer avec des données fictives » ou « Mon entreprise ». La démo Rouen ne change pas.
+- Le mode entreprise ouvre un espace vide après un assistant court : société, dépôt (adresse ou latitude/longitude), ville et région de géocodage, amplitude. La suite utilise les écrans d'ajout et d'import déjà en place.
+- Le géocodage des imports et de la fiche patient prend la ville configurée. En démo, la ville reste Rouen.
+- Un bandeau permanent indique Démo ou le nom de la société, avec un bouton pour changer de mode.
+- Le mode et la configuration sont dans `ambux-workspace-v1`. Les brouillons restent dans `ambux-drafts-v1`.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b1.html`.
+
 ## v0.9.0-alpha.3 — 2026-10-29
 
 Branche `feat/refonte-lot3-coque`. Lot 3 de la refonte « verre nuit » : coquille. Pas de tag. Le mode clair reste dans Réglages. Les gestes du Gantt et le CSS des blocs ne bougent pas.

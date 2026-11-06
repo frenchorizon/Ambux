@@ -1,6 +1,7 @@
 import { ChartNoAxesGantt, Clock, Heart, Map, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { useData } from "../game/context";
+import { loadWorkspace } from "../game/workspace";
 import type { ViewId } from "../game/types";
 import { useDark } from "../lib/theme";
 import { cn } from "../lib/utils";
@@ -118,6 +119,7 @@ export function Sidebar() {
   const narrow = useNarrow();
   const dark = useDark();
   const { dispatch } = useData();
+  const enterprise = loadWorkspace()?.mode === "entreprise";
   if (narrow) return null;
   return (
     <aside className="shell-side glass">
@@ -128,7 +130,9 @@ export function Sidebar() {
       <button type="button" className="shell-back" onClick={() => dispatch({ type: "REPLAY" })}>
         Retour à l'accueil
       </button>
-      <p className="shell-note">Démo locale. Aucune donnée patient réelle.</p>
+      <p className="shell-note">
+        {enterprise ? "Dans ce navigateur. Aucune donnée envoyée." : "Démo locale. Aucune donnée patient réelle."}
+      </p>
     </aside>
   );
 }

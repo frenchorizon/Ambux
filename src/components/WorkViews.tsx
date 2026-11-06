@@ -1,6 +1,7 @@
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { useData } from "../game/context";
+import { loadWorkspace } from "../game/workspace";
 import { emptyDriveMin, naiveBaseline } from "../game/baseline";
 import type { ViewId } from "../game/types";
 import { formatDuration, formatKm, formatMin } from "../lib/format";
@@ -60,6 +61,10 @@ const DATA_LINKS: { id: ViewId; label: string; detail: string }[] = [
 export function ReglagesView() {
   const { rules, dispatch } = useData();
   const dark = useDark();
+  const enterprise = loadWorkspace()?.mode === "entreprise";
+  const links = DATA_LINKS.map((item) =>
+    item.id === "patients" && enterprise ? { ...item, detail: "Noms, adresses, mobilité" } : item,
+  );
   const set = (patch: Partial<typeof rules>) => dispatch({ type: "SET_RULES", rules: patch });
   return (
     <div className="h-full overflow-auto">
@@ -90,7 +95,7 @@ export function ReglagesView() {
           <h2 className="text-sm font-semibold">Données</h2>
           <p className="mt-1 text-sm text-muted">Équipages, véhicules, patients et demande du lendemain.</p>
           <div className="glass mt-2 overflow-hidden">
-            {DATA_LINKS.map((item) => (
+            {links.map((item) => (
               <button
                 key={item.id}
                 type="button"

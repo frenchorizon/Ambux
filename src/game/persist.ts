@@ -1,5 +1,6 @@
 import { MISSION_DATE, MISSION_ISO } from "./types";
 import type { GameState } from "./types";
+import { loadWorkspace } from "./workspace";
 
 const KEY = "ambux-drafts-v1";
 const MAX_VERSIONS = 10;
@@ -27,6 +28,8 @@ export interface DraftSnapshot {
   stats: GameState["stats"];
   calls: GameState["calls"];
   lomaco: GameState["lomaco"];
+  /** Présent seulement pour un brouillon écrit en mode entreprise. */
+  origin?: "entreprise";
 }
 
 export interface DraftSummary {
@@ -106,6 +109,12 @@ export function loadDraft(version: number): DraftSnapshot | null {
   return readAll().find((draft) => draft.version === version) ?? null;
 }
 
+export function latestEnterpriseDraft(): DraftSnapshot | null {
+  const found = readAll().filter((draft) => draft.origin === "entreprise");
+  if (!found.length) return null;
+  return found.reduce((best, draft) => (draft.version > best.version ? draft : best));
+}
+
 export function saveDraft(state: GameState): number | null {
   if (state.phase === "briefing" || typeof localStorage === "undefined") return null;
   const drafts = readAll().sort((a, b) => a.version - b.version);
@@ -136,6 +145,7 @@ export function saveDraft(state: GameState): number | null {
     stats: state.stats,
     calls: state.calls,
     lomaco: state.lomaco,
+    ...(loadWorkspace()?.mode === "entreprise" ? { origin: "entreprise" as const } : {}),
   };
   const kept = [...drafts, next].slice(-MAX_VERSIONS);
   try {

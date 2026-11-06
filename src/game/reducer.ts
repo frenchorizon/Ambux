@@ -33,6 +33,7 @@ import type {
   ViewId,
 } from "./types";
 import { loadRules } from "../lib/rulesStore";
+import { clampAmplitude } from "./workspace";
 import { shiftForIndex } from "./shifts";
 import { addIsoDays, formatMin, labelForIso, personName } from "../lib/format";
 import { DAY_END, DAY_START, DEFAULT_RULES, MAX_VEHICLES, MISSION_DATE, MISSION_ISO } from "./types";
@@ -42,6 +43,7 @@ export type Choice = "accept" | "refuse" | "expire";
 
 export type Action =
   | { type: "START"; amb: number; vsl: number; density: Density; seed: number }
+  | { type: "START_COMPANY"; depot: Location; amplitudeMin: number; view?: ViewId }
   | { type: "TICK"; dt: number }
   | { type: "PAUSE" }
   | { type: "SET_SPEED"; speed: Speed }
@@ -222,6 +224,24 @@ export function reducer(state: GameState, action: Action): GameState {
           message: "Demande de demain chargée. Générez le planning, puis ajustez les feuilles de route.",
         },
       };
+    }
+    case "START_COMPANY": {
+      return withToast(
+        {
+          ...initialState,
+          phase: "playing",
+          view: action.view ?? "reglages",
+          ambCount: 0,
+          vslCount: 0,
+          locations: [action.depot],
+          rules: { ...loadRules(), amplitudeMin: clampAmplitude(action.amplitudeMin) },
+          live: false,
+          paused: true,
+          toastSeq: state.toastSeq,
+        },
+        "Espace prêt. Ajoutez les équipages, les véhicules et la demande, ou importez un fichier.",
+        "info",
+      );
     }
     case "TICK": {
       if (state.phase !== "playing" || !state.live) return state;
@@ -1094,6 +1114,10 @@ function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
   );
 }
 
+function baseDepotId(state: GameState): string {
+  return state.crews[0]?.baseId ?? state.locations.find((location) => location.kind === "depot")?.id ?? "depot-sud";
+}
+
 function addVehicle(
   state: GameState,
   plate: string,
@@ -1135,7 +1159,7 @@ function addVehicle(
     plate: clean,
     vehicleName: vehicle.name,
     color: CREW_COLORS[index % CREW_COLORS.length]!,
-    baseId: state.crews[0]?.baseId ?? "depot-sud",
+    baseId: baseDepotId(state),
     ...shiftForIndex(index, state.rules.amplitudeMin),
     delayUntil: 0,
     dea: vehicleType === "ambulance" && Boolean(driver?.dea || mate?.dea),
@@ -1432,7 +1456,7 @@ function pushImportedVehicle(
     plate: clean,
     vehicleName: vehicle.name,
     color: CREW_COLORS[index % CREW_COLORS.length]!,
-    baseId: state.crews[0]?.baseId ?? "depot-sud",
+    baseId: baseDepotId(state),
     ...shiftForIndex(index, state.rules.amplitudeMin),
     delayUntil: 0,
     dea: false,

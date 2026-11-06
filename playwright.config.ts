@@ -10,6 +10,7 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:5280",
     locale: "fr-FR",
+    storageState: "e2e/demo-workspace.json",
   },
   webServer: {
     command: "npm run dev",
@@ -28,7 +29,7 @@ export default defineConfig({
     },
     {
       name: "iphone",
-      testMatch: /gantt-(ios|fantome|dnd5)\.spec\.ts/,
+      testMatch: /gantt-(ios|fantome|dnd5)\.spec\.ts|entreprise\.spec\.ts/,
       use: {
         ...devices["iPhone 13"],
         // Le descripteur Playwright laisse 664 px au viewport (barre Safari). Le lot et le projet phone sont en 390×844.

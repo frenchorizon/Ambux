@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { CallDock } from "./components/CallDock";
 import { GameDialogs } from "./components/GameDialogs";
 import { PlanningWorkspace } from "./components/planning/PlanningWorkspace";
@@ -22,14 +22,91 @@ import { ReglagesView, SyntheseView } from "./components/WorkViews";
 import { Toaster } from "./components/Toaster";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/button";
+import { CompanyWizard, ModeBanner, ModeChoice } from "./components/ModeGate";
 import { useData } from "./game/context";
+import { DEMO_PROFILE, depotFromProfile, loadWorkspace, saveWorkspace, subscribeWorkspace } from "./game/workspace";
+import type { ModalId, ViewId } from "./game/types";
 import { matrixSource, useRoutingVersion } from "./lib/routing";
 
 export function App() {
-  const { phase } = useData();
-  if (phase === "briefing") return <Landing />;
-  if (phase === "report") return <Report />;
-  return <Dashboard />;
+  const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
+  const [picking, setPicking] = useState<null | "choice" | "wizard">(null);
+  const { phase, dispatch } = useData();
+  const onChange = () => setPicking("choice");
+
+  if (picking === "wizard") {
+    return (
+      <>
+        <ModeBanner onChange={onChange} />
+        <CompanyWizard
+          initial={profile?.mode === "entreprise" ? profile : null}
+          onBack={() => setPicking("choice")}
+          onEnter={(next, view, modal) => enterCompany(next, view, modal, dispatch, () => setPicking(null))}
+        />
+      </>
+    );
+  }
+
+  if (picking === "choice" || !profile) {
+    return (
+      <>
+        <ModeBanner onChange={onChange} />
+        <ModeChoice
+          canCancel={Boolean(profile)}
+          onCancel={() => setPicking(null)}
+          onDemo={() => {
+            const was = loadWorkspace()?.mode;
+            saveWorkspace(DEMO_PROFILE);
+            if (was !== "demo") dispatch({ type: "REPLAY" });
+            setPicking(null);
+          }}
+          onCompany={() => setPicking("wizard")}
+        />
+      </>
+    );
+  }
+
+  if (profile.mode === "entreprise" && phase === "briefing") {
+    return (
+      <>
+        <ModeBanner onChange={onChange} />
+        <p className="px-4 py-6 text-sm text-muted">Ouverture de {profile.companyName}…</p>
+      </>
+    );
+  }
+
+  if (phase === "briefing") {
+    return (
+      <div className="min-h-dvh">
+        <ModeBanner onChange={onChange} />
+        <Landing />
+      </div>
+    );
+  }
+  if (phase === "report") {
+    return (
+      <div className="min-h-dvh bg-paper">
+        <ModeBanner onChange={onChange} />
+        <Report />
+      </div>
+    );
+  }
+  return <Dashboard onChangeMode={onChange} />;
+}
+
+function enterCompany(
+  profile: Parameters<typeof saveWorkspace>[0],
+  view: ViewId,
+  modal: ModalId | undefined,
+  dispatch: ReturnType<typeof useData>["dispatch"],
+  done: () => void,
+): void {
+  saveWorkspace(profile);
+  const depot = depotFromProfile(profile);
+  if (!depot) return;
+  dispatch({ type: "START_COMPANY", depot, amplitudeMin: profile.amplitudeMin, view });
+  if (modal) dispatch({ type: "OPEN_MODAL", modal });
+  done();
 }
 
 function DataScreen({ children }: { children: ReactNode }) {
@@ -68,7 +145,7 @@ function LiveCalls() {
   return <CallDock />;
 }
 
-function Dashboard() {
+function Dashboard({ onChangeMode }: { onChangeMode: () => void }) {
   const { phase, view, dispatch } = useData();
   const [entry] = useState(claimEntry);
   const [cinema, setCinema] = useState(entry.cinema);
@@ -91,7 +168,7 @@ function Dashboard() {
             </Button>
           </div>
         )}
-        <TopBar />
+        <TopBar onChangeMode={onChangeMode} />
         <RoutingBanner />
         <main className="min-h-0 flex-1">
           {view === "gantt" && <PlanningWorkspace />}

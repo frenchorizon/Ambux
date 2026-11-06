@@ -1109,3 +1109,73 @@ html.dark .routing-banner {
   outline: 2px solid var(--color-teal);
   outline-offset: 2px;
 }
+
+.mode-banner {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-paper) 92%, transparent);
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.mode-banner button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mode-banner-inline {
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+  border-bottom: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.mode-banner-inline button {
+  max-width: 6.5rem;
+}
+
+.mode-banner-inline button span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1025px) {
+  .mode-banner-inline {
+    max-width: 18rem;
+  }
+
+  .mode-banner-inline button {
+    max-width: none;
+  }
+}
+
+.mode-choice {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  text-align: left;
+}
+
+html.dark .mode-banner {
+  background: rgba(10, 22, 34, 0.92);
+}

@@ -377,10 +377,35 @@ function estimatePath(from: LatLng, to: LatLng): LatLng[] {
   return line;
 }
 
-export async function geocodeAddress(query: string): Promise<{ lat: number; lng: number; label: string } | null> {
-  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1&lat=49.44&lon=1.09`;
+export interface GeocodeContext {
+  /** false : ne pas appliquer le filtre historique de la métropole de Rouen. */
+  rouengate?: boolean;
+  bias?: LatLng;
+  radiusKm?: number;
+}
+
+/** URL Photon. Sans contexte entreprise, la requête reste celle de la démo Rouen. */
+export function geocodePhotonUrl(query: string, context?: GeocodeContext): string {
+  if (context?.rouengate !== false) {
+    return `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1&lat=49.44&lon=1.09`;
+  }
+  const bias = context.bias ? `&lat=${context.bias.lat}&lon=${context.bias.lng}` : "";
+  return `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1${bias}&lang=fr`;
+}
+
+/** true si le point peut servir. La démo reste bornée à la métropole de Rouen. */
+export function geocodeAccepts(lat: number, lng: number, context?: GeocodeContext): boolean {
+  if (context?.rouengate !== false) return lat >= 49.1 && lat <= 49.7 && lng >= 0.7 && lng <= 1.4;
+  if (context.radiusKm != null && context.bias) return haversineKm(context.bias, { lat, lng }) <= context.radiusKm;
+  return true;
+}
+
+export async function geocodeAddress(
+  query: string,
+  context?: GeocodeContext,
+): Promise<{ lat: number; lng: number; label: string } | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(geocodePhotonUrl(query, context));
     if (!response.ok) return null;
     const data = (await response.json()) as {
       features?: {
@@ -395,9 +420,19 @@ export async function geocodeAddress(query: string): Promise<{ lat: number; lng:
     const label = [props.name, props.street, props.postcode, props.city].filter(Boolean).join(", ");
     const lat = coordinates[1];
     const lng = coordinates[0];
-    if (lat < 49.1 || lat > 49.7 || lng < 0.7 || lng > 1.4) return null;
+    if (!geocodeAccepts(lat, lng, context)) return null;
     return { lat, lng, label: label || query };
   } catch {
     return null;
   }
+}
+
+function haversineKm(a: LatLng, b: LatLng): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
 }

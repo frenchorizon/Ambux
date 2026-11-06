@@ -3,7 +3,7 @@ import { useData } from "../game/context";
 import { seanceReturnMin } from "../game/schedule";
 import { DAY_END, DAY_START, type Posture, type Transport, type VehicleType } from "../game/types";
 import { formatKm, formatMin, kindLabel, personName, postureLabel, vehicleLabel } from "../lib/format";
-import { geocodeAddress } from "../lib/routing";
+import { addressForGeocode, defaultGeocoder, workspaceCity } from "../game/workspace";
 import { CsvImport } from "./CsvImport";
 import { CrewCsvImport, VehicleCsvImport } from "./FleetCsv";
 import { Badge } from "./ui/badge";
@@ -316,7 +316,8 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
         void (async () => {
           let location = home;
           if (address.trim() && address.trim() !== (home ? `${home.name}, ${home.city}` : "")) {
-            const hit = await geocodeAddress(address.trim());
+            const city = workspaceCity();
+            const hit = await defaultGeocoder(addressForGeocode(address.trim()));
             if (hit) {
               location = {
                 id: `adr-${patient.id}`,
@@ -325,10 +326,14 @@ function PatientForm({ patientId, onDone }: { patientId: string; onDone: () => v
                 kind: "domicile",
                 lat: hit.lat,
                 lng: hit.lng,
-                city: "Rouen",
+                city,
               };
             } else {
-              data.dispatch({ type: "TOAST", message: "Adresse introuvable autour de Rouen.", tone: "warn" });
+              data.dispatch({
+                type: "TOAST",
+                message: city ? `Adresse introuvable autour de ${city}.` : "Adresse introuvable.",
+                tone: "warn",
+              });
               return;
             }
           }

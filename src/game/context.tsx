@@ -15,7 +15,8 @@ import { useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
-import { saveDraft } from "./persist";
+import { latestEnterpriseDraft, saveDraft } from "./persist";
+import { depotFromProfile, loadWorkspace } from "./workspace";
 import { saveRules } from "../lib/rulesStore";
 import { reviewIssues, type Issue } from "./review";
 import { isTracked, recordHistory } from "./history";
@@ -92,11 +93,27 @@ export interface DataValue {
   issues: Issue[];
 }
 
+function bootWorkspace(state: GameState): GameState {
+  if (state.phase !== "briefing") return state;
+  const profile = loadWorkspace();
+  if (!profile || profile.mode !== "entreprise") return state;
+  const draft = latestEnterpriseDraft();
+  if (draft) return reducer(state, { type: "RESTORE", snapshot: draft });
+  const depot = depotFromProfile(profile);
+  if (!depot) return state;
+  return reducer(state, {
+    type: "START_COMPANY",
+    depot,
+    amplitudeMin: profile.amplitudeMin,
+    view: "reglages",
+  });
+}
+
 const ClockContext = createContext<ClockValue | null>(null);
 const DataContext = createContext<DataValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState, bootWorkspace);
   const stateRef = useRef(state);
   const pastRef = useRef<GameState[]>([]);
   const futureRef = useRef<GameState[]>([]);

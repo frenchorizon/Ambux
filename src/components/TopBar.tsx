@@ -1,7 +1,8 @@
 import { CircleHelp, Ellipsis, FileText, Pause, Play, Redo2, Search, Send, Sparkles, Undo2 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useClock, useData } from "../game/context";
 import { listDrafts } from "../game/persist";
+import { loadWorkspace, subscribeWorkspace } from "../game/workspace";
 import { DAY_END, DAY_START, type Speed } from "../game/types";
 import { formatMin, shortDate } from "../lib/format";
 import { useNarrow } from "../lib/useMedia";
@@ -11,7 +12,7 @@ import { Button } from "./ui/button";
 
 const SPEEDS: Speed[] = [1, 2, 4];
 
-export function TopBar() {
+export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
   const clock = useClock();
   const data = useData();
   const { view, dispatch, issues, live, missionIso, missionLabel, canUndo, canRedo, undo, redo } = data;
@@ -67,6 +68,7 @@ export function TopBar() {
         </div>
         {!narrow && (
           <>
+            <ModeChip onChange={onChangeMode} />
             <IconButton label="Annuler" disabled={!canUndo} onClick={undo}>
               <Undo2 size={18} />
             </IconButton>
@@ -172,6 +174,7 @@ export function TopBar() {
           >
             Exporter
           </button>
+          <ModeChip compact onChange={onChangeMode} />
         </div>
       )}
       {menu && (
@@ -251,6 +254,32 @@ function DraftVersion({ missionIso, courses }: { missionIso: string; courses: nu
   return (
     <span className="version-chip" title={`Brouillon v${version}`}>
       v{version}
+    </span>
+  );
+}
+
+function ModeChip({ onChange, compact = false }: { onChange: () => void; compact?: boolean }) {
+  const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
+  if (!profile) return null;
+  const label = profile.mode === "demo" ? "Démo" : profile.companyName || "Entreprise";
+  if (compact) {
+    return (
+      <span className="mode-banner mode-banner-inline">
+        <button type="button" aria-label="Changer" title="Changer de mode" onClick={onChange}>
+          <span>{label}</span>
+        </button>
+      </span>
+    );
+  }
+  return (
+    <span className="mode-banner mode-banner-inline">
+      <span className="truncate">
+        <span className="sr-only">Mode </span>
+        {label}
+      </span>
+      <button type="button" onClick={onChange}>
+        Changer
+      </button>
     </span>
   );
 }
