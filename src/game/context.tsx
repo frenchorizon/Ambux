@@ -379,7 +379,7 @@ export function useClock(): ClockValue {
 
 export function useData(): DataValue {
   const value = useContext(DataContext);
-  if (!value) throw new Error("Partie indisponible");
+  if (!value) throw new Error("Planning indisponible");
   return value;
 }
 

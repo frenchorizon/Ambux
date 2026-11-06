@@ -920,13 +920,13 @@ function sendLomaco(state: GameState): GameState {
         {
           id: `lomaco-ok-${state.toastSeq}`,
           atMin: state.nowMin,
-          message: "Accusé Lomaco : synchronisation terminée (démo).",
+          message: "Export noté ici. Aucun envoi vers Lomaco.",
           ok: true,
         },
       ],
       stats: { ...state.stats, lomacoSends: state.stats.lomacoSends + 1 },
     },
-    `${state.crews.length} feuilles de route envoyées vers Lomaco.`,
+    "Export noté dans ce navigateur. Aucun envoi.",
     "ok",
   );
 }

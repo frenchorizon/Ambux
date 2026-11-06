@@ -101,7 +101,7 @@ export function Report() {
               <p className="mt-3 text-sm">
                 {bench.metrics.emptyKm + 1 < data.metrics.emptyKm
                   ? `L'algorithme économise ${formatKm(data.metrics.emptyKm - bench.metrics.emptyKm)} à vide sur cette demande.`
-                  : "Vous faites jeu égal avec l'heuristique, ou mieux, sur les kilomètres à vide."}
+                  : "Le planning affiché rejoint l'heuristique, ou fait mieux, sur les kilomètres à vide."}
               </p>
             )}
           </article>
@@ -141,7 +141,7 @@ export function Report() {
             Préparer le planning de demain
           </Button>
           <Button variant="secondary" onClick={() => data.dispatch({ type: "REPLAY" })}>
-            Rejouer la journée
+            Retour à l'accueil
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted">{MISSION_DATE} · la simulation ne remplace pas le planning exporté.</p>

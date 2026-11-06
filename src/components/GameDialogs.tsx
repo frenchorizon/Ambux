@@ -106,9 +106,9 @@ export function GameDialogs() {
           <li>Équipages, véhicules, patients et demande sont dans Réglages, rubrique Données. Le mode sombre aussi.</li>
         </ol>
         <div className="mt-4 rounded-xl bg-paper p-3">
-          <p className="text-sm font-semibold">Démo</p>
+          <p className="text-sm font-semibold">Simulation</p>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            Simuler la journée rejoue l'horloge et les appels. Elle ne remplace pas le planning.
+            Simuler la journée avance l'horloge et les appels. Elle ne remplace pas le planning.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {data.live ? (

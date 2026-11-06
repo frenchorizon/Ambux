@@ -109,7 +109,7 @@ export function dayScore(metrics: Metrics, stats: Stats, regulationMs: number, c
     B: "Feuille de route solide",
     C: "Journée tenue",
     D: "Des trajets à reprendre",
-    E: "Le standard a gagné",
+    E: "Beaucoup de courses restent à placer",
   };
   const detail =
     metrics.unassigned === 0 && metrics.lateCount === 0

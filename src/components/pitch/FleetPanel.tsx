@@ -17,7 +17,7 @@ export function FleetPanel() {
 
   return (
     <div className="glass p-6 shadow-sm">
-      <h2 className="text-xl font-semibold">Ouvrir une démo chiffrée</h2>
+      <h2 className="text-xl font-semibold">Choisir la flotte de l'exemple</h2>
       <p className="mt-1 text-sm text-muted">
         Mission du {MISSION_DATE}. Jusqu'à {MAX_VEHICLES} véhicules. Données fictives autour de Rouen. Amplitude 11 h.
         15 ambulance et 25 VSL décrivent une journée chargée.
@@ -46,7 +46,7 @@ export function FleetPanel() {
       </div>
       <label className="mt-4 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={demo} onChange={(event) => setDemo(event.target.checked)} />
-        Scénario reproductible
+        Journée reproductible
       </label>
       <p className="mt-3 text-sm text-muted">
         Environ {volume} transports · {amb + vsl} équipages · dépôt du Petit-Quevilly.

@@ -27,10 +27,10 @@ export function RoiCalculator() {
         Ce que vos chiffres donneraient
       </h2>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-        Hypothèse de travail, pas une mesure de votre société. Le carburant part des kilomètres à vide que vous
-        indiquez. Le temps part des heures qu'un régulateur passe à monter le lendemain. Sur le jeu fictif 3+3, l'écart
-        contre un dispatch naïf était d'environ 19 % (292 km contre 361). Sur une journée plus pleine, l'écart peut être
-        proche de zéro. Le curseur est à 12 % pour rester en dessous de ce cas favorable.
+        Hypothèse de travail pendant la bêta, pas une mesure de votre société, pas un devis. Le carburant part des
+        kilomètres à vide que vous indiquez. Le temps part des heures qu'un régulateur passe à monter le lendemain. Sur
+        l'exemple fictif 3+3, l'écart contre un dispatch naïf était d'environ 19 % (292 km contre 361). Sur une journée
+        plus pleine, l'écart peut être proche de zéro. Le curseur est à 12 % pour rester en dessous de ce cas favorable.
       </p>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-3 sm:grid-cols-2">

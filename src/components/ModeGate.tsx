@@ -23,7 +23,7 @@ export function ModeBanner({ onChange, ecran }: { onChange: () => void; ecran?: 
   const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
   if (!profile) return null;
   const enterprise = profile.mode === "entreprise";
-  const label = enterprise ? profile.companyName || "Entreprise" : "Démo";
+  const label = enterprise ? profile.companyName || "Entreprise" : "Exemple";
   return (
     <div className={cn("mode-banner", enterprise && "is-enterprise")}>
       <p className="min-w-0 truncate">
@@ -55,8 +55,10 @@ export function ModeChoice({
       <div>
         <h1 className="font-display text-4xl font-light text-navy">Commencer</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Ambux prépare le planning du lendemain. Les données restent dans ce navigateur.
+          Bêta publique d'un logiciel de planning pour le transport sanitaire. Accès gratuit, avis en échange. Il
+          s'intègre à Lomaco et aux autres, il ne les remplace pas. Les données restent dans ce navigateur.
         </p>
+        <BetaNotice tone="inline" />
       </div>
       <div className="grid gap-3">
         <button type="button" className="mode-choice" onClick={onDemo}>

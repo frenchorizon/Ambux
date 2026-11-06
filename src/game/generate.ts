@@ -365,7 +365,7 @@ export function generateDay(options: { amb: number; vsl: number; density: Densit
       {
         id: "lomaco-open",
         atMin: DAY_START,
-        message: "Connexion Lomaco établie — environnement de démonstration.",
+        message: "Journal local. Aucune connexion à Lomaco.",
         ok: true,
       },
     ],

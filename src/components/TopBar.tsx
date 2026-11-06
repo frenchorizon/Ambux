@@ -270,7 +270,7 @@ function ModeChip({ onChange, compact = false }: { onChange: () => void; compact
   const { phase, view } = useData();
   if (!profile) return null;
   const enterprise = profile.mode === "entreprise";
-  const label = enterprise ? profile.companyName || "Entreprise" : "Démo";
+  const label = enterprise ? profile.companyName || "Entreprise" : "Exemple";
   const feedback = enterprise ? <FeedbackButton ecran={screenFromApp(phase, view)} /> : null;
   if (compact) {
     return (

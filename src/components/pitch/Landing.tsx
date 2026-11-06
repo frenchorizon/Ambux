@@ -14,27 +14,31 @@ import { RoiCalculator } from "./RoiCalculator";
 const TIERS = [
   {
     name: "Découverte",
+    status: "Bêta · gratuit",
     price: "0 €",
-    unit: "la démo sous vos yeux",
-    points: ["Jeu fictif de Rouen", "Planning, carte, CSV, feuille", "Rien n'est envoyé"],
+    unit: "pendant la bêta",
+    points: ["Exemple fictif de Rouen", "Planning, carte, CSV, feuille", "Avis en échange"],
   },
   {
     name: "Poste",
+    status: "Indicatif · futur",
     price: "79 €",
-    unit: "HT / véhicule / mois",
+    unit: "HT / véhicule / mois · pas en vigueur",
     points: ["Jusqu'à 8 véhicules, un site", "Import et export CSV", "Accompagnement de prise en main"],
   },
   {
     name: "Flotte",
+    status: "Indicatif · futur",
     price: "59 €",
-    unit: "HT / véhicule / mois",
+    unit: "HT / véhicule / mois · pas en vigueur",
     points: ["De 9 à 20 véhicules", "Même geste, volume plus haut", "Règles d'amplitude et de charge"],
   },
   {
     name: "Groupe",
+    status: "Indicatif · futur",
     price: "Sur devis",
-    unit: "plusieurs exploitations",
-    points: ["Sites séparés, pas mélangés", "Import calé sur votre export", "Hors de cette démo"],
+    unit: "plusieurs exploitations · pas en vigueur",
+    points: ["Sites séparés, pas mélangés", "Import calé sur votre export", "Plusieurs sites, plus tard"],
   },
 ];
 
@@ -61,11 +65,11 @@ export function Landing() {
             <a href="#calculateur" className="hover:text-ink">
               Calculateur
             </a>
-            <a href="#tarifs" className="hover:text-ink">
-              Tarifs
+            <a href="#plus-tard" className="hover:text-ink">
+              Plus tard
             </a>
-            <a href="#demo" className="hover:text-ink">
-              Démo
+            <a href="#exemple" className="hover:text-ink">
+              Exemple
             </a>
           </nav>
           <button
@@ -83,14 +87,16 @@ export function Landing() {
         <section className="mx-auto grid max-w-6xl items-end gap-10 px-4 py-14 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-              Transport sanitaire programmé · France
+              Bêta publique · transport sanitaire · France
             </p>
             <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] font-light text-navy sm:text-6xl">
               Le planning de demain, déjà posé.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Ambux prépare les feuilles du lendemain pour une société d'ambulance et de VSL. Votre logiciel de
-              régulation — Lomaco ou un autre — reste en place. Ambux lui rend un CSV, il ne le remplace pas.
+              Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire.
+              L'ambition est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et
+              les autres — sans les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis.
+              Aucun abonnement n'est en vigueur.
             </p>
             <div className="mt-4 max-w-lg">
               <BetaNotice tone="inline" />
@@ -99,21 +105,22 @@ export function Landing() {
               <Button size="lg" onClick={() => oneClick(dispatch)}>
                 Planning de demain en 1 clic
               </Button>
-              <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
-                Demander une démo
-              </Button>
               <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
                 Donner mon avis
               </Button>
+              <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
+                Noter ma société
+              </Button>
             </div>
             <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
-              Démonstration au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
-              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable.
+              Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
+              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable. Le bandeau en
+              haut passe de l'exemple fictif à votre société.
             </p>
           </div>
           <aside className="glass p-5 shadow-sm" id="mesure">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-              Jeu fictif 3 ambulances + 3 VSL
+              Exemple fictif · 3 ambulances et 3 VSL
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Stat k="Courses posées" v={DEMO_MEASURE.placed} />
@@ -122,9 +129,10 @@ export function Landing() {
               <Stat k="Km à vide, Ambux" v={DEMO_MEASURE.ambuxEmptyKm} />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              Planning initial : premier équipage compatible, dans l'ordre des rendez-vous, mêmes règles dures.{" "}
-              {DEMO_MEASURE.naiveEmptyKm} km à vide, {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées :
-              avec le routier public, les kilomètres bougent. Une course qui ne tient pas reste dans « À contrôler ».
+              Illustration de la bêta, pas le planning de votre société. Planning initial : premier équipage compatible,
+              dans l'ordre des rendez-vous, mêmes règles dures. {DEMO_MEASURE.naiveEmptyKm} km à vide,{" "}
+              {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées : avec le routier public, les kilomètres
+              bougent. Une course qui ne tient pas reste dans « À contrôler ».
             </p>
           </aside>
         </section>
@@ -134,17 +142,17 @@ export function Landing() {
             <Step
               n="01"
               title="La demande de demain"
-              text="Vous importez le CSV que votre logiciel sait déjà sortir, ou vous saisissez les courses. Chaque ligne douteuse est refusée, avec le motif."
+              text="Le fichier vient de votre logiciel de régulation — export Lomaco, CSV ou Excel — ou d'une saisie. Chaque ligne douteuse est refusée, avec le motif."
             />
             <Step
               n="02"
               title="Un planning qui dit non"
-              text="Tolérance, pause repas, amplitude de 11 h, DEA sur l'ambulance. Ce qui ne passe pas n'est pas maquillé en succès."
+              text="Tolérance, pause repas, amplitude de 11 h, DEA sur l'ambulance. Ce qui ne passe pas reste à contrôler."
             />
             <Step
               n="03"
               title="La feuille, puis le CSV"
-              text="Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter. La boucle s'arrête là, dans cette démo."
+              text="Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter dans le logiciel d'origine. Le fichier reste dans ce navigateur."
             />
           </div>
         </section>
@@ -153,18 +161,19 @@ export function Landing() {
           <RoiCalculator />
         </section>
 
-        <section id="tarifs" className="scroll-mt-20 border-t border-line bg-card">
+        <section id="plus-tard" className="scroll-mt-20 border-t border-line bg-card">
           <div className="mx-auto max-w-6xl px-4 py-16">
-            <h2 className="font-display text-3xl text-navy sm:text-4xl">Une grille pour en parler</h2>
+            <h2 className="font-display text-3xl text-navy sm:text-4xl">Pas un tarif en vigueur</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Prix indicatifs, hors taxes, non contractuels. Ils décrivent un compagnon du logiciel que vous avez déjà :
-              préparation du J+1 et export. Ils ne décrivent pas une licence Lomaco, ni un hébergement de données de
-              santé.
+              Pendant la bêta, l'accès est gratuit. L'échange demandé est un avis, par « Donner mon avis ». Les montants
+              ci-dessous sont indicatifs et futurs : hors taxes, non contractuels, pas en vigueur. Ils ne décrivent pas
+              une offre à souscrire, ni une licence Lomaco, ni un hébergement de données de santé.
             </p>
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {TIERS.map((tier) => (
                 <article key={tier.name} className="glass flex flex-col p-5">
-                  <h3 className="font-semibold">{tier.name}</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{tier.status}</p>
+                  <h3 className="mt-2 font-semibold">{tier.name}</h3>
                   <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
                   <p className="text-xs text-muted">{tier.unit}</p>
                   <ul className="mt-4 space-y-2 text-sm">
@@ -178,20 +187,18 @@ export function Landing() {
           </div>
         </section>
 
-        <section id="demo" className="scroll-mt-20">
+        <section id="exemple" className="scroll-mt-20">
           <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
-              <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder le geste</h2>
+              <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder l'exemple</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Un clic charge la journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous pouvez
-                aussi choisir la flotte. Le brouillon reste dans ce navigateur.
+                Un clic charge une journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous
+                pouvez aussi choisir la flotte. Le brouillon reste dans ce navigateur. Votre société se prépare depuis
+                le bandeau.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button size="lg" onClick={() => oneClick(dispatch)}>
                   Planning de demain en 1 clic
-                </Button>
-                <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
-                  Demander une démo
                 </Button>
               </div>
             </div>
@@ -201,8 +208,9 @@ export function Landing() {
       </main>
       <footer className="border-t border-line px-4 py-8 text-center text-xs text-muted">
         <p>
-          Ambux · démonstration · {MISSION_DATE} · patients fictifs · compagnon possible d'un logiciel de régulation,
-          pas son remplaçant.
+          Ambux · bêta publique · génération de planning pour le transport sanitaire en France · intégration aux
+          logiciels en place, dont Lomaco. Accès gratuit pendant la bêta. {MISSION_DATE} · patients fictifs. Pas encore
+          un service payant.
         </p>
         <div className="mt-2">
           <BetaNotice tone="inline" />
@@ -260,7 +268,7 @@ function DemoAsk({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-end justify-center bg-navy/50 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="demo-title"
+      aria-labelledby="societe-title"
     >
       <form
         className="glass w-full max-w-md p-6 shadow-xl"
@@ -284,16 +292,16 @@ function DemoAsk({ onClose }: { onClose: () => void }) {
           setSent(true);
         }}
       >
-        <h2 id="demo-title" className="font-display text-3xl text-navy">
-          Demander une démo
+        <h2 id="societe-title" className="font-display text-3xl text-navy">
+          Noter ma société
         </h2>
         <p className="mt-2 text-sm text-muted">
-          Le formulaire reste dans ce navigateur. Aucun e-mail n'est envoyé, aucun commercial n'est prévenu. C'est le
-          geste, pas une prise de contact.
+          Le formulaire reste dans ce navigateur. Aucun e-mail n'est envoyé, aucun commercial n'est prévenu. La bêta est
+          déjà ouverte : ce formulaire ne la débloque pas.
         </p>
         {sent ? (
           <p className="mt-4 text-sm font-semibold" role="status">
-            Noté ici, et nulle part ailleurs. Lancez le planning en 1 clic pour voir le produit.
+            Noté ici, et nulle part ailleurs. L'exemple se lance en un clic. L'avis se donne à part.
           </p>
         ) : (
           <div className="mt-4 grid gap-2">

@@ -131,7 +131,7 @@ export function Sidebar() {
         Retour à l'accueil
       </button>
       <p className="shell-note">
-        {enterprise ? "Dans ce navigateur. Aucune donnée envoyée." : "Démo locale. Aucune donnée patient réelle."}
+        {enterprise ? "Dans ce navigateur. Aucune donnée envoyée." : "Exemple fictif. Aucune donnée patient réelle."}
       </p>
     </aside>
   );

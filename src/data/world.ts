@@ -379,7 +379,7 @@ export const COMPANIES: CompanyCard[] = [
     city: "Le Petit-Quevilly",
     role: "Périmètre du jour",
     active: true,
-    blurb: "Ambulances et VSL sur la métropole. C'est cette société que vous régulez dans la démo.",
+    blurb: "Ambulances et VSL sur la métropole. Exemple fictif : patients et adresses inventés.",
   },
   {
     id: "dieppe",

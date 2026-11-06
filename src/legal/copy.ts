@@ -30,7 +30,8 @@ export const MENTIONS: LegalSection[] = [
   {
     title: "Objet",
     paragraphs: [
-      "Ambux prépare le planning du lendemain pour une société de transport sanitaire. Le logiciel de régulation déjà en place, Lomaco ou un autre, n'est pas remplacé. Cette version est une bêta.",
+      "Ambux prépare le planning du lendemain pour une société de transport sanitaire. Le logiciel de régulation déjà en place, Lomaco ou un autre, n'est pas remplacé. Cette version est une bêta publique et gratuite. L'accès n'est pas un abonnement. Un avis peut être donné en échange.",
+      "L'ambition du projet est de devenir une référence nationale de la génération de planning, en s'intégrant aux logiciels existants. Ce n'est pas un statut acquis.",
     ],
   },
   {
@@ -38,6 +39,7 @@ export const MENTIONS: LegalSection[] = [
     paragraphs: [
       BETA_NOTICE,
       "Ambux n'est pas un dispositif médical, ni un dossier patient, ni un hébergeur de données de santé. Les kilomètres affichés ne sont pas facturables. Aucune garantie d'exactitude, de disponibilité ou de résultat n'est donnée.",
+      "Aucun tarif n'est en vigueur. Les montants éventuellement affichés sur l'accueil sont indicatifs et futurs.",
     ],
   },
   {
@@ -98,13 +100,15 @@ export const PRIVACY: LegalSection[] = [
     ],
   },
   {
-    title: "Formulaire de démo",
-    paragraphs: ["« Demander une démo » enregistre le formulaire dans ce navigateur. Aucun message n'est envoyé."],
+    title: "Formulaire local",
+    paragraphs: [
+      "« Noter ma société » enregistre le formulaire dans ce navigateur. Aucun message n'est envoyé. Il ne débloque pas la bêta : l'accès est déjà gratuit.",
+    ],
   },
   {
     title: "Avis",
     paragraphs: [
-      "« Donner mon avis » est facultatif. Ambux peut envoyer la note, le texte saisi, une capture seulement si un fichier image est choisi, et un contexte technique : version, écran, mode démo ou entreprise, nombre de courses, d'équipages et de véhicules. Les patients, les adresses, les noms d'équipage et le planning détaillé ne sont pas joints.",
+      "« Donner mon avis » est facultatif. Ambux peut envoyer la note, le texte saisi, une capture seulement si un fichier image est choisi, et un contexte technique : version, écran, mode données fictives ou entreprise, nombre de courses, d'équipages et de véhicules. Les patients, les adresses, les noms d'équipage et le planning détaillé ne sont pas joints.",
       "Tant que l'adresse d'envoi n'est pas renseignée, le message s'ouvre dans le logiciel de courriel de l'appareil. Il n'y a pas de mesure d'audience.",
     ],
   },

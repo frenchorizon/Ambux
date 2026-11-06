@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b9 — 2026-11-06
+
+Branche `feat/beta-b9-ton-landing`, ouverte depuis `feat/beta-b4-routage-prive`. Ton de la bêta publique. Pas de tag. Pas de serveur. Pas de tarif en vigueur.
+
+- L'accueil présente une bêta publique : génération de planning pour le transport sanitaire, ambition de référence nationale, intégration à Lomaco et aux logiciels en place, sans les remplacer. L'accès est gratuit, l'échange est un avis (« Donner mon avis »). Les montants 0 €, 79 €, 59 € et « Sur devis » restent, marqués indicatifs et futurs, pas en vigueur. Le calculateur d'hypothèse reste, présenté comme une hypothèse de bêta.
+- Le vocabulaire visible de jeu, de partie et de score sort de l'interface. Le bandeau du mode fictif affiche « Exemple ». L'aide parle de simulation. « Rejouer la journée » devient « Retour à l'accueil ». « Partie indisponible » devient « Planning indisponible ».
+- La mention « pas un dispositif médical » reste. Le contexte d'avis porte la version `0.9.0-alpha.3-b9`.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b9.html`.
+
 ## v0.9.0-alpha.3-b4 — 2026-11-06
 
 Branche `feat/beta-b4-routage-prive`, ouverte depuis `feat/beta-b3-import-guide`. Confidentialité du routage et du géocodage. Pas de tag. Pas de serveur.

@@ -56,7 +56,7 @@ test("reprend le dernier brouillon démo au rechargement", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Commencer" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Planning en 1 clic" })).toHaveCount(0);
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-21");
-  await expect(page.locator(".mode-banner").first()).toContainText("Démo");
+  await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
 });
 
 test("en démo, le brouillon entreprise plus récent n'est pas repris", async ({ page }) => {
@@ -99,7 +99,7 @@ test("importe un fichier .ambux.json après confirmation", async ({ page }) => {
   await expect(page.getByRole("dialog")).toContainText("Remplacer le travail de ce navigateur");
   await page.getByRole("dialog").getByRole("button", { name: "Annuler" }).click();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-16");
-  await expect(page.locator(".mode-banner").first()).toContainText("Démo");
+  await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
 
   await page.getByLabel("Fichier de sauvegarde").setInputFiles(file);
   await page.getByRole("dialog").getByRole("button", { name: "Remplacer" }).click();
@@ -126,7 +126,7 @@ test("refuse un fichier qui n'est pas une sauvegarde", async ({ page }) => {
   });
   await expect(page.getByRole("alert")).toContainText("n'est pas une sauvegarde Ambux");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator(".mode-banner").first()).toContainText("Démo");
+  await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
 });
 
 test("efface les clés Ambux et laisse le reste du navigateur", async ({ page }) => {

@@ -114,5 +114,5 @@ test("une société vide se configure, se recharge et peut revenir à la démo",
   await page.locator(".mode-banner").getByRole("button", { name: "Changer" }).click();
   await page.getByRole("button", { name: "Essayer avec des données fictives" }).click();
   await expect(page.getByRole("heading", { name: /planning de demain/i })).toBeVisible();
-  await expect(page.locator(".mode-banner")).toContainText("Démo");
+  await expect(page.locator(".mode-banner")).toContainText("Exemple");
 });
