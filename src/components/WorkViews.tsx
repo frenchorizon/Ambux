@@ -7,6 +7,8 @@ import { ImportConsentSettings } from "./legal/Legal";
 import { RoutingSettings } from "./RoutingPrivacy";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
+import { FICTIONAL_SOCIETY, frenchDate } from "../io/exporters/planning";
+import { usePlanningBanner } from "./exportBanner";
 import { emptyDriveMin, naiveBaseline } from "../game/baseline";
 import type { ViewId } from "../game/types";
 import { formatDuration, formatKm, formatMin } from "../lib/format";
@@ -18,13 +20,27 @@ import { setTimelineSheet } from "./planning/timelineUi";
 
 export function SyntheseView() {
   const { issues, dispatch } = useData();
+  const banner = usePlanningBanner();
   const shown = issues.filter((issue) => issue.kind !== "km_estime");
+  const fictional = banner.society === FICTIONAL_SOCIETY;
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto max-w-3xl px-4 py-5">
         <h1 className="text-lg font-semibold">Synthèse</h1>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          Chiffres de ce planning fictif. Les kilomètres ne sont pas facturables.
+          {fictional
+            ? "Chiffres de cet exemple fictif. Les kilomètres ne sont pas facturables."
+            : `Chiffres du planning de ${banner.society}. Les kilomètres ne sont pas facturables.`}
+        </p>
+        <button
+          type="button"
+          className="mt-3 min-h-11 text-sm font-semibold text-brand"
+          onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}
+        >
+          Exporter le planning
+        </button>
+        <p className="text-xs leading-relaxed text-muted">
+          Impression, Excel ou CSV. {banner.society} · {frenchDate(banner.missionIso)} · {banner.depot}
         </p>
         <div className="mt-4">
           <KpiBar />
@@ -129,6 +145,7 @@ export function ReglagesView() {
             ))}
           </div>
         </section>
+        <ExportPlanning />
         {enterprise && (
           <section aria-labelledby="imports-titre">
             <h2 id="imports-titre" className="text-sm font-semibold">
@@ -254,6 +271,31 @@ export function ReglagesView() {
         </button>
       </form>
     </div>
+  );
+}
+
+function ExportPlanning() {
+  const { dispatch } = useData();
+  const banner = usePlanningBanner();
+  return (
+    <section aria-labelledby="export-planning-titre">
+      <h2 id="export-planning-titre" className="text-sm font-semibold">
+        Export du planning
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Impression, Excel ou CSV. Le fichier reste dans ce navigateur. Rien n'est envoyé à Lomaco.
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">
+        {banner.society} · {frenchDate(banner.missionIso)} · {banner.depot}
+      </p>
+      <button
+        type="button"
+        className="min-h-11 text-sm font-semibold text-brand"
+        onClick={() => dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}
+      >
+        Exporter le planning
+      </button>
+    </section>
   );
 }
 

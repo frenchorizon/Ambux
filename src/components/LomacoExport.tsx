@@ -13,6 +13,15 @@ import {
   type ExportProfile,
 } from "../game/lomaco";
 import { sheetsToXlsx } from "../game/lomacoFiles";
+import {
+  EXPORT_LOMACO_COLUMNS,
+  EXPORT_LOMACO_EXCEL_ERROR,
+  PLANNING_BANNER_SHEET,
+  bannerRows,
+  frenchDate,
+} from "../io/exporters/planning";
+import { usePlanningBanner } from "./exportBanner";
+import { BannerLines } from "./PlanningExport";
 import { printLomacoSheets } from "./RouteSheets";
 import { Button } from "./ui/button";
 
@@ -24,6 +33,7 @@ export function LomacoExportPanel() {
   const [name, setName] = useState(LOMACO_EXPORT_PROFILE.name);
   const [columns, setColumns] = useState<ExportField[]>(LOMACO_EXPORT_PROFILE.columns);
   const [busy, setBusy] = useState(false);
+  const banner = usePlanningBanner();
   const sheets = useMemo(
     () =>
       routeSheets({
@@ -47,7 +57,13 @@ export function LomacoExportPanel() {
 
   return (
     <div className="mb-4 rounded-xl border border-line p-3">
-      <div className="flex flex-wrap items-end gap-2">
+      <h3 className="text-sm font-semibold">Feuilles Lomaco</h3>
+      <p className="mt-1 text-xs leading-relaxed text-muted">
+        Fichier local, à réimporter vous-même. Les CSV gardent leur première ligne de colonnes. L'Excel ajoute une
+        feuille {PLANNING_BANNER_SHEET}. L'impression porte la société, la date et le dépôt.
+      </p>
+      <BannerLines society={banner.society} day={frenchDate(banner.missionIso)} depot={banner.depot} />
+      <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="text-sm font-semibold">
           Profil d'export
           <select
@@ -108,8 +124,14 @@ export function LomacoExportPanel() {
           </li>
         ))}
       </ul>
+      {columns.length === 0 && (
+        <p role="alert" className="mt-2 text-xs text-alert">
+          {EXPORT_LOMACO_COLUMNS}
+        </p>
+      )}
       <p className="mt-2 text-xs text-muted">
-        {sheets.map((sheet) => `${sheet.name} (${Math.max(0, sheet.rows.length - 1)})`).join(" · ")}
+        {sheets.map((sheet) => `${sheet.name} (${Math.max(0, sheet.rows.length - 1)})`).join(" · ") ||
+          "Aucune feuille pour l'instant."}
       </p>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <Button type="button" size="sm" onClick={() => printLomacoSheets(data, undefined, clock.nowMin)}>
@@ -134,15 +156,19 @@ export function LomacoExportPanel() {
           disabled={busy || columns.length === 0}
           onClick={() => {
             setBusy(true);
-            void sheetsToXlsx(sheets)
+            void sheetsToXlsx([{ name: PLANNING_BANNER_SHEET, rows: bannerRows(banner) }, ...sheets])
               .then((bytes) => {
                 downloadBytes(
                   `ambux-feuilles-${data.missionIso}.xlsx`,
                   bytes,
                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 );
-                data.dispatch({ type: "NOTE_EXPORT", message: "Classeur Excel téléchargé, une feuille par équipage." });
+                data.dispatch({
+                  type: "NOTE_EXPORT",
+                  message: "Classeur Excel téléchargé, en-tête puis une feuille par équipage.",
+                });
               })
+              .catch(() => data.dispatch({ type: "TOAST", message: EXPORT_LOMACO_EXCEL_ERROR, tone: "warn" }))
               .finally(() => setBusy(false));
           }}
         >

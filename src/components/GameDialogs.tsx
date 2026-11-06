@@ -23,8 +23,8 @@ export function GameDialogs() {
       <Modal
         open={data.modal === "lomaco"}
         onClose={() => data.dispatch({ type: "CLOSE_MODAL" })}
-        title="Exporter"
-        description="Planning CSV ou Excel, puis les feuilles à réimporter dans Lomaco. Aucun envoi : le fichier reste dans ce navigateur."
+        title="Exporter le planning"
+        description="Impression, Excel ou CSV de la journée. Les feuilles Lomaco restent un fichier dans ce navigateur : rien n'est envoyé."
       >
         <PlanningExport />
         <LomacoExportPanel />
@@ -102,7 +102,10 @@ export function GameDialogs() {
             Un allongé ne va pas en VSL. Un chevauchement affiche Conflit horaire. Une pause repas manquante est
             signalée sur la ligne.
           </li>
-          <li>Exporter écrit une feuille par équipage (CSV, Excel ou PDF).</li>
+          <li>
+            Exporter écrit le planning (impression, Excel, CSV) avec la société ou « Exemple fictif », la date et le
+            dépôt, puis une feuille par équipage. Rien n'est envoyé.
+          </li>
           <li>Équipages, véhicules, patients et demande sont dans Réglages, rubrique Données. Le mode sombre aussi.</li>
         </ol>
         <div className="mt-4 rounded-xl bg-paper p-3">

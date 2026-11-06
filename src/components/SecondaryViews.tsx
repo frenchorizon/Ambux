@@ -52,7 +52,7 @@ export function LomacoView() {
     <div className="h-full overflow-auto p-4">
       <PageTitle
         title="Export du planning"
-        text="Le fichier CSV reprend le planning retenu, y compris les courses à traiter. Il n'y a pas d'envoi fictif."
+        text="Le fichier reprend le planning retenu, y compris les courses à traiter. Il reste dans ce navigateur. Rien n'est envoyé à Lomaco."
       />
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <article className="glass p-4">
@@ -64,12 +64,12 @@ export function LomacoView() {
           <div className="mt-1 text-lg font-semibold">{data.stats.lomacoSends}</div>
         </article>
         <article className="glass p-4">
-          <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>Exporter le CSV</Button>
+          <Button onClick={() => data.dispatch({ type: "OPEN_MODAL", modal: "lomaco" })}>Exporter le planning</Button>
         </article>
       </div>
       <article className="glass p-4">
         <h3 className="font-semibold">Journal</h3>
-        {data.lomaco.length === 0 && <p className="mt-2 text-sm text-muted">Aucune feuille envoyée.</p>}
+        {data.lomaco.length === 0 && <p className="mt-2 text-sm text-muted">Aucun export pour l'instant.</p>}
         <ul className="mt-2 space-y-2">
           {data.lomaco.map((entry) => (
             <li key={entry.id} className="text-sm">

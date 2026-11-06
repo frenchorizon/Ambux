@@ -2,6 +2,16 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b7 — 2026-11-06
+
+Branche `feat/beta-b7-export`, ouverte depuis `feat/beta-b9-ton-landing`. Export du planning finalisé. Pas de tag. Pas de serveur. Pas d'envoi vers Lomaco.
+
+- L'en-tête des fichiers planning (CSV, Excel, impression) porte la société en mode entreprise, ou « Exemple fictif », la date de la journée et le dépôt.
+- L'impression est en A4, une page par équipage. Le PDF Lomaco (IMPRESSION_STD) garde sa grille et reçoit le même en-tête.
+- Les CSV Lomaco gardent leur première ligne de colonnes. Le classeur Excel ajoute une feuille « En-tête », ignorée à l'import.
+- Entrées : Réglages, Synthèse, et le menu Exporter du planning. Un refus (dates, colonnes, fenêtre d'impression, Excel) s'explique en une phrase.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b7.html`.
+
 ## v0.9.0-alpha.3-b9 — 2026-11-06
 
 Branche `feat/beta-b9-ton-landing`, ouverte depuis `feat/beta-b4-routage-prive`. Ton de la bêta publique. Pas de tag. Pas de serveur. Pas de tarif en vigueur.

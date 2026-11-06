@@ -41,6 +41,9 @@ export interface SheetInput {
   locations: ReadonlyMap<string, Location>;
   legs: ReadonlyMap<string, Leg>;
   crewId?: string;
+  /** Nom de la société, ou « Exemple fictif ». Absent des feuilles déjà figées par les tests. */
+  society?: string;
+  depot?: string;
 }
 
 export function planningDate(iso: string): string {
@@ -57,12 +60,14 @@ export function lomacoPlanningHtml(input: SheetInput): string {
     <style>
       @page { size: A4 portrait; margin: 10mm 8mm; }
       html, body { margin: 0; background: #fff; color: #000; }
-      body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; padding: 8mm 0 0; }
+      body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; padding: 8mm 0 0; }
       @media print { body { padding: 0; } }
-      .page { width: 194mm; max-width: 194mm; min-height: 273mm; margin: 0 auto 8mm; page-break-after: always; box-sizing: border-box; }
-      .page:last-child { page-break-after: auto; }
-      header { display: grid; grid-template-columns: 1.1fr 1.6fr auto; gap: 6px; align-items: start; margin-bottom: 6px; font-size: 9pt; }
-      header .day { font-size: 12pt; }
+      .page { width: 194mm; max-width: 194mm; min-height: 273mm; margin: 0 auto 8mm; page-break-after: always; break-after: page; box-sizing: border-box; }
+      .page:last-child { page-break-after: auto; break-after: auto; }
+      header { display: grid; grid-template-columns: 1.15fr 1.5fr auto; gap: 8px; align-items: start; margin-bottom: 8px; font-size: 10pt; }
+      header .day { font-size: 11pt; line-height: 1.35; }
+      header .society { font-size: 12pt; font-weight: 700; }
+      header .depot { margin-top: 2px; }
       header .center { text-align: center; line-height: 1.35; }
       header .page-no { text-align: right; white-space: nowrap; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -72,8 +77,8 @@ export function lomacoPlanningHtml(input: SheetInput): string {
       col.c-rdv { width: 12%; }
       col.c-trip { width: 22%; }
       col.c-crew { width: 15%; }
-      th, td { border: 1px solid #000; vertical-align: top; padding: 3px 4px; text-align: left; overflow-wrap: anywhere; box-sizing: border-box; }
-      th { font-size: 8pt; font-weight: 700; }
+      th, td { border: 1px solid #000; vertical-align: top; padding: 4px 5px; text-align: left; overflow-wrap: anywhere; box-sizing: border-box; }
+      th { font-size: 9pt; font-weight: 700; }
       .person { font-weight: 700; }
       .rdv { font-weight: 700; }
       .city { font-weight: 700; text-transform: uppercase; }
@@ -175,8 +180,10 @@ function placeBlock(location: Location | undefined): string {
 
 function head(input: SheetInput, page: number, total: number): string {
   const edited = formatEdited(input.editedAt);
+  const society = input.society?.trim();
+  const depot = input.depot?.trim();
   return `<header>
-    <div class="day">${esc(planningDate(input.missionIso))}</div>
+    <div class="day">${society ? `<div class="society">${esc(society)}</div>` : ""}${esc(planningDate(input.missionIso))}${depot ? `<div class="depot">Dépôt : ${esc(depot)}</div>` : ""}</div>
     <div class="center">Planning - Édité le ${esc(edited)}<br>Par ${esc(input.regulator || DEMO_REGULATOR)}<br>Choix IMPRESSION_STD</div>
     <div class="page-no">Page ${page}/${total}</div>
   </header>`;

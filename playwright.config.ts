@@ -30,7 +30,7 @@ export default defineConfig({
     {
       name: "iphone",
       testMatch:
-        /gantt-(ios|fantome|dnd5)\.spec\.ts|entreprise\.spec\.ts|persistance\.spec\.ts|legal\.spec\.ts|feedback\.spec\.ts|import-guide\.spec\.ts|routage-prive\.spec\.ts|landing-ton\.spec\.ts/,
+        /gantt-(ios|fantome|dnd5)\.spec\.ts|entreprise\.spec\.ts|persistance\.spec\.ts|legal\.spec\.ts|feedback\.spec\.ts|import-guide\.spec\.ts|routage-prive\.spec\.ts|landing-ton\.spec\.ts|export-b7\.spec\.ts/,
       use: {
         ...devices["iPhone 13"],
         // Le descripteur Playwright laisse 664 px au viewport (barre Safari). Le lot et le projet phone sont en 390×844.

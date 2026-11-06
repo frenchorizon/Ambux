@@ -5,17 +5,30 @@ import { isTracked } from "../src/game/history.ts";
 import { LOMACO_IMPORT_PROFILE, detectField, mapSheet, previewLomaco } from "../src/game/lomaco.ts";
 import { initialState, reducer } from "../src/game/reducer.ts";
 import type { CrewSchedule } from "../src/game/schedule.ts";
-import { DEFAULT_RULES, MAX_VEHICLES, type Crew, type Location, type Transport } from "../src/game/types.ts";
+import {
+  DEFAULT_RULES,
+  MAX_VEHICLES,
+  type Crew,
+  type Location,
+  type Patient,
+  type Transport,
+} from "../src/game/types.ts";
 import { readTables } from "../src/io/parsers/readTable.ts";
 import { suggestExtraField } from "../src/io/mapping/suggest.ts";
 import { checkPersonnel, parseAttente, readAvailability } from "../src/io/validators/rows.ts";
 import {
+  EXPORT_EMPTY_NOTE,
+  FICTIONAL_SOCIETY,
+  bannerFromContext,
+  bannerRows,
   excelSerial,
   frenchDate,
   inPlanningRange,
   loadPlanningChoice,
   planningCsv,
   planningMatrix,
+  planningPrintGroups,
+  planningPrintHtml,
   planningXlsx,
   savePlanningChoice,
 } from "../src/io/exporters/planning.ts";
@@ -346,7 +359,145 @@ describe("io / exporters", () => {
     assert.equal(sheet.A2?.v, excelSerial("2026-10-16"));
     assert.equal(sheet.A2?.w, "16/10/2026");
   });
+
+  it("inscrit société ou exemple fictif, date et dépôt, puis une page par équipage", async () => {
+    const demo = bannerFromContext({
+      mode: "demo",
+      places: [
+        {
+          kind: "depot",
+          name: "Dépôt Ambux — rue de l'Industrie",
+          short: "Dépôt Sud",
+          city: "Le Petit-Quevilly",
+        },
+      ],
+      missionIso: "2026-10-16",
+    });
+    assert.equal(demo.society, FICTIONAL_SOCIETY);
+    assert.equal(demo.depot, "Dépôt Sud, Le Petit-Quevilly");
+    const company = bannerFromContext({
+      mode: "entreprise",
+      companyName: "Transports Fictifs",
+      city: "Caen",
+      depotLabel: "Zone industrielle",
+      missionIso: "2026-10-16",
+    });
+    assert.equal(company.society, "Transports Fictifs");
+    assert.equal(company.depot, "Zone industrielle, Caen");
+    assert.deepEqual(bannerRows(company)[0], ["Société", "Transports Fictifs"]);
+
+    const quoted = bannerFromContext({
+      mode: "entreprise",
+      companyName: "Transports; Fictifs",
+      city: "Caen",
+      depotLabel: "Quai; Nord",
+      missionIso: "2026-10-16",
+    });
+    const csv = planningCsv({ headers: ["Date", "Patient"], rows: [["16/10/2026", "Bernard Luc"]] }, quoted);
+    assert.equal(csv.charCodeAt(0), 0xfeff);
+    assert.match(
+      csv,
+      /^\uFEFFSociété;"Transports; Fictifs"\nDate;16\/10\/2026\nDépôt;"Quai; Nord, Caen"\n\nDate;Patient/,
+    );
+
+    const bytes = await planningXlsx(
+      { headers: ["Date", "Patient"], rows: [["16/10/2026", "Bernard Luc"]] },
+      "2026-10-16",
+      demo,
+    );
+    const book = XLSX.read(bytes, { type: "array", cellNF: true });
+    const sheet = book.Sheets.Planning!;
+    assert.equal(sheet.A1?.v, "Société");
+    assert.equal(sheet.B1?.v, FICTIONAL_SOCIETY);
+    assert.equal(sheet.B2?.z, "dd/mm/yyyy");
+    assert.equal(sheet.B2?.w, "16/10/2026");
+    assert.equal(sheet.B3?.v, "Dépôt Sud, Le Petit-Quevilly");
+    assert.equal(sheet.A5?.v, "Date");
+    assert.equal(sheet.A6?.z, "dd/mm/yyyy");
+    assert.equal(sheet.B6?.v, "Bernard Luc");
+
+    const early: Transport = {
+      ...transportAt(8 * 60),
+      id: "t-early",
+      crewId: "c2",
+    };
+    const late: Transport = { ...transportAt(11 * 60), id: "t-late", crewId: "c1" };
+    const loose: Transport = { ...transportAt(9 * 60), id: "t-loose", crewId: undefined };
+    const crews = [namedCrew("c1", "AMB-1", "AB-123-CD"), namedCrew("c2", "VSL-2", "CD-456-EF")];
+    const input = {
+      crews,
+      transports: [late, early, loose],
+      patients: new Map<string, Patient>([
+        ["p1", { id: "p1", firstName: "Luc", lastName: "Bernard", phone: "", birthYear: 1950, addressId: "chu" }],
+      ]),
+      locations: new Map<string, Location>(),
+      schedules: new Map<string, CrewSchedule>(),
+      missionIso: "2026-10-16",
+      from: "2026-10-16",
+      to: "2026-10-16",
+      columns: ["heure_debut", "patient", "equipe"] as const,
+    };
+    const grouped = planningPrintGroups(input);
+    assert.deepEqual(
+      grouped.groups.map((group) => group.title),
+      ["AMB-1 · AB-123-CD", "VSL-2 · CD-456-EF", "À placer"],
+    );
+    assert.equal(grouped.groups[0]!.rows[0]![0], "11:00");
+    assert.equal(grouped.groups[1]!.rows[0]![0], "08:00");
+    const html = planningPrintHtml({
+      banner: { ...demo, depot: "Quai <Nord>" },
+      headers: grouped.headers,
+      groups: grouped.groups,
+    });
+    assert.match(html, /Quai &lt;Nord&gt;/);
+    assert.match(html, /size: A4 portrait/);
+    assert.match(html, /page-break-after: always/);
+    assert.equal(html.match(/class="page"/g)?.length, 3);
+    assert.match(html, /Exemple fictif/);
+    assert.match(html, /Dépôt : Quai &lt;Nord&gt;/);
+    assert.ok(html.indexOf("AMB-1") < html.indexOf("VSL-2"));
+    assert.ok(html.indexOf("VSL-2") < html.indexOf("À placer"));
+    const empty = planningPrintHtml({ banner: demo, headers: ["Date"], groups: [] });
+    assert.match(empty, new RegExp(EXPORT_EMPTY_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.equal(empty.match(/class="page"/g)?.length, 1);
+  });
 });
+
+function transportAt(minute: number): Transport {
+  return {
+    id: "t",
+    dossier: "DOS",
+    patientId: "p1",
+    pickupId: "a",
+    dropoffId: "b",
+    windowStart: minute,
+    windowEnd: minute + 30,
+    appointmentMin: minute,
+    posture: "assis",
+    serviceMin: 8,
+    kind: "aller",
+    priority: "normal",
+    cancelled: false,
+  };
+}
+
+function namedCrew(id: string, code: string, plate: string): Crew {
+  return {
+    id,
+    code,
+    driver: "Camille Martin",
+    mate: "Alex Bernard",
+    vehicleType: "ambulance",
+    plate,
+    vehicleName: "Véhicule",
+    color: "#145",
+    baseId: "depot",
+    shiftStart: 6 * 60,
+    shiftEnd: 17 * 60,
+    delayUntil: 0,
+    dea: true,
+  };
+}
 
 function memory(): Storage {
   const data = new Map<string, string>();

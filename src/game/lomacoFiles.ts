@@ -1,3 +1,4 @@
+import { PLANNING_BANNER_SHEET } from "../io/exporters/planning";
 import type { RawSheet } from "./lomaco";
 
 export async function tablesFromBuffer(data: ArrayBuffer, filename: string): Promise<RawSheet[]> {
@@ -22,6 +23,7 @@ export async function tablesFromBuffer(data: ArrayBuffer, filename: string): Pro
     const headerIndex = matrix.findIndex((row) => row.some(Boolean));
     if (headerIndex < 0) return [];
     const headers = matrix[headerIndex] ?? [];
+    if (sheet === PLANNING_BANNER_SHEET && headers[0] === "Société") return [];
     const width = headers.length;
     const rows = matrix
       .slice(headerIndex + 1)

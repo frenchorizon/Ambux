@@ -75,9 +75,13 @@ test("import séance puis export du planning", async ({ page }, testInfo) => {
     const xlsxFile = await xlsxDownload;
     const book = XLSX.read(fs.readFileSync((await xlsxFile.path())!), { cellNF: true });
     const sheet = book.Sheets.Planning!;
-    expect(sheet.A1?.v).toBe("Date");
-    expect(sheet.A2?.z).toBe("dd/mm/yyyy");
-    expect(sheet.A2?.w).toBe("16/10/2026");
+    expect(sheet.A1?.v).toBe("Société");
+    expect(sheet.B1?.v).toBe("Exemple fictif");
+    expect(sheet.B2?.z).toBe("dd/mm/yyyy");
+    expect(sheet.B2?.w).toBe("16/10/2026");
+    expect(sheet.A5?.v).toBe("Date");
+    expect(sheet.A6?.z).toBe("dd/mm/yyyy");
+    expect(sheet.A6?.w).toBe("16/10/2026");
   }
 });
 

@@ -296,4 +296,31 @@ describe("export Lomaco", () => {
     const book = XLSX.read(xlsx, { type: "array" });
     assert.deepEqual(book.SheetNames, ["AMB-1", "A traiter"]);
   });
+
+  it("n'importe pas la feuille En-tête du classeur", async () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Société", "Transports Fictifs"],
+        ["Date", "16/10/2026"],
+        ["Dépôt", "Zone industrielle, Caen"],
+      ]),
+      "En-tête",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Immatriculation", "Type", "Nom du véhicule"],
+        ["GR-100-AA", "AMB", "Master"],
+      ]),
+      "Vehicules",
+    );
+    const bytes = XLSX.write(book, { type: "array", bookType: "xlsx" });
+    const buffer = bytes instanceof ArrayBuffer ? bytes : Uint8Array.from(bytes as ArrayLike<number>).buffer;
+    const tables = await tablesFromBuffer(buffer, "export.xlsx");
+    assert.equal(tables.length, 1);
+    assert.equal(tables[0]!.sheet, "Vehicules");
+    assert.equal(tables[0]!.headers[0], "Immatriculation");
+  });
 });

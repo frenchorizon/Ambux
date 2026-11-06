@@ -258,4 +258,24 @@ describe("feuille Planning IMPRESSION_STD", () => {
     assert.match(html, /Pris en charge/);
     assert.match(html, /À faire/);
   });
+
+  it("ajoute la société ou l'exemple fictif et le dépôt sans retirer IMPRESSION_STD", () => {
+    const html = lomacoPlanningHtml({
+      missionIso: "2026-10-16",
+      editedAt: new Date(2026, 9, 16, 9, 0),
+      crews: [crew()],
+      transports: [],
+      patients: new Map(),
+      locations: new Map(),
+      legs: new Map(),
+      society: "Exemple fictif",
+      depot: "Dépôt Sud, Le Petit-Quevilly",
+    });
+    assert.match(html, /Exemple fictif/);
+    assert.match(html, /Dépôt : Dépôt Sud, Le Petit-Quevilly/);
+    assert.match(html, /vendredi 16 octobre 2026/);
+    assert.match(html, /Choix IMPRESSION_STD/);
+    assert.match(html, /size: A4 portrait/);
+    assert.match(html, /page-break-after: always/);
+  });
 });

@@ -31,7 +31,7 @@ test("le formulaire s'ouvre et le contexte technique n'a pas de champ patient", 
   const landing = await readContext(dialog);
   expect(landing.ecran).toBe("accueil");
   expect(landing.mode).toBe("demo");
-  expect(landing.version).toBe("0.9.0-alpha.3-b9");
+  expect(landing.version).toBe("0.9.0-alpha.3-b7");
   expect(landing.courses).toBe(0);
   assertNoPatientFields(landing);
 
