@@ -15,9 +15,11 @@ import { useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
-import { latestEnterpriseDraft, saveDraft } from "./persist";
-import { depotFromProfile, loadWorkspace } from "./workspace";
+import { saveDraft } from "./persist";
+import { resumeOnLoad } from "./resume";
 import { saveRules } from "../lib/rulesStore";
+import { refreshStorageLevel, storageNotice, subscribeStorage } from "../lib/browserStore";
+import { StorageBanner } from "../components/StorageBanner";
 import { reviewIssues, type Issue } from "./review";
 import { isTracked, recordHistory } from "./history";
 import { initialState, reducer, type Action } from "./reducer";
@@ -84,6 +86,7 @@ export interface DataValue {
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
+  capture: () => GameState;
   dispatch: Dispatch<Action>;
   metrics: Metrics;
   schedules: Map<string, CrewSchedule>;
@@ -93,36 +96,27 @@ export interface DataValue {
   issues: Issue[];
 }
 
-function bootWorkspace(state: GameState): GameState {
-  if (state.phase !== "briefing") return state;
-  const profile = loadWorkspace();
-  if (!profile || profile.mode !== "entreprise") return state;
-  const draft = latestEnterpriseDraft();
-  if (draft) return reducer(state, { type: "RESTORE", snapshot: draft });
-  const depot = depotFromProfile(profile);
-  if (!depot) return state;
-  return reducer(state, {
-    type: "START_COMPANY",
-    depot,
-    amplitudeMin: profile.amplitudeMin,
-    view: "reglages",
-  });
-}
-
 const ClockContext = createContext<ClockValue | null>(null);
 const DataContext = createContext<DataValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(reducer, initialState, bootWorkspace);
+  const [state, rawDispatch] = useReducer(reducer, initialState, resumeOnLoad);
   const stateRef = useRef(state);
   const pastRef = useRef<GameState[]>([]);
   const futureRef = useRef<GameState[]>([]);
   const [historyTick, setHistoryTick] = useState(0);
 
+  const capture = useCallback(() => stateRef.current, []);
+
   const dispatch = useCallback((action: Action) => {
+    if (action.type === "APPLY_BACKUP" || action.type === "RESET_BROWSER") {
+      pastRef.current = [];
+      futureRef.current = [];
+      setHistoryTick((tick) => tick + 1);
+    }
     const current = stateRef.current;
     const burst = action.type === "ASSIGN" && action.coalesce === true;
-    if (isTracked(action.type) && !burst) {
+    if (action.type !== "APPLY_BACKUP" && action.type !== "RESET_BROWSER" && isTracked(action.type) && !burst) {
       const recorded = recordHistory(pastRef.current, futureRef.current, current, action.type);
       pastRef.current = recorded.past;
       futureRef.current = recorded.future;
@@ -173,6 +167,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     saveDraft(state);
     saveRules(state.rules);
   }, [state]);
+
+  useEffect(() => {
+    let seen = storageNotice().level;
+    const onStoreChange = () => {
+      const notice = storageNotice();
+      if (notice.level === "ok") {
+        seen = "ok";
+        return;
+      }
+      if (notice.level === seen) return;
+      seen = notice.level;
+      dispatch({
+        type: "TOAST",
+        tone: notice.level === "near" ? "warn" : "bad",
+        message: notice.message,
+      });
+    };
+    const stop = subscribeStorage(onStoreChange);
+    refreshStorageLevel();
+    return stop;
+  }, [dispatch]);
 
   useEffect(() => {
     let last = performance.now();
@@ -294,6 +309,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canRedo: futureRef.current.length > 0,
       undo,
       redo,
+      capture,
       dispatch,
       metrics,
       schedules,
@@ -334,6 +350,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       historyTick,
       undo,
       redo,
+      capture,
       dispatch,
       metrics,
       schedules,
@@ -346,7 +363,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   return (
     <ClockContext.Provider value={clock}>
-      <DataContext.Provider value={data}>{children}</DataContext.Provider>
+      <DataContext.Provider value={data}>
+        <StorageBanner />
+        {children}
+      </DataContext.Provider>
     </ClockContext.Provider>
   );
 }

@@ -29,6 +29,15 @@ import type { ModalId, ViewId } from "./game/types";
 import { matrixSource, useRoutingVersion } from "./lib/routing";
 
 export function App() {
+  return (
+    <>
+      <AppScreen />
+      <Toaster />
+    </>
+  );
+}
+
+function AppScreen() {
   const profile = useSyncExternalStore(subscribeWorkspace, loadWorkspace, () => null);
   const [picking, setPicking] = useState<null | "choice" | "wizard">(null);
   const { phase, dispatch } = useData();
@@ -207,7 +216,6 @@ function Dashboard({ onChangeMode }: { onChangeMode: () => void }) {
         <BottomNav />
       </div>
       {phase === "playing" && <LiveCalls />}
-      <Toaster />
       <GameDialogs />
       {cinema && (
         <Cinema

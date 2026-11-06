@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { writeLocal } from "./browserStore";
 
 const KEY = "ambux.theme";
 let dark = true;
@@ -20,11 +21,7 @@ export function initTheme(): void {
 
 export function setDark(next: boolean): void {
   dark = next;
-  try {
-    localStorage.setItem(KEY, dark ? "dark" : "light");
-  } catch {
-    /* navigation privée */
-  }
+  writeLocal(KEY, dark ? "dark" : "light");
   emit();
 }
 

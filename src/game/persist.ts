@@ -1,3 +1,4 @@
+import { allowResume, writeLocal } from "../lib/browserStore";
 import { MISSION_DATE, MISSION_ISO } from "./types";
 import type { GameState } from "./types";
 import { loadWorkspace } from "./workspace";
@@ -40,8 +41,13 @@ export interface DraftSummary {
 }
 
 function fingerprint(state: GameState): string {
+  const transports = Array.isArray(state.transports) ? state.transports : [];
+  const crews = Array.isArray(state.crews) ? state.crews : [];
+  const blocks = Array.isArray(state.blocks) ? state.blocks : [];
+  const patients = Array.isArray(state.patients) ? state.patients : [];
+  const vehicles = Array.isArray(state.vehicles) ? state.vehicles : [];
   return JSON.stringify({
-    t: state.transports.map((transport) => [
+    t: transports.map((transport) => [
       transport.id,
       transport.crewId ?? "",
       transport.departMin ?? "",
@@ -55,7 +61,7 @@ function fingerprint(state: GameState): string {
       transport.pinned ? 1 : 0,
     ]),
     d: state.missionIso,
-    c: state.crews.map((crew) => [
+    c: crews.map((crew) => [
       crew.id,
       crew.shiftStart,
       crew.shiftEnd,
@@ -64,16 +70,16 @@ function fingerprint(state: GameState): string {
       crew.driverId ?? "",
       crew.mateId ?? "",
     ]),
-    b: state.blocks.map((block) => [block.id, block.startMin, block.endMin, block.crewId]),
+    b: blocks.map((block) => [block.id, block.startMin, block.endMin, block.crewId]),
     r: state.rules,
-    p: state.patients.map((patient) => [
+    p: patients.map((patient) => [
       patient.id,
       patient.lastName,
       patient.firstName,
       patient.addressId,
       patient.mobility ?? "",
     ]),
-    v: state.vehicles.map((vehicle) => [vehicle.id, vehicle.plate, vehicle.active]),
+    v: vehicles.map((vehicle) => [vehicle.id, vehicle.plate, vehicle.active]),
   });
 }
 
@@ -89,8 +95,8 @@ function readAll(): DraftSnapshot[] {
   }
 }
 
-function writeAll(drafts: DraftSnapshot[]): void {
-  localStorage.setItem(KEY, JSON.stringify(drafts));
+function writeAll(drafts: DraftSnapshot[]): boolean {
+  return writeLocal(KEY, JSON.stringify(drafts));
 }
 
 export function listDrafts(): DraftSummary[] {
@@ -109,18 +115,24 @@ export function loadDraft(version: number): DraftSnapshot | null {
   return readAll().find((draft) => draft.version === version) ?? null;
 }
 
-export function latestEnterpriseDraft(): DraftSnapshot | null {
-  const found = readAll().filter((draft) => draft.origin === "entreprise");
+export function latestRelevantDraft(): DraftSnapshot | null {
+  const mode = loadWorkspace()?.mode;
+  if (!mode) return null;
+  const found = readAll().filter((draft) =>
+    mode === "entreprise" ? draft.origin === "entreprise" : draft.origin !== "entreprise",
+  );
   if (!found.length) return null;
   return found.reduce((best, draft) => (draft.version > best.version ? draft : best));
 }
 
 export function saveDraft(state: GameState): number | null {
   if (state.phase === "briefing" || typeof localStorage === "undefined") return null;
+  allowResume();
   const drafts = readAll().sort((a, b) => a.version - b.version);
   const latest = drafts[drafts.length - 1];
   const finger = fingerprint(state);
-  if (latest && fingerprint(snapshotToState(latest)) === finger) return latest.version;
+  const origin = loadWorkspace()?.mode === "entreprise" ? ("entreprise" as const) : undefined;
+  if (latest && fingerprint(snapshotToState(latest)) === finger && latest.origin === origin) return latest.version;
   const version = (latest?.version ?? 0) + 1;
   const next: DraftSnapshot = {
     schema: 1,
@@ -145,14 +157,10 @@ export function saveDraft(state: GameState): number | null {
     stats: state.stats,
     calls: state.calls,
     lomaco: state.lomaco,
-    ...(loadWorkspace()?.mode === "entreprise" ? { origin: "entreprise" as const } : {}),
+    ...(origin ? { origin } : {}),
   };
   const kept = [...drafts, next].slice(-MAX_VERSIONS);
-  try {
-    writeAll(kept);
-  } catch {
-    return null;
-  }
+  if (!writeAll(kept)) return null;
   return version;
 }
 

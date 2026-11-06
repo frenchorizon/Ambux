@@ -378,13 +378,8 @@ async function restoreDraft(page: Page) {
   await page.getByRole("button", { name: "Timeline" }).click();
   await page.getByLabel("Date de mission").fill("2026-10-17");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-17");
-  await page.waitForTimeout(300);
+  await page.waitForFunction(() => localStorage.getItem("ambux-drafts-v1")?.includes("2026-10-17") === true);
   await page.reload();
-  await page.goto("/#demo");
-  await page
-    .getByRole("button", { name: /courses/ })
-    .first()
-    .click();
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-17");
   await openDonnee(page, "Véhicules");

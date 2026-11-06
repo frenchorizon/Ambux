@@ -1,5 +1,6 @@
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
+import { BrowserData } from "./BrowserData";
 import { useData } from "../game/context";
 import { loadWorkspace } from "../game/workspace";
 import { emptyDriveMin, naiveBaseline } from "../game/baseline";
@@ -206,6 +207,7 @@ export function ReglagesView() {
           />
         </Field>
         <p className="text-xs leading-relaxed text-muted">Données stockées uniquement dans ce navigateur.</p>
+        <BrowserData />
         <button
           type="button"
           className="h-11 text-left text-sm font-semibold text-brand"

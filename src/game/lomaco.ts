@@ -1,5 +1,6 @@
 import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
+import { writeLocal } from "../lib/browserStore";
 import { addressForGeocode, defaultGeocoder, workspaceCity } from "./workspace";
 import { formatMin } from "../lib/format";
 import { suggestExtraField } from "../io/mapping/suggest";
@@ -1200,10 +1201,5 @@ function readStore<T>(key: string): T | null {
 }
 
 function writeStore(key: string, value: unknown): void {
-  try {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* navigation privée */
-  }
+  writeLocal(key, JSON.stringify(value));
 }

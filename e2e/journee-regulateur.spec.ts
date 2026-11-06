@@ -285,11 +285,6 @@ test("le brouillon survit au rechargement", async ({ page }) => {
   await expect(page.getByText(/QA-181-ZZ est en ligne/)).toBeVisible();
   await page.waitForFunction(() => localStorage.getItem("ambux-drafts-v1")?.includes("QA-181-ZZ") === true);
   await page.reload();
-  await page.goto("/#demo");
-  await page
-    .getByRole("button", { name: /courses/ })
-    .first()
-    .click();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-18");
   await openMenu(page, "Véhicules");
   await expect
@@ -396,6 +391,7 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
   expect(darkSrc).not.toMatch(/apikey|cartocdn/i);
 
   if (testInfo.project.name === "desktop") {
+    await page.getByRole("button", { name: "Retour à l'accueil" }).click();
     await page.goto("/");
     await page.route("https://tile.openstreetmap.org/**", (route) => route.abort());
     const seen: string[] = [];

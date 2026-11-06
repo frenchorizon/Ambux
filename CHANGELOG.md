@@ -2,6 +2,15 @@
 
 Le tag git est la référence. Les jalons d'avant `v0.3.0-mvp-epure` n'ont pas été tagués : ils restent dans l'historique de `main`.
 
+## v0.9.0-alpha.3-b2 — 2026-11-06
+
+Branche `feat/beta-b2-persistance`. Persistance locale. Pas de tag. Les clés `ambux-drafts-v1` et `ambux-workspace-v1` ne changent pas de format. Pas d'IndexedDB : le brouillon reste dans localStorage, la copie complète part dans un fichier.
+
+- À l'ouverture, le dernier brouillon du mode en cours (démo ou entreprise) est repris. Sans brouillon, l'écran de choix ou l'assistant du lot B1 reste affiché. « Retour à l'accueil » tient jusqu'à la fermeture de l'onglet.
+- Réglages : Exporter, Importer, Effacer toutes mes données de ce navigateur. Le fichier `.ambux.json` contient le planning, la configuration du navigateur et les règles. L'import vérifie le fichier, explique le refus, et demande confirmation avant de remplacer.
+- Le plein ou le presque-plein du localStorage s'affiche. L'effacement retire les clés Ambux de ce navigateur et laisse les autres sites.
+- Fichier autonome : `ambux-v0.9.0-alpha.3-b2.html`.
+
 ## v0.9.0-alpha.3-b1 — 2026-11-06
 
 Branche `feat/beta-b1-mode-entreprise`. Premier lot de la bêta gratuite. Pas de tag.

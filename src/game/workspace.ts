@@ -1,3 +1,4 @@
+import { clearAmbuxKeys, writeLocal } from "../lib/browserStore";
 import { geocodeAddress, type GeocodeContext } from "../lib/routing";
 import type { Location } from "./types";
 
@@ -77,13 +78,35 @@ function readWorkspaceRaw(): string | null {
   }
 }
 
-export function saveWorkspace(profile: WorkspaceProfile): void {
+export function saveWorkspace(profile: WorkspaceProfile): boolean {
   const stored = profile.mode === "demo" ? { ...DEMO_PROFILE } : normalizeEnterprise(profile);
   const raw = JSON.stringify(stored);
-  localStorage.setItem(WORKSPACE_KEY, raw);
+  if (!writeLocal(WORKSPACE_KEY, raw)) return false;
   cachedRaw = raw;
   cachedProfile = stored;
   if (typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE_EVENT));
+  return true;
+}
+
+export function forgetWorkspaceCache(): void {
+  cachedRaw = null;
+  cachedProfile = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+export function eraseAmbuxBrowser(): string[] {
+  const removed = clearAmbuxKeys();
+  forgetWorkspaceCache();
+  return removed;
+}
+
+export function workspaceFromUnknown(value: unknown): WorkspaceProfile | null {
+  if (!value || typeof value !== "object") return null;
+  try {
+    return parseWorkspace(JSON.stringify(value));
+  } catch {
+    return null;
+  }
 }
 
 export function workspaceCity(): string {

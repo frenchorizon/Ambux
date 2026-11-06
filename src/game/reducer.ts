@@ -32,6 +32,7 @@ import type {
   VehicleType,
   ViewId,
 } from "./types";
+import { pauseResume } from "../lib/browserStore";
 import { loadRules } from "../lib/rulesStore";
 import { clampAmplitude } from "./workspace";
 import { shiftForIndex } from "./shifts";
@@ -93,7 +94,9 @@ export type Action =
         retour?: Transport;
       }[];
     }
-  | { type: "RESTORE"; snapshot: DraftSnapshot }
+  | { type: "RESTORE"; snapshot: DraftSnapshot; quiet?: boolean }
+  | { type: "APPLY_BACKUP"; state: GameState }
+  | { type: "RESET_BROWSER" }
   | { type: "NOTE_EXPORT"; message?: string }
   | { type: "REMOVE_TRANSPORT"; id: string }
   | { type: "NOTE_OPTIMIZER" }
@@ -306,7 +309,19 @@ export function reducer(state: GameState, action: Action): GameState {
     case "IMPORT_BATCH":
       return importBatch(state, action.rows);
     case "RESTORE":
-      return restoreDraft(state, action.snapshot);
+      return restoreDraft(state, action.snapshot, action.quiet === true);
+    case "APPLY_BACKUP":
+      return withToast(
+        { ...action.state, live: false, paused: true, modal: null, toastSeq: state.toastSeq + 1 },
+        "Sauvegarde importée.",
+        "ok",
+      );
+    case "RESET_BROWSER":
+      return withToast(
+        { ...initialState, toastSeq: state.toastSeq + 1 },
+        "Données Ambux effacées de ce navigateur.",
+        "info",
+      );
     case "NOTE_EXPORT":
       return withToast(
         {
@@ -389,6 +404,7 @@ export function reducer(state: GameState, action: Action): GameState {
     case "DISMISS_TOAST":
       return { ...state, toast: null };
     case "REPLAY":
+      pauseResume();
       return { ...initialState, toastSeq: state.toastSeq };
     default:
       return state;
@@ -1091,27 +1107,26 @@ function importBatch(
   );
 }
 
-function restoreDraft(state: GameState, snapshot: DraftSnapshot): GameState {
-  return withToast(
-    {
-      ...initialState,
-      ...snapshot,
-      phase: "playing",
-      view: "gantt",
-      modal: null,
-      live: false,
-      paused: true,
-      nowMin: DAY_START,
-      followNow: false,
-      toastSeq: state.toastSeq + 1,
-      selectedId: undefined,
-      rules: { ...DEFAULT_RULES, ...snapshot.rules },
-      missionIso: snapshot.missionIso || MISSION_ISO,
-      missionLabel: snapshot.missionDate || labelForIso(snapshot.missionIso || MISSION_ISO),
-    },
-    `Brouillon v${snapshot.version} repris · ${snapshot.missionDate}.`,
-    "ok",
-  );
+function restoreDraft(state: GameState, snapshot: DraftSnapshot, quiet: boolean): GameState {
+  const next: GameState = {
+    ...initialState,
+    ...snapshot,
+    phase: "playing",
+    view: "gantt",
+    modal: null,
+    live: false,
+    paused: true,
+    nowMin: DAY_START,
+    followNow: false,
+    toast: null,
+    toastSeq: state.toastSeq,
+    selectedId: undefined,
+    rules: { ...DEFAULT_RULES, ...snapshot.rules },
+    missionIso: snapshot.missionIso || MISSION_ISO,
+    missionLabel: snapshot.missionDate || labelForIso(snapshot.missionIso || MISSION_ISO),
+  };
+  if (quiet) return next;
+  return withToast(next, `Brouillon v${snapshot.version} repris · ${snapshot.missionDate}.`, "ok");
 }
 
 function baseDepotId(state: GameState): string {
