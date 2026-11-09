@@ -99,30 +99,102 @@ test("l'accueil ne défile pas", async ({ page }, testInfo) => {
   });
   expect(fits).toBe(true);
   if (testInfo.project.name === "phone") {
+    await expectNavAndLegal(page);
     await page.screenshot({ path: "/opt/cursor/artifacts/da-accueil-390.png", scale: "css" });
+    await page.setViewportSize({ width: 360, height: 844 });
+    await expectNavAndLegal(page);
+    const fitsNarrow = await page.evaluate(() => {
+      const root = document.scrollingElement;
+      if (!root) return false;
+      return root.scrollHeight <= window.innerHeight + 1 && root.scrollWidth <= window.innerWidth + 1;
+    });
+    expect(fitsNarrow).toBe(true);
+    await page.setViewportSize({ width: 390, height: 844 });
   }
   if (testInfo.project.name === "desktop") {
+    const legal = page.getByRole("navigation", { name: "Pages légales" });
+    await expect(legal).toContainText("pas un dispositif médical");
     await page.screenshot({ path: "/opt/cursor/artifacts/da-accueil-1440.png", scale: "css" });
   }
 });
 
-test("chaque lien de la nav ouvre sa page", async ({ page }, testInfo) => {
+async function expectNavAndLegal(page: import("@playwright/test").Page) {
+  const layout = await page.evaluate(() => {
+    const navEl = document.querySelector(".da-nav");
+    const legalEl = document.querySelector(".da-legal");
+    const logo = document.querySelector(".da-logo");
+    const contact = document.querySelector(".da-contact");
+    if (!navEl || !legalEl || !logo || !contact) return null;
+    const box = (el: Element) => el.getBoundingClientRect();
+    const navBox = box(navEl);
+    const legalBox = box(legalEl);
+    const line = parseFloat(getComputedStyle(legalEl).lineHeight);
+    const hits = (a: DOMRect, b: DOMRect) =>
+      a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    return {
+      navWidth: navBox.width,
+      innerWidth: window.innerWidth,
+      navCenter: navBox.left + navBox.width / 2,
+      legalHeight: legalBox.height,
+      line,
+      overlap: hits(navBox, box(logo)) || hits(navBox, box(contact)),
+      legalText: (legalEl as HTMLElement).innerText,
+    };
+  });
+  expect(layout).not.toBeNull();
+  expect(layout!.navWidth).toBeLessThan(layout!.innerWidth - 48);
+  expect(Math.abs(layout!.navCenter - layout!.innerWidth / 2)).toBeLessThan(12);
+  expect(layout!.overlap).toBe(false);
+  expect(layout!.legalHeight).toBeLessThanOrEqual(layout!.line + 1);
+  expect(layout!.legalText).not.toContain("dispositif médical");
+}
+
+test("chaque lien de la nav ouvre sa page", async ({ page }) => {
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Sections" });
   await expect(nav.getByRole("link")).toHaveCount(2);
   await nav.getByRole("link", { name: "Méthode" }).click();
   await expect(page.getByRole("heading", { name: "La demande de demain" })).toBeVisible();
   await expect(page).toHaveURL(/#methode$/);
-  if (testInfo.project.name === "phone") {
-    await page.screenshot({ path: "/opt/cursor/artifacts/da-page-methode-390.png", scale: "css" });
-  }
   await page.getByRole("link", { name: "Accueil" }).click();
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await expect(page.getByRole("heading", { name: "Pas un tarif en vigueur" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mon entreprise" })).toBeVisible();
   await expect(page).toHaveURL(/#beta$/);
+});
+
+test("méthode et bêta sont sombres par défaut", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    localStorage.removeItem("ambux.theme");
+  });
+  await page.goto("/#methode");
+  await expect(page.getByRole("heading", { name: "La demande de demain" })).toBeVisible();
+  await expectDarkPage(page);
+  if (testInfo.project.name === "phone") {
+    await page.screenshot({ path: "/opt/cursor/artifacts/da-page-methode-390.png", scale: "css" });
+  }
+  await page.goto("/#beta");
+  await expect(page.getByRole("heading", { name: "Pas un tarif en vigueur" })).toBeVisible();
+  await expectDarkPage(page);
+  await page.getByRole("button", { name: "Passer en mode clair" }).click();
+  const light = await page.locator(".da-sub").evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(light).not.toBe("rgb(7, 8, 10)");
+  await page.getByRole("button", { name: "Passer en mode sombre" }).click();
+  await expectDarkPage(page);
   if (testInfo.project.name === "phone") {
     await page.screenshot({ path: "/opt/cursor/artifacts/da-page-beta-390.png", scale: "css" });
   }
 });
+
+async function expectDarkPage(page: import("@playwright/test").Page) {
+  const colors = await page.locator(".da-sub").evaluate((el) => {
+    const card = el.querySelector(".da-card, .glass");
+    return {
+      page: getComputedStyle(el).backgroundColor,
+      card: card ? getComputedStyle(card).backgroundColor : "",
+    };
+  });
+  expect(colors.page).toBe("rgb(7, 8, 10)");
+  expect(colors.card.startsWith("rgba(")).toBe(true);
+}

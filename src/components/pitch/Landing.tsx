@@ -142,7 +142,10 @@ export function Landing({ choice, onCompany }: { choice?: ReactNode; onCompany?:
             </div>
             <p className="da-chip">−{emptySaved} km à vide · exemple fictif</p>
             <nav className="da-legal" aria-label="Pages légales">
-              Bêta · pas un dispositif médical · <a href="#mentions-legales">Mentions légales</a>
+              Bêta
+              <span className="da-legal-desk"> · pas un dispositif médical</span>
+              {" · "}
+              <a href="#mentions-legales">Mentions légales</a>
               {" · "}
               <a href="#confidentialite">Confidentialité</a>
             </nav>
