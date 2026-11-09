@@ -1506,7 +1506,7 @@ html:not(.dark) .da-hero-wrap {
   background: var(--chip-fill);
   padding: 10px 14px;
   color: var(--text-chip);
-  font-family: ui-monospace, monospace;
+  font-family: "Inter", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 400;
   -webkit-backdrop-filter: blur(16px);

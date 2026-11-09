@@ -14,6 +14,10 @@ test("captures timeline sombre et mode clair", async ({ page }, testInfo) => {
   await openPlanning(page);
   await showTimeline(page);
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
+  await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
+  if (testInfo.project.name === "desktop") {
+    await page.screenshot({ path: "/opt/cursor/artifacts/da-app-barre-1440.png", scale: "css" });
+  }
   const timelineName = testInfo.project.name === "phone" ? "da-timeline-390.png" : "da-timeline-1440.png";
   if (testInfo.project.name === "phone" || testInfo.project.name === "desktop") {
     await page.screenshot({ path: `/opt/cursor/artifacts/${timelineName}`, scale: "css" });

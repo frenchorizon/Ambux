@@ -120,7 +120,6 @@ function AppScreen() {
   if (phase === "briefing") {
     return (
       <div className="min-h-dvh">
-        <ModeBanner onChange={onChange} ecran="accueil" />
         <Landing />
       </div>
     );

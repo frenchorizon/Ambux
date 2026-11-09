@@ -14,7 +14,7 @@ test("l'accueil parle d'une bêta gratuite, pas d'un jeu", async ({ page }, test
   test.setTimeout(120_000);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
-  await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
+  await expect(page.locator(".mode-banner")).toHaveCount(0);
   await expect(page.getByRole("note").filter({ hasText: BETA }).first()).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "Donner mon avis" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Noter ma société" })).toBeVisible();
@@ -45,6 +45,8 @@ test("l'accueil parle d'une bêta gratuite, pas d'un jeu", async ({ page }, test
     await page.getByRole("button", { name: "Passer en mode sombre" }).click();
     const daName = testInfo.project.name === "phone" ? "da-landing-390.png" : "da-landing-1440.png";
     await page.screenshot({ path: `/opt/cursor/artifacts/${daName}`, fullPage: true, scale: "css" });
+    const heroName = testInfo.project.name === "phone" ? "da-hero-390.png" : "da-hero-1440.png";
+    await page.locator(".da-hero-card").screenshot({ path: `/opt/cursor/artifacts/${heroName}`, scale: "css" });
     await page.getByRole("button", { name: "Passer en mode clair" }).click();
   }
 
