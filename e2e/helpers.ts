@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 export async function openPlanning(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+  await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();

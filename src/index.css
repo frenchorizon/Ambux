@@ -1314,20 +1314,37 @@ html.dark .mode-banner {
 }
 
 /* Landing : carte photo, tokens de la fiche DA Tekiyo. */
-.da-hero-wrap {
+.da-screen {
+  box-sizing: border-box;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   padding: var(--page-pad);
   background: var(--bg-page);
 }
 
-html:not(.dark) .da-hero-wrap {
+html:has(.da-screen),
+html:has(.da-screen) body,
+html:has(.da-screen) #root {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html:not(.dark) .da-screen {
   background: var(--color-paper);
+}
+
+.da-screen .da-hero-card {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
 }
 
 .da-hero-card {
   position: relative;
   height: calc(100dvh - (var(--page-pad) * 2));
-  min-height: 640px;
-  max-height: 920px;
+  min-height: 0;
+  max-height: none;
   overflow: hidden;
   border-radius: var(--radius-card);
   background: var(--bg-hero-fallback);
@@ -1496,7 +1513,7 @@ html:not(.dark) .da-hero-wrap {
 .da-chip {
   position: absolute;
   right: 36px;
-  bottom: 36px;
+  bottom: 44px;
   z-index: 3;
   display: inline-flex;
   align-items: center;
@@ -1511,6 +1528,50 @@ html:not(.dark) .da-hero-wrap {
   font-weight: 400;
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+}
+
+.da-legal {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  left: 16px;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.da-legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.da-sub {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  background: var(--bg-page);
+  padding: 24px 16px 48px;
+  color: var(--text-primary);
+}
+
+html:not(.dark) .da-sub {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.da-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--text-nav);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+html:not(.dark) .da-back {
+  color: var(--color-ink);
 }
 
 .da-chip::before {
@@ -1607,10 +1668,9 @@ html:not(.dark) .da-card p {
 }
 
 @media (max-width: 860px) {
-  .da-hero-card {
-    height: calc(100svh - (var(--page-pad) * 2));
-    min-height: 620px;
-    max-height: none;
+  .da-screen .da-hero-card {
+    height: 100%;
+    min-height: 0;
   }
 
   .da-hero-bg {
@@ -1659,7 +1719,7 @@ html:not(.dark) .da-card p {
   .da-hero-copy {
     top: auto;
     right: 22px;
-    bottom: 96px;
+    bottom: 118px;
     left: 22px;
     max-width: none;
     transform: none;
@@ -1685,7 +1745,7 @@ html:not(.dark) .da-card p {
 
   .da-chip {
     right: auto;
-    bottom: 22px;
+    bottom: 52px;
     left: 22px;
     padding: 8px 12px;
   }

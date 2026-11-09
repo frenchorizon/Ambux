@@ -24,6 +24,7 @@ test("le formulaire s'ouvre et le contexte technique n'a pas de champ patient", 
   test.setTimeout(120_000);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await page.getByRole("main").getByRole("button", { name: "Donner mon avis" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Donner mon avis" })).toBeVisible();
@@ -54,7 +55,8 @@ test("le formulaire s'ouvre et le contexte technique n'a pas de champ patient", 
   }
 
   await dialog.getByRole("button", { name: "Fermer" }).click();
-  await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+  await page.getByRole("link", { name: "Accueil" }).click();
+  await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
   const label = (await page.locator("[data-transport-id]").first().getAttribute("aria-label")) ?? "";
   const patient = label.split(",")[0]?.trim() ?? "";

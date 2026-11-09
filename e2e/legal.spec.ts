@@ -15,7 +15,6 @@ test("les pages légales s'ouvrent depuis l'accueil et les réglages", async ({ 
   test.setTimeout(120_000);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
-  await expect(page.getByRole("note").filter({ hasText: BETA }).first()).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Pages légales" }).getByRole("link", { name: "Mentions légales" }),
   ).toBeVisible();
@@ -45,7 +44,7 @@ test("les pages légales s'ouvrent depuis l'accueil et les réglages", async ({ 
   await page.getByRole("button", { name: "Fermer" }).click();
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
 
-  await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+  await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
   await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
   await page.getByRole("link", { name: "Mentions légales" }).click();

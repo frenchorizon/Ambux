@@ -54,7 +54,7 @@ test("reprend le dernier brouillon démo au rechargement", async ({ page }) => {
   await page.waitForFunction(() => localStorage.getItem("ambux-drafts-v1")?.includes("2026-10-21") === true);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Commencer" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Planning en 1 clic" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Voir l'exemple" })).toHaveCount(0);
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-21");
   await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
 });
@@ -138,6 +138,7 @@ test("efface les clés Ambux et laisse le reste du navigateur", async ({ page })
   await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
   await page.getByRole("button", { name: "Effacer toutes mes données de ce navigateur" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Effacer" }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await expect(page.getByRole("heading", { name: "Commencer" })).toBeVisible();
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("hors-ambux"))).toBe("reste");
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("ambux-drafts-v1"))).toBeNull();

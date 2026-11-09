@@ -16,7 +16,7 @@ test("importer Lomaco puis exporter les feuilles", async ({ page }, testInfo) =>
     "DOS-10;MARTIN;Anne;99:99;CHU Charles-Nicolle;Clinique Mathilde, rue de Lessard;VSL;aller",
   ].join("\n");
   await page.goto("/");
-  await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+  await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
 

@@ -61,6 +61,7 @@ test("une société vide se configure, se recharge et peut revenir à la démo",
   });
 
   await page.goto("/");
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await expect(page.getByRole("heading", { name: "Commencer" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Essayer avec des données fictives" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mon entreprise" })).toBeVisible();
@@ -113,6 +114,7 @@ test("une société vide se configure, se recharge et peut revenir à la démo",
 
   await page.locator(".mode-banner").getByRole("button", { name: "Changer" }).click();
   await page.getByRole("button", { name: "Essayer avec des données fictives" }).click();
+  await page.getByRole("link", { name: "Accueil" }).click();
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
   await expect(page.locator(".mode-banner")).toHaveCount(0);
 });

@@ -25,7 +25,7 @@ test("le mode privé n'envoie pas les adresses", async ({ page }, testInfo) => {
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+  await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
   const banner = page.getByRole("status").filter({ hasText: /adresses non envoyées/i });
   await expect(banner).toBeVisible();
@@ -86,6 +86,7 @@ test("l'avertissement précède le premier géocodage", async ({ page }, testInf
   });
 
   await page.goto("/");
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await page.getByRole("button", { name: "Mon entreprise" }).click();
   await expect(page.getByRole("checkbox", { name: "Pas d'envoi d'adresse" })).toBeVisible();
   await page.getByLabel("Nom de la société").fill("Transports Fictifs");

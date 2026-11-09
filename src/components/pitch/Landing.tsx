@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
 import heroAvif from "../../assets/hero/hero.avif";
 import heroPng from "../../assets/hero/hero.png";
@@ -66,7 +66,22 @@ const STEPS = [
   },
 ];
 
-export function Landing({ choice }: { choice?: ReactNode }) {
+type DaPage = "home" | "methode" | "beta";
+
+function pageFromHash(): DaPage {
+  if (typeof window === "undefined") return "home";
+  if (window.location.hash === "#methode") return "methode";
+  if (window.location.hash === "#beta") return "beta";
+  return "home";
+}
+
+function subscribeHash(onChange: () => void): () => void {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+export function Landing({ choice, onCompany }: { choice?: ReactNode; onCompany?: () => void }) {
+  const page = useSyncExternalStore(subscribeHash, pageFromHash, () => "home" as const);
   const { dispatch } = useData();
   const dark = useDark();
   const [ask, setAsk] = useState(false);
@@ -87,192 +102,343 @@ export function Landing({ choice }: { choice?: ReactNode }) {
   const emptySaved = Number(DEMO_MEASURE.naiveEmptyKm) - Number(DEMO_MEASURE.ambuxEmptyKm);
 
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="bg-paper text-ink">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2"
       >
         Aller au contenu
       </a>
-      <div className="da-hero-wrap">
-        <section className="da-hero-card" aria-label="Introduction">
-          <picture className="da-hero-picture">
-            <source srcSet={heroAvif} type="image/avif" />
-            <source srcSet={heroWebp} type="image/webp" />
-            <img className="da-hero-bg" src={heroPng} alt="" />
-          </picture>
-          <div className="da-veil" aria-hidden="true" />
-          <header className="da-hero-top">
-            <div className="da-logo">Ambux</div>
-            <nav className="da-nav" aria-label="Sections">
-              <a href="#methode">Méthode</a>
-              <a href="#resultats">Résultats</a>
-              <a href="#calculateur">Calculateur</a>
-              <a href="#beta">Bêta</a>
-            </nav>
-            <a className="da-contact" href="#contact">
-              Contact
-            </a>
-          </header>
-          <div className="da-hero-copy">
-            <h1>Demain est déjà posé.</h1>
-            <p>Le planning de vos ambulances et VSL, généré en un clic. Rentrez à l'heure.</p>
-            <div className="da-hero-actions">
-              <Button size="lg" className="da-btn-primary" onClick={generateNow}>
-                Générer demain →
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                className="da-btn-ghost"
-                onClick={() => document.getElementById("exemple")?.scrollIntoView({ behavior: "smooth" })}
-              >
-                Voir l'exemple
-              </Button>
-            </div>
-          </div>
-          <p className="da-chip">−{emptySaved} km à vide · exemple fictif</p>
-        </section>
-      </div>
-
-      <main id="contenu">
-        <section id="methode" className="da-method scroll-mt-8">
-          <p className="da-method-label">Méthode</p>
-          <div className="da-method-grid">
-            {STEPS.map((step) => (
-              <article key={step.n} className="da-card">
-                <p className="da-card-index">{step.n}</p>
-                <h2>{step.title}</h2>
-                <p>{step.lead}</p>
-                <p className="mt-3">{step.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="resultats" className="scroll-mt-8 border-t border-line">
-          <div className="mx-auto max-w-6xl px-4 py-16">
-            <h2 className="font-display text-3xl text-navy sm:text-4xl">Résultats sur l'exemple</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Exemple fictif · 3 ambulances et 3 VSL. Illustration de la bêta, pas le planning de votre société.
-            </p>
-            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Stat k="Courses posées" v={DEMO_MEASURE.placed} />
-              <Stat k="Hors créneau" v={DEMO_MEASURE.late} />
-              <Stat k="Km à vide, naïf" v={DEMO_MEASURE.naiveEmptyKm} />
-              <Stat k="Km à vide, Ambux" v={DEMO_MEASURE.ambuxEmptyKm} />
-            </div>
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">
-              Planning initial : premier équipage compatible, dans l'ordre des rendez-vous, mêmes règles dures.{" "}
-              {DEMO_MEASURE.naiveEmptyKm} km à vide, {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées :
-              avec le routier public, les kilomètres bougent. Une course qui ne tient pas reste dans « À contrôler ».
-            </p>
-          </div>
-        </section>
-
-        <section className="border-t border-line">
-          <div className="mx-auto max-w-6xl px-4 py-16">
-            <RoiCalculator />
-          </div>
-        </section>
-
-        <section id="plus-tard" className="scroll-mt-8 border-t border-line bg-card">
-          <div className="mx-auto max-w-6xl px-4 py-16">
-            <h2 className="font-display text-3xl text-navy sm:text-4xl">Pas un tarif en vigueur</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Pendant la bêta, l'accès est gratuit. L'échange demandé est un avis, par « Donner mon avis ». Les montants
-              ci-dessous sont indicatifs et futurs : hors taxes, non contractuels, pas en vigueur. Ils ne décrivent pas
-              une offre à souscrire, ni une licence Lomaco, ni un hébergement de données de santé.
-            </p>
-            <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {TIERS.map((tier) => (
-                <article key={tier.name} className="glass flex flex-col p-5">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-brand uppercase">{tier.status}</p>
-                  <h3 className="mt-2 font-semibold">{tier.name}</h3>
-                  <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
-                  <p className="text-xs text-muted">{tier.unit}</p>
-                  <ul className="mt-4 space-y-2 text-sm">
-                    {tier.points.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="beta" className="scroll-mt-8 border-t border-line">
-          <div className="mx-auto max-w-6xl px-4 py-16">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
-                Bêta publique · transport sanitaire · France
-              </p>
-              <button
-                type="button"
-                className="da-theme"
-                onClick={() => toggleTheme()}
-                aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
-              >
-                {dark ? <Sun size={16} /> : <Moon size={16} />}
+      {page === "home" ? (
+        <div className="da-screen">
+          <section className="da-hero-card" aria-label="Introduction">
+            <picture className="da-hero-picture">
+              <source srcSet={heroAvif} type="image/avif" />
+              <source srcSet={heroWebp} type="image/webp" />
+              <img className="da-hero-bg" src={heroPng} alt="" />
+            </picture>
+            <div className="da-veil" aria-hidden="true" />
+            <header className="da-hero-top">
+              <div className="da-logo">Ambux</div>
+              <nav className="da-nav" aria-label="Sections">
+                <a href="#methode">Méthode</a>
+                <a href="#beta">Bêta</a>
+              </nav>
+              <button type="button" className="da-contact" onClick={() => setFeedback(true)}>
+                Contact
               </button>
-            </div>
-            <h2 className="mt-3 max-w-3xl font-display text-3xl text-navy sm:text-4xl">
-              Un logiciel de planning, pas un remplacement.
-            </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
-              Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire.
-              L'ambition est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et
-              les autres — sans les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis.
-              Aucun abonnement n'est en vigueur.
-            </p>
-            <div className="mt-4 max-w-lg">
-              <BetaNotice tone="inline" />
-            </div>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button size="lg" onClick={start}>
-                Planning en 1 clic
-              </Button>
-              <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
-                Donner mon avis
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
-                Noter ma société
-              </Button>
-            </div>
-            <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
-              Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
-              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable. Le bandeau en
-              haut passe de l'exemple fictif à votre société.
-            </p>
-          </div>
-        </section>
-
-        {choice ? (
-          <section className="border-t border-line bg-card">
-            <div className="mx-auto max-w-md px-4 py-16">{choice}</div>
-          </section>
-        ) : null}
-
-        <section id="exemple" className="scroll-mt-8 border-t border-line">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div>
-              <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder l'exemple</h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                Un clic charge une journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous
-                pouvez aussi choisir la flotte. Le brouillon reste dans ce navigateur. Votre société se prépare depuis
-                le bandeau.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" onClick={start}>
-                  Planning de demain en 1 clic
+            </header>
+            <div className="da-hero-copy">
+              <h1>Demain est déjà posé.</h1>
+              <p>Le planning de vos ambulances et VSL, généré en un clic. Rentrez à l'heure.</p>
+              <div className="da-hero-actions">
+                <Button size="lg" className="da-btn-primary" onClick={generateNow}>
+                  Générer demain →
+                </Button>
+                <Button size="lg" variant="secondary" className="da-btn-ghost" onClick={start}>
+                  Voir l'exemple
                 </Button>
               </div>
             </div>
-            <FleetPanel />
+            <p className="da-chip">−{emptySaved} km à vide · exemple fictif</p>
+            <nav className="da-legal" aria-label="Pages légales">
+              Bêta · pas un dispositif médical · <a href="#mentions-legales">Mentions légales</a>
+              {" · "}
+              <a href="#confidentialite">Confidentialité</a>
+            </nav>
+          </section>
+        </div>
+      ) : null}
+
+      {page === "methode" ? <MethodePage dark={dark} /> : null}
+      {page === "beta" ? (
+        <BetaPage
+          dark={dark}
+          choice={choice}
+          onCompany={onCompany}
+          onFeedback={() => setFeedback(true)}
+          onAsk={() => setAsk(true)}
+        />
+      ) : null}
+      {ask && <DemoAsk onClose={() => setAsk(false)} />}
+      {feedback ? <FeedbackDialog ecran="accueil" onClose={() => setFeedback(false)} /> : null}
+    </div>
+  );
+}
+
+function PageHead({ dark, title }: { dark: boolean; title: string }) {
+  return (
+    <header className="mb-8 flex items-center justify-between gap-3">
+      <a className="da-back" href="#accueil">
+        Accueil
+      </a>
+      <h1 className="font-display text-3xl text-navy">{title}</h1>
+      <button
+        type="button"
+        className="da-theme"
+        onClick={() => toggleTheme()}
+        aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+      >
+        {dark ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
+    </header>
+  );
+}
+
+function MethodePage({ dark }: { dark: boolean }) {
+  return (
+    <main id="contenu" className="da-sub">
+      <PageHead dark={dark} title="Méthode" />
+      <p className="da-method-label">Méthode</p>
+      <div className="da-method-grid">
+        {STEPS.map((step) => (
+          <article key={step.n} className="da-card">
+            <p className="da-card-index">{step.n}</p>
+            <h2>{step.title}</h2>
+            <p>{step.lead}</p>
+            <p className="mt-3">{step.text}</p>
+          </article>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function BetaPage({
+  dark,
+  choice,
+  onCompany,
+  onFeedback,
+  onAsk,
+}: {
+  dark: boolean;
+  choice?: ReactNode;
+  onCompany?: () => void;
+  onFeedback: () => void;
+  onAsk: () => void;
+}) {
+  return (
+    <main id="contenu" className="da-sub">
+      <PageHead dark={dark} title="Bêta" />
+      <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
+        Bêta publique · transport sanitaire · France
+      </p>
+      <h2 className="mt-3 max-w-3xl font-display text-3xl text-navy sm:text-4xl">
+        Un logiciel de planning, pas un remplacement.
+      </h2>
+      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
+        Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire. L'ambition
+        est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et les autres — sans
+        les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis. Aucun abonnement n'est en
+        vigueur.
+      </p>
+      <div className="mt-4 max-w-lg">
+        <BetaNotice tone="inline" />
+      </div>
+      <div className="mt-7 flex flex-wrap gap-3">
+        <Button size="lg" variant="secondary" type="button" onClick={onFeedback}>
+          Donner mon avis
+        </Button>
+        <Button size="lg" variant="secondary" onClick={onAsk}>
+          Noter ma société
+        </Button>
+      </div>
+      <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
+        Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé réelle. Pas
+        un dispositif médical, pas un conseil juridique, pas un kilomètre facturable.
+      </p>
+      <section className="mt-12">
+        <h2 className="font-display text-3xl text-navy sm:text-4xl">Pas un tarif en vigueur</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+          Pendant la bêta, l'accès est gratuit. L'échange demandé est un avis, par « Donner mon avis ». Les montants
+          ci-dessous sont indicatifs et futurs : hors taxes, non contractuels, pas en vigueur. Ils ne décrivent pas une
+          offre à souscrire, ni une licence Lomaco, ni un hébergement de données de santé.
+        </p>
+        <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {TIERS.map((tier) => (
+            <article key={tier.name} className="glass flex flex-col p-5">
+              <p className="text-xs font-semibold tracking-[0.14em] text-brand uppercase">{tier.status}</p>
+              <h3 className="mt-2 font-semibold">{tier.name}</h3>
+              <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
+              <p className="text-xs text-muted">{tier.unit}</p>
+              <ul className="mt-4 space-y-2 text-sm">
+                {tier.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="mt-12">
+        <FleetPanel />
+      </section>
+      <section className="mt-12 max-w-md">
+        <h2 className="font-display text-3xl text-navy">Mon entreprise</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Un espace vide, au dépôt de la société, pour importer ses données. Le brouillon reste dans ce navigateur.
+        </p>
+        <div className="mt-4">
+          {choice ?? (
+            <Button size="lg" onClick={onCompany}>
+              Mon entreprise
+            </Button>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/** Sections retirées de l'accueil. Le code reste, il n'est plus monté. */
+export function LandingArchive({ choice }: { choice?: ReactNode }) {
+  const { dispatch } = useData();
+  const dark = useDark();
+  const start = () => oneClick(dispatch);
+  const setFeedback = (value: boolean) => {
+    void value;
+  };
+  const setAsk = (value: boolean) => {
+    void value;
+  };
+  return (
+    <div hidden>
+      <section id="methode" className="da-method scroll-mt-8">
+        <p className="da-method-label">Méthode</p>
+        <div className="da-method-grid">
+          {STEPS.map((step) => (
+            <article key={step.n} className="da-card">
+              <p className="da-card-index">{step.n}</p>
+              <h2>{step.title}</h2>
+              <p>{step.lead}</p>
+              <p className="mt-3">{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="resultats" className="scroll-mt-8 border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <h2 className="font-display text-3xl text-navy sm:text-4xl">Résultats sur l'exemple</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            Exemple fictif · 3 ambulances et 3 VSL. Illustration de la bêta, pas le planning de votre société.
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat k="Courses posées" v={DEMO_MEASURE.placed} />
+            <Stat k="Hors créneau" v={DEMO_MEASURE.late} />
+            <Stat k="Km à vide, naïf" v={DEMO_MEASURE.naiveEmptyKm} />
+            <Stat k="Km à vide, Ambux" v={DEMO_MEASURE.ambuxEmptyKm} />
           </div>
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">
+            Planning initial : premier équipage compatible, dans l'ordre des rendez-vous, mêmes règles dures.{" "}
+            {DEMO_MEASURE.naiveEmptyKm} km à vide, {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées : avec
+            le routier public, les kilomètres bougent. Une course qui ne tient pas reste dans « À contrôler ».
+          </p>
+        </div>
+      </section>
+
+      <section className="border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <RoiCalculator />
+        </div>
+      </section>
+
+      <section id="plus-tard" className="scroll-mt-8 border-t border-line bg-card">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <h2 className="font-display text-3xl text-navy sm:text-4xl">Pas un tarif en vigueur</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            Pendant la bêta, l'accès est gratuit. L'échange demandé est un avis, par « Donner mon avis ». Les montants
+            ci-dessous sont indicatifs et futurs : hors taxes, non contractuels, pas en vigueur. Ils ne décrivent pas
+            une offre à souscrire, ni une licence Lomaco, ni un hébergement de données de santé.
+          </p>
+          <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {TIERS.map((tier) => (
+              <article key={tier.name} className="glass flex flex-col p-5">
+                <p className="text-xs font-semibold tracking-[0.14em] text-brand uppercase">{tier.status}</p>
+                <h3 className="mt-2 font-semibold">{tier.name}</h3>
+                <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
+                <p className="text-xs text-muted">{tier.unit}</p>
+                <ul className="mt-4 space-y-2 text-sm">
+                  {tier.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="beta" className="scroll-mt-8 border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
+              Bêta publique · transport sanitaire · France
+            </p>
+            <button
+              type="button"
+              className="da-theme"
+              onClick={() => toggleTheme()}
+              aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl text-navy sm:text-4xl">
+            Un logiciel de planning, pas un remplacement.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
+            Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire.
+            L'ambition est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et les
+            autres — sans les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis. Aucun
+            abonnement n'est en vigueur.
+          </p>
+          <div className="mt-4 max-w-lg">
+            <BetaNotice tone="inline" />
+          </div>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Button size="lg" onClick={start}>
+              Planning en 1 clic
+            </Button>
+            <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
+              Donner mon avis
+            </Button>
+            <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
+              Noter ma société
+            </Button>
+          </div>
+          <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
+            Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé réelle.
+            Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable. Le bandeau en haut passe
+            de l'exemple fictif à votre société.
+          </p>
+        </div>
+      </section>
+
+      {choice ? (
+        <section className="border-t border-line bg-card">
+          <div className="mx-auto max-w-md px-4 py-16">{choice}</div>
         </section>
-      </main>
+      ) : null}
+
+      <section id="exemple" className="scroll-mt-8 border-t border-line">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder l'exemple</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Un clic charge une journée fictive, calcule, puis dessine les tournées sur la carte de Rouen. Vous pouvez
+              aussi choisir la flotte. Le brouillon reste dans ce navigateur. Votre société se prépare depuis le
+              bandeau.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button size="lg" onClick={start}>
+                Planning de demain en 1 clic
+              </Button>
+            </div>
+          </div>
+          <FleetPanel />
+        </div>
+      </section>
       <footer id="contact" className="scroll-mt-8 border-t border-line px-4 py-8 text-center text-xs text-muted">
         <p>
           Ambux · bêta publique · génération de planning pour le transport sanitaire en France · intégration aux
@@ -298,8 +464,6 @@ export function Landing({ choice }: { choice?: ReactNode }) {
           </a>
         </nav>
       </footer>
-      {ask && <DemoAsk onClose={() => setAsk(false)} />}
-      {feedback ? <FeedbackDialog ecran="accueil" onClose={() => setFeedback(false)} /> : null}
     </div>
   );
 }

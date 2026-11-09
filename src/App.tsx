@@ -78,6 +78,7 @@ function AppScreen() {
       <>
         <EnterpriseNotice />
         <Landing
+          onCompany={() => setPicking("wizard")}
           choice={
             <ModeChoice
               embedded
@@ -120,7 +121,7 @@ function AppScreen() {
   if (phase === "briefing") {
     return (
       <div className="min-h-dvh">
-        <Landing />
+        <Landing onCompany={() => setPicking("wizard")} />
       </div>
     );
   }

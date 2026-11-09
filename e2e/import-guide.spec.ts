@@ -130,6 +130,7 @@ test("l'écran entreprise ouvre l'assistant et le consentement bloque le fichier
   });
 
   await page.goto("/");
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await page.getByRole("button", { name: "Mon entreprise" }).click();
   await page.getByLabel("Nom de la société").fill(COMPANY);
   await page.getByLabel("Ville par défaut").fill("Lyon");

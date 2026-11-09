@@ -398,7 +398,7 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
     page.on("request", (request) => {
       if (/openstreetmap/.test(request.url())) seen.push(request.url());
     });
-    await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
+    await page.getByRole("button", { name: "Voir l'exemple" }).first().click();
     await page.getByRole("button", { name: "Ouvrir le planning" }).click();
     await page.getByRole("button", { name: "Carte" }).click();
     await expect
@@ -430,6 +430,7 @@ test("les données sont dans Réglages", async ({ page }, testInfo) => {
 test("journée chargée : plus de 80 courses", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/");
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Bêta" }).click();
   await page.getByRole("button", { name: "Journée chargée" }).click();
   const about = await page.getByText(/Environ \d+ transports/).innerText();
   const demand = Number(about.match(/(\d+)/)?.[1]);
