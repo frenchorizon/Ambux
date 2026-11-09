@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
+import heroAvif from "../../assets/hero/hero.avif";
+import heroPng from "../../assets/hero/hero.png";
+import heroWebp from "../../assets/hero/hero.webp";
 import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
 import { MISSION_DATE } from "../../game/types";
 import { toggleTheme, useDark } from "../../lib/theme";
 import { FeedbackDialog } from "../feedback/FeedbackForm";
 import { BetaNotice } from "../legal/Legal";
-import { Logo } from "../Sidebar";
 import { Button } from "../ui/button";
 import { FleetPanel } from "./FleetPanel";
 import { RoiCalculator } from "./RoiCalculator";
@@ -75,6 +77,7 @@ export function Landing({ choice }: { choice?: ReactNode }) {
     }
     oneClick(dispatch);
   };
+  const emptySaved = Number(DEMO_MEASURE.naiveEmptyKm) - Number(DEMO_MEASURE.ambuxEmptyKm);
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
@@ -84,71 +87,59 @@ export function Landing({ choice }: { choice?: ReactNode }) {
       >
         Aller au contenu
       </a>
-      <section className="da-hero" aria-label="Introduction">
-        <div className="da-hero-scrim" />
-        <header className="da-top">
-          <Logo light wordmark />
-          <nav className="da-pill" aria-label="Sections">
-            <a href="#methode">Méthode</a>
-            <a href="#resultats">Résultats</a>
-            <a href="#calculateur">Calculateur</a>
-            <a href="#exemple">Exemple</a>
-          </nav>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              className="da-theme"
-              onClick={() => toggleTheme()}
-              aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
-            >
-              {dark ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+      <div className="da-hero-wrap">
+        <section className="da-hero-card" aria-label="Introduction">
+          <picture className="da-hero-picture">
+            <source srcSet={heroAvif} type="image/avif" />
+            <source srcSet={heroWebp} type="image/webp" />
+            <img className="da-hero-bg" src={heroPng} alt="" />
+          </picture>
+          <div className="da-veil" aria-hidden="true" />
+          <header className="da-hero-top">
+            <div className="da-logo">Ambux</div>
+            <nav className="da-nav" aria-label="Sections">
+              <a href="#methode">Méthode</a>
+              <a href="#resultats">Résultats</a>
+              <a href="#calculateur">Calculateur</a>
+              <a href="#beta">Bêta</a>
+            </nav>
             <a className="da-contact" href="#contact">
               Contact
             </a>
+          </header>
+          <div className="da-hero-copy">
+            <h1>Demain est déjà posé.</h1>
+            <p>Le planning de vos ambulances et VSL, généré en un clic. Rentrez à l'heure.</p>
+            <div className="da-hero-actions">
+              <Button size="lg" className="da-btn-primary" onClick={start}>
+                Générer demain →
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="da-btn-ghost"
+                onClick={() => document.getElementById("exemple")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Voir l'exemple
+              </Button>
+            </div>
           </div>
-        </header>
-        <div className="da-hero-copy">
-          <h1>
-            Demain est déjà
-            <br />
-            posé.
-          </h1>
-          <p>
-            Le planning de vos ambulances et VSL, généré en un clic.
-            <br />
-            Rentrez à l'heure.
-          </p>
-          <div className="da-hero-actions">
-            <Button size="lg" className="da-hero-primary" onClick={start}>
-              Générer demain
-            </Button>
-            <Button
-              size="lg"
-              variant="secondary"
-              className="da-hero-secondary"
-              onClick={() => document.getElementById("exemple")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              Voir l'exemple
-            </Button>
-          </div>
-        </div>
-      </section>
+          <p className="da-chip">−{emptySaved} km à vide · exemple fictif</p>
+        </section>
+      </div>
 
       <main id="contenu">
         <section id="methode" className="da-method scroll-mt-8">
-          <div className="mx-auto max-w-6xl px-4 py-16">
-            <p className="text-[13px] font-medium tracking-[0.18em] text-muted uppercase">Méthode</p>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {STEPS.map((step) => (
-                <article key={step.n} className="da-card">
-                  <p className="da-card-index">{step.n}</p>
-                  <h2 className="mt-4 text-lg font-semibold">{step.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{step.lead}</p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{step.text}</p>
-                </article>
-              ))}
-            </div>
+          <p className="da-method-label">Méthode</p>
+          <div className="da-method-grid">
+            {STEPS.map((step) => (
+              <article key={step.n} className="da-card">
+                <p className="da-card-index">{step.n}</p>
+                <h2>{step.title}</h2>
+                <p>{step.lead}</p>
+                <p className="mt-3">{step.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -204,11 +195,21 @@ export function Landing({ choice }: { choice?: ReactNode }) {
           </div>
         </section>
 
-        <section id="position" className="scroll-mt-8 border-t border-line">
+        <section id="beta" className="scroll-mt-8 border-t border-line">
           <div className="mx-auto max-w-6xl px-4 py-16">
-            <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
-              Bêta publique · transport sanitaire · France
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
+                Bêta publique · transport sanitaire · France
+              </p>
+              <button
+                type="button"
+                className="da-theme"
+                onClick={() => toggleTheme()}
+                aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+              >
+                {dark ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </div>
             <h2 className="mt-3 max-w-3xl font-display text-3xl text-navy sm:text-4xl">
               Un logiciel de planning, pas un remplacement.
             </h2>
