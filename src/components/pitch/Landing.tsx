@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
 import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
@@ -42,126 +42,143 @@ const TIERS = [
   },
 ];
 
-export function Landing() {
+const STEPS = [
+  {
+    n: "01",
+    title: "La demande de demain",
+    lead: "Vous collez les courses. Ambux lit destinations, créneaux et contraintes.",
+    text: "Le fichier vient de votre logiciel de régulation — export Lomaco, CSV ou Excel — ou d'une saisie. Chaque ligne douteuse est refusée, avec le motif.",
+  },
+  {
+    n: "02",
+    title: "Un planning qui dit non",
+    lead: "Il refuse les trajets impossibles et minimise les kilomètres à vide.",
+    text: "Tolérance, pause repas, amplitude de 11 h, DEA sur l'ambulance. Ce qui ne passe pas reste à contrôler.",
+  },
+  {
+    n: "03",
+    title: "La feuille, puis le CSV",
+    lead: "Vous validez la journée, vous exportez, vous rentrez.",
+    text: "Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter dans le logiciel d'origine. Le fichier reste dans ce navigateur.",
+  },
+];
+
+export function Landing({ choice }: { choice?: ReactNode }) {
   const { dispatch } = useData();
   const dark = useDark();
   const [ask, setAsk] = useState(false);
   const [feedback, setFeedback] = useState(false);
+  const start = () => {
+    if (choice) {
+      document.getElementById("commencer")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    oneClick(dispatch);
+  };
+
   return (
-    <div className="min-h-dvh bg-transparent text-ink">
+    <div className="min-h-dvh bg-paper text-ink">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2"
       >
         Aller au contenu
       </a>
-      <header className="glass sticky top-0 z-40 border-b border-line/80">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <Logo />
-          <nav className="ml-auto hidden items-center gap-5 text-sm font-semibold text-muted sm:flex">
-            <a href="#mesure" className="hover:text-ink">
-              Mesure
-            </a>
-            <a href="#calculateur" className="hover:text-ink">
-              Calculateur
-            </a>
-            <a href="#plus-tard" className="hover:text-ink">
-              Plus tard
-            </a>
-            <a href="#exemple" className="hover:text-ink">
-              Exemple
-            </a>
+      <section className="da-hero" aria-label="Introduction">
+        <div className="da-hero-scrim" />
+        <header className="da-top">
+          <Logo light wordmark />
+          <nav className="da-pill" aria-label="Sections">
+            <a href="#methode">Méthode</a>
+            <a href="#resultats">Résultats</a>
+            <a href="#calculateur">Calculateur</a>
+            <a href="#exemple">Exemple</a>
           </nav>
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-card"
-            onClick={() => toggleTheme()}
-            aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
-          >
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <Button onClick={() => oneClick(dispatch)}>Planning en 1 clic</Button>
-        </div>
-      </header>
-      <main id="contenu">
-        <section className="mx-auto grid max-w-6xl items-end gap-10 px-4 py-14 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-              Bêta publique · transport sanitaire · France
-            </p>
-            <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] font-light text-navy sm:text-6xl">
-              Le planning de demain, déjà posé.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire.
-              L'ambition est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et
-              les autres — sans les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis.
-              Aucun abonnement n'est en vigueur.
-            </p>
-            <div className="mt-4 max-w-lg">
-              <BetaNotice tone="inline" />
-            </div>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button size="lg" onClick={() => oneClick(dispatch)}>
-                Planning de demain en 1 clic
-              </Button>
-              <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
-                Donner mon avis
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
-                Noter ma société
-              </Button>
-            </div>
-            <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
-              Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
-              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable. Le bandeau en
-              haut passe de l'exemple fictif à votre société.
-            </p>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              className="da-theme"
+              onClick={() => toggleTheme()}
+              aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <a className="da-contact" href="#contact">
+              Contact
+            </a>
           </div>
-          <aside className="glass p-5 shadow-sm" id="mesure">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-              Exemple fictif · 3 ambulances et 3 VSL
+        </header>
+        <div className="da-hero-copy">
+          <h1>
+            Demain est déjà
+            <br />
+            posé.
+          </h1>
+          <p>
+            Le planning de vos ambulances et VSL, généré en un clic.
+            <br />
+            Rentrez à l'heure.
+          </p>
+          <div className="da-hero-actions">
+            <Button size="lg" className="da-hero-primary" onClick={start}>
+              Générer demain
+            </Button>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="da-hero-secondary"
+              onClick={() => document.getElementById("exemple")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Voir l'exemple
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <main id="contenu">
+        <section id="methode" className="da-method scroll-mt-8">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <p className="text-[13px] font-medium tracking-[0.18em] text-muted uppercase">Méthode</p>
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {STEPS.map((step) => (
+                <article key={step.n} className="da-card">
+                  <p className="da-card-index">{step.n}</p>
+                  <h2 className="mt-4 text-lg font-semibold">{step.title}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{step.lead}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-muted">{step.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="resultats" className="scroll-mt-8 border-t border-line">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <h2 className="font-display text-3xl text-navy sm:text-4xl">Résultats sur l'exemple</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+              Exemple fictif · 3 ambulances et 3 VSL. Illustration de la bêta, pas le planning de votre société.
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat k="Courses posées" v={DEMO_MEASURE.placed} />
               <Stat k="Hors créneau" v={DEMO_MEASURE.late} />
               <Stat k="Km à vide, naïf" v={DEMO_MEASURE.naiveEmptyKm} />
               <Stat k="Km à vide, Ambux" v={DEMO_MEASURE.ambuxEmptyKm} />
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-muted">
-              Illustration de la bêta, pas le planning de votre société. Planning initial : premier équipage compatible,
-              dans l'ordre des rendez-vous, mêmes règles dures. {DEMO_MEASURE.naiveEmptyKm} km à vide,{" "}
-              {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées : avec le routier public, les kilomètres
-              bougent. Une course qui ne tient pas reste dans « À contrôler ».
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">
+              Planning initial : premier équipage compatible, dans l'ordre des rendez-vous, mêmes règles dures.{" "}
+              {DEMO_MEASURE.naiveEmptyKm} km à vide, {DEMO_MEASURE.ambuxEmptyKm} km avec Ambux. Distances estimées :
+              avec le routier public, les kilomètres bougent. Une course qui ne tient pas reste dans « À contrôler ».
             </p>
-          </aside>
-        </section>
-
-        <section className="border-y border-line bg-card">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-3">
-            <Step
-              n="01"
-              title="La demande de demain"
-              text="Le fichier vient de votre logiciel de régulation — export Lomaco, CSV ou Excel — ou d'une saisie. Chaque ligne douteuse est refusée, avec le motif."
-            />
-            <Step
-              n="02"
-              title="Un planning qui dit non"
-              text="Tolérance, pause repas, amplitude de 11 h, DEA sur l'ambulance. Ce qui ne passe pas reste à contrôler."
-            />
-            <Step
-              n="03"
-              title="La feuille, puis le CSV"
-              text="Le conducteur lit sa tournée. Vous exportez le planning retenu pour le réinjecter dans le logiciel d'origine. Le fichier reste dans ce navigateur."
-            />
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <RoiCalculator />
+        <section className="border-t border-line">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <RoiCalculator />
+          </div>
         </section>
 
-        <section id="plus-tard" className="scroll-mt-20 border-t border-line bg-card">
+        <section id="plus-tard" className="scroll-mt-8 border-t border-line bg-card">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <h2 className="font-display text-3xl text-navy sm:text-4xl">Pas un tarif en vigueur</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
@@ -172,7 +189,7 @@ export function Landing() {
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {TIERS.map((tier) => (
                 <article key={tier.name} className="glass flex flex-col p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{tier.status}</p>
+                  <p className="text-xs font-semibold tracking-[0.14em] text-brand uppercase">{tier.status}</p>
                   <h3 className="mt-2 font-semibold">{tier.name}</h3>
                   <p className="mt-3 font-display text-4xl font-light text-navy">{tier.price}</p>
                   <p className="text-xs text-muted">{tier.unit}</p>
@@ -187,7 +204,49 @@ export function Landing() {
           </div>
         </section>
 
-        <section id="exemple" className="scroll-mt-20">
+        <section id="position" className="scroll-mt-8 border-t border-line">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <p className="text-sm font-semibold tracking-[0.18em] text-brand uppercase">
+              Bêta publique · transport sanitaire · France
+            </p>
+            <h2 className="mt-3 max-w-3xl font-display text-3xl text-navy sm:text-4xl">
+              Un logiciel de planning, pas un remplacement.
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
+              Ambux est la bêta d'un logiciel de génération de planning pour les sociétés de transport sanitaire.
+              L'ambition est d'en faire la référence nationale, en s'intégrant aux logiciels déjà en place — Lomaco et
+              les autres — sans les remplacer. Pendant cette bêta publique, l'accès est gratuit. En échange, un avis.
+              Aucun abonnement n'est en vigueur.
+            </p>
+            <div className="mt-4 max-w-lg">
+              <BetaNotice tone="inline" />
+            </div>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Button size="lg" onClick={start}>
+                Planning en 1 clic
+              </Button>
+              <Button size="lg" variant="secondary" type="button" onClick={() => setFeedback(true)}>
+                Donner mon avis
+              </Button>
+              <Button size="lg" variant="secondary" onClick={() => setAsk(true)}>
+                Noter ma société
+              </Button>
+            </div>
+            <p className="mt-4 max-w-lg text-xs leading-relaxed text-muted">
+              Exemple au {MISSION_DATE}, patients inventés, dépôt fictif du Petit-Quevilly. Aucune donnée de santé
+              réelle. Pas un dispositif médical, pas un conseil juridique, pas un kilomètre facturable. Le bandeau en
+              haut passe de l'exemple fictif à votre société.
+            </p>
+          </div>
+        </section>
+
+        {choice ? (
+          <section className="border-t border-line bg-card">
+            <div className="mx-auto max-w-md px-4 py-16">{choice}</div>
+          </section>
+        ) : null}
+
+        <section id="exemple" className="scroll-mt-8 border-t border-line">
           <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
               <h2 className="font-display text-3xl text-navy sm:text-4xl">Regarder l'exemple</h2>
@@ -197,7 +256,7 @@ export function Landing() {
                 le bandeau.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" onClick={() => oneClick(dispatch)}>
+                <Button size="lg" onClick={start}>
                   Planning de demain en 1 clic
                 </Button>
               </div>
@@ -206,7 +265,7 @@ export function Landing() {
           </div>
         </section>
       </main>
-      <footer className="border-t border-line px-4 py-8 text-center text-xs text-muted">
+      <footer id="contact" className="scroll-mt-8 border-t border-line px-4 py-8 text-center text-xs text-muted">
         <p>
           Ambux · bêta publique · génération de planning pour le transport sanitaire en France · intégration aux
           logiciels en place, dont Lomaco. Accès gratuit pendant la bêta. {MISSION_DATE} · patients fictifs. Pas encore
@@ -244,20 +303,10 @@ function oneClick(dispatch: ReturnType<typeof useData>["dispatch"]): void {
 
 function Stat({ k, v }: { k: string; v: string }) {
   return (
-    <div className="rounded-2xl bg-paper px-3 py-3">
-      <div className="text-[13px] font-medium uppercase tracking-wide text-muted">{k}</div>
+    <div className="rounded-2xl border border-line bg-card px-3 py-3">
+      <div className="text-[13px] font-medium tracking-wide text-muted uppercase">{k}</div>
       <div className="mt-1 text-2xl font-light tracking-tight tabular-nums">{v}</div>
     </div>
-  );
-}
-
-function Step({ n, title, text }: { n: string; title: string; text: string }) {
-  return (
-    <article>
-      <div className="font-display text-2xl text-brand">{n}</div>
-      <h2 className="mt-2 text-lg font-semibold">{title}</h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
-    </article>
   );
 }
 

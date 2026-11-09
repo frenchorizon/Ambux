@@ -15,7 +15,18 @@ const PRIMARY: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: "reglages", label: "Réglages", icon: <Settings size={18} /> },
 ];
 
-export function Logo({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
+export function Logo({
+  light = false,
+  compact = false,
+  wordmark = false,
+}: {
+  light?: boolean;
+  compact?: boolean;
+  wordmark?: boolean;
+}) {
+  if (wordmark) {
+    return <div className={cn("font-display text-lg leading-none", light ? "text-white" : "text-ink")}>Ambux</div>;
+  }
   return (
     <div className={cn("flex items-center", compact ? "gap-1.5" : "gap-2.5")}>
       <svg viewBox="0 0 32 32" className={cn("shrink-0", compact ? "h-7 w-7" : "h-9 w-9")} aria-hidden>

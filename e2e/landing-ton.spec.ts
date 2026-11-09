@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 test("l'accueil parle d'une bêta gratuite, pas d'un jeu", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /planning de demain/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
   await expect(page.locator(".mode-banner").first()).toContainText("Exemple");
   await expect(page.getByRole("note").filter({ hasText: BETA }).first()).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "Donner mon avis" }).first()).toBeVisible();
@@ -41,6 +41,12 @@ test("l'accueil parle d'une bêta gratuite, pas d'un jeu", async ({ page }, test
   if (testInfo.project.name === "desktop") {
     await page.screenshot({ path: "/opt/cursor/artifacts/b9-1440.png", fullPage: true, scale: "css" });
   }
+  if (testInfo.project.name === "phone" || testInfo.project.name === "desktop") {
+    await page.getByRole("button", { name: "Passer en mode sombre" }).click();
+    const daName = testInfo.project.name === "phone" ? "da-landing-390.png" : "da-landing-1440.png";
+    await page.screenshot({ path: `/opt/cursor/artifacts/${daName}`, fullPage: true, scale: "css" });
+    await page.getByRole("button", { name: "Passer en mode clair" }).click();
+  }
 
   await page.getByRole("button", { name: "Noter ma société" }).click();
   const dialog = page.getByRole("dialog");
@@ -64,8 +70,8 @@ test("sans configuration, le choix de mode reste une bêta gratuite", async ({ p
   await expect(page.getByRole("heading", { name: "Commencer" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Essayer avec des données fictives" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mon entreprise" })).toBeVisible();
-  await expect(page.getByText(/accès gratuit/i)).toBeVisible();
-  await expect(page.getByRole("note").filter({ hasText: BETA })).toBeVisible();
+  await expect(page.getByText(/accès gratuit/i).first()).toBeVisible();
+  await expect(page.getByRole("note").filter({ hasText: BETA }).first()).toBeVisible();
   const text = await page.locator("body").innerText();
   expect(text).toMatch(/Lomaco/);
   expect(text).not.toMatch(/\bjeu\b/i);

@@ -23,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 test("le formulaire s'ouvre et le contexte technique n'a pas de champ patient", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /planning de demain/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toBeVisible();
   await page.getByRole("main").getByRole("button", { name: "Donner mon avis" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Donner mon avis" })).toBeVisible();

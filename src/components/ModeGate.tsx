@@ -43,15 +43,24 @@ export function ModeChoice({
   onCancel,
   onDemo,
   onCompany,
+  embedded = false,
 }: {
   canCancel: boolean;
   onCancel: () => void;
   onDemo: () => void;
   onCompany: () => void;
+  embedded?: boolean;
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-8 text-ink">
-      <Logo />
+    <div
+      id={embedded ? "commencer" : undefined}
+      className={
+        embedded
+          ? "scroll-mt-8 grid gap-6 text-ink"
+          : "mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-8 text-ink"
+      }
+    >
+      {!embedded && <Logo />}
       <div>
         <h1 className="font-display text-4xl font-light text-navy">Commencer</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">

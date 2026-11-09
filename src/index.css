@@ -425,6 +425,8 @@ body {
   --radius-pill: 999px;
   --bg-overlay: linear-gradient(180deg, rgba(10, 22, 34, 0.72), rgba(10, 22, 34, 0.88));
   --glow-teal: 0 0 24px rgba(46, 196, 182, 0.45);
+  --btn-bg: #14161a;
+  --btn-ink: #f6f5f2;
   /* Pastels d'équipage (maquette Nuit). Les blocs du Gantt les prennent au lot timeline. */
   --crew-blue: #8ec5f0;
   --crew-green: #9fd8b0;
@@ -441,29 +443,31 @@ html:not(.dark) {
   --glass-fallback: #ffffff;
   --glass-opaque: #ffffff;
   --glow-teal: 0 8px 22px rgba(46, 196, 182, 0.28);
+  --btn-bg: #14161a;
+  --btn-ink: #f6f5f2;
 }
 
 html.dark {
   color-scheme: dark;
-  --color-ink: var(--color-text);
-  --color-muted: var(--color-text-2);
-  --color-navy: #07131f;
-  --color-navy-2: #10283c;
+  --color-ink: #f4f4f2;
+  --color-muted: rgba(244, 244, 242, 0.68);
+  --color-navy: #07080c;
+  --color-navy-2: #12141a;
   --color-brand: var(--color-teal);
   --color-brand-2: #1fa396;
-  --color-ice: rgba(255, 255, 255, 0.08);
-  --color-paper: #0c1c2b;
-  --color-line: rgba(255, 255, 255, 0.12);
-  --color-card: #13283a;
+  --color-ice: rgba(255, 255, 255, 0.06);
+  --color-paper: #07080c;
+  --color-line: rgba(255, 255, 255, 0.1);
+  --color-card: #14161c;
   --color-gain: var(--color-gain-bright);
   --color-alert: #ff7a6b;
   --color-alert-soft: rgba(255, 122, 107, 0.16);
-  background-color: var(--color-night-0);
-  background-image:
-    var(--bg-overlay), linear-gradient(160deg, var(--color-night-0) 0%, #123044 46%, var(--color-night-1) 100%);
-  background-repeat: no-repeat;
-  background-attachment: scroll;
-  background-size: cover;
+  --btn-bg: #f4f4f2;
+  --btn-ink: #14161a;
+  --glass-fallback: rgba(12, 13, 16, 0.94);
+  --glass-opaque: rgba(12, 13, 16, 0.96);
+  background-color: #07080c;
+  background-image: none;
 }
 
 html.dark body,
@@ -615,7 +619,7 @@ html.dark textarea::placeholder {
 }
 
 html.dark .shell {
-  background: rgba(10, 22, 34, 0.62);
+  background: rgba(8, 9, 12, 0.72);
   border-right: 1px solid var(--glass-border);
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
@@ -1257,5 +1261,193 @@ html.dark .routing-banner.is-private {
 }
 
 html.dark .mode-banner {
-  background: rgba(10, 22, 34, 0.92);
+  background: rgba(8, 9, 12, 0.92);
+}
+
+/* Landing DA : héros plein écran, nav en pilule, cartes Méthode. */
+.da-hero {
+  position: relative;
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #f4f4f2;
+  background:
+    radial-gradient(120% 80% at 70% 40%, rgba(48, 72, 96, 0.45), transparent 55%),
+    linear-gradient(180deg, #1a2836 0%, #0c1218 42%, #07080c 100%);
+}
+
+.da-hero-media,
+.da-hero-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.da-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 8, 12, 0.28) 0%, rgba(7, 8, 12, 0.2) 40%, rgba(7, 8, 12, 0.72) 100%),
+    radial-gradient(closest-side at 50% 46%, rgba(7, 8, 12, 0.45), transparent 72%);
+}
+
+.da-top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 0;
+}
+
+.da-pill {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(8, 10, 14, 0.42);
+  padding: 4px;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.da-pill a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.da-pill a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.da-contact {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 999px;
+  background: #f4f4f2;
+  padding: 0 16px;
+  color: #14161a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.da-theme {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 10, 14, 0.35);
+  color: #fff;
+}
+
+.da-hero-copy {
+  position: relative;
+  z-index: 1;
+  width: min(40rem, calc(100% - 2rem));
+  margin-top: 4.5rem;
+  text-align: center;
+}
+
+.da-hero-copy h1 {
+  font-size: clamp(2.6rem, 6vw, 4.5rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  color: #fff;
+}
+
+.da-hero-copy p {
+  margin: 1.1rem auto 0;
+  max-width: 28rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.da-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+
+.da-hero .da-hero-primary {
+  background: #f4f4f2;
+  color: #14161a;
+}
+
+.da-hero .da-hero-secondary {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(8, 10, 14, 0.28);
+  color: #fff;
+}
+
+.da-method {
+  background: #07080c;
+  color: #f4f4f2;
+}
+
+html:not(.dark) .da-method {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.da-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: #121318;
+  padding: 22px 22px 26px;
+}
+
+html:not(.dark) .da-card {
+  border-color: var(--color-line);
+  background: var(--color-card);
+}
+
+.da-card-index {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+html:not(.dark) .da-card-index {
+  color: var(--color-muted);
+}
+
+@media (max-width: 720px) {
+  .da-top {
+    justify-content: space-between;
+  }
+
+  .da-pill {
+    order: 3;
+    margin-inline: 0;
+  }
 }

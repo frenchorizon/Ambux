@@ -53,6 +53,12 @@ function AppScreen() {
   const [picking, setPicking] = useState<null | "choice" | "wizard">(null);
   const { phase, dispatch } = useData();
   const onChange = () => setPicking("choice");
+  const chooseDemo = () => {
+    const was = loadWorkspace()?.mode;
+    saveWorkspace(DEMO_PROFILE);
+    if (was !== "demo") dispatch({ type: "REPLAY" });
+    setPicking(null);
+  };
 
   if (picking === "wizard") {
     return (
@@ -67,20 +73,34 @@ function AppScreen() {
     );
   }
 
-  if (picking === "choice" || !profile) {
+  if (!profile) {
+    return (
+      <>
+        <EnterpriseNotice />
+        <Landing
+          choice={
+            <ModeChoice
+              embedded
+              canCancel={false}
+              onCancel={() => undefined}
+              onDemo={chooseDemo}
+              onCompany={() => setPicking("wizard")}
+            />
+          }
+        />
+      </>
+    );
+  }
+
+  if (picking === "choice") {
     return (
       <>
         <ModeBanner onChange={onChange} ecran="choix-mode" />
         <EnterpriseNotice />
         <ModeChoice
-          canCancel={Boolean(profile)}
+          canCancel
           onCancel={() => setPicking(null)}
-          onDemo={() => {
-            const was = loadWorkspace()?.mode;
-            saveWorkspace(DEMO_PROFILE);
-            if (was !== "demo") dispatch({ type: "REPLAY" });
-            setPicking(null);
-          }}
+          onDemo={chooseDemo}
           onCompany={() => setPicking("wizard")}
         />
       </>

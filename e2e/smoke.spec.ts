@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test("le régulateur ouvre le planning de demain", async ({ page }, testInfo) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /planning de demain/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Demain est déjà posé/i }).first()).toBeVisible();
   await page.getByRole("button", { name: "Planning en 1 clic" }).first().click();
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
 

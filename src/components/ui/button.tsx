@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
-const primary = "border border-transparent bg-teal text-night-0 shadow-[var(--glow-teal)] hover:brightness-105";
+const primary = "border border-transparent bg-[var(--btn-bg)] text-[var(--btn-ink)] shadow-none hover:brightness-105";
 const glass = "glass-surface text-ink shadow-none hover:bg-ice";
 const ghost = "border border-transparent bg-transparent text-ink shadow-none hover:bg-ice";
 const danger = "border border-transparent bg-coral text-night-0 shadow-none hover:brightness-105";
