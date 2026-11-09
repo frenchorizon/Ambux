@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useData } from "../../game/context";
+import { ensureDemoProfile } from "../../game/workspace";
 import { quotas } from "../../game/generate";
 import { listDrafts, loadDraft } from "../../game/persist";
 import { MAX_VEHICLES, MISSION_DATE, type Density } from "../../game/types";
@@ -55,6 +56,7 @@ export function FleetPanel() {
         size="lg"
         className="mt-4 w-full"
         onClick={() => {
+          ensureDemoProfile();
           sessionStorage.setItem("ambux.tour", "1");
           dispatch({
             type: "START",

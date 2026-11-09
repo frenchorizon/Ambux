@@ -15,6 +15,7 @@ import { useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
+import { optimizePlan } from "./optimizer";
 import { saveDraft } from "./persist";
 import { resumeOnLoad } from "./resume";
 import { saveRules } from "../lib/rulesStore";
@@ -161,6 +162,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
       cancel = true;
     };
   }, [state.seed, state.phase]);
+
+  useEffect(() => {
+    if (state.phase !== "playing") return;
+    let armed: boolean;
+    try {
+      armed = sessionStorage.getItem("ambux.autogen") === "1";
+      if (armed) sessionStorage.removeItem("ambux.autogen");
+    } catch {
+      return;
+    }
+    if (!armed) return;
+    const current = stateRef.current;
+    try {
+      const plan = optimizePlan({
+        crews: current.crews,
+        transports: current.transports,
+        blocks: current.blocks,
+        locations: current.locations,
+        nowMin: current.nowMin,
+        seed: current.seed,
+        rules: current.rules,
+      });
+      dispatch({ type: "APPLY_STOPS", stops: plan.stops, meals: plan.meals });
+    } catch {
+      dispatch({ type: "TOAST", tone: "bad", message: "Le calcul n'a pas abouti." });
+    }
+  }, [dispatch, state.phase, state.seed]);
 
   useEffect(() => {
     if (state.phase === "briefing") return;

@@ -5,6 +5,7 @@ import heroPng from "../../assets/hero/hero.png";
 import heroWebp from "../../assets/hero/hero.webp";
 import { DEMO_MEASURE } from "../../data/demoFacts";
 import { useData } from "../../game/context";
+import { ensureDemoProfile } from "../../game/workspace";
 import { MISSION_DATE } from "../../game/types";
 import { toggleTheme, useDark } from "../../lib/theme";
 import { FeedbackDialog } from "../feedback/FeedbackForm";
@@ -71,11 +72,17 @@ export function Landing({ choice }: { choice?: ReactNode }) {
   const [ask, setAsk] = useState(false);
   const [feedback, setFeedback] = useState(false);
   const start = () => {
-    if (choice) {
-      document.getElementById("commencer")?.scrollIntoView({ behavior: "smooth" });
-      return;
-    }
+    ensureDemoProfile();
     oneClick(dispatch);
+  };
+  const generateNow = () => {
+    ensureDemoProfile();
+    try {
+      sessionStorage.setItem("ambux.autogen", "1");
+    } catch {
+      /* session indisponible : le bouton de l'app reste utilisable */
+    }
+    dispatch({ type: "START", amb: 3, vsl: 3, density: "normale", seed: 20261015 });
   };
   const emptySaved = Number(DEMO_MEASURE.naiveEmptyKm) - Number(DEMO_MEASURE.ambuxEmptyKm);
 
@@ -111,7 +118,7 @@ export function Landing({ choice }: { choice?: ReactNode }) {
             <h1>Demain est déjà posé.</h1>
             <p>Le planning de vos ambulances et VSL, généré en un clic. Rentrez à l'heure.</p>
             <div className="da-hero-actions">
-              <Button size="lg" className="da-btn-primary" onClick={start}>
+              <Button size="lg" className="da-btn-primary" onClick={generateNow}>
                 Générer demain →
               </Button>
               <Button

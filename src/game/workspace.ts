@@ -80,6 +80,12 @@ function readWorkspaceRaw(): string | null {
   }
 }
 
+/** Ouvre l'exemple fictif quand aucun profil n'est encore choisi. */
+export function ensureDemoProfile(): void {
+  if (loadWorkspace()) return;
+  saveWorkspace(DEMO_PROFILE);
+}
+
 export function saveWorkspace(profile: WorkspaceProfile): boolean {
   const stored = profile.mode === "demo" ? { ...DEMO_PROFILE } : normalizeEnterprise(profile);
   const raw = JSON.stringify(stored);
