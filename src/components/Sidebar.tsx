@@ -114,9 +114,10 @@ function NavButton({
       }}
       data-tour={item.id === "carte" ? "carte" : undefined}
       className="nav-item"
+      title={item.label}
     >
       {item.icon}
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      <span className="nav-label">{item.label}</span>
       {count > 0 && (
         <span className={cn("nav-badge", item.id === "gantt" && "nav-badge-alert")} aria-hidden>
           {count}
@@ -134,16 +135,20 @@ export function Sidebar() {
   if (narrow) return null;
   return (
     <aside className="shell-side glass">
-      <div className="px-2 pb-4">
-        <Logo light={dark} />
+      <div className="px-1 pb-3">
+        <Logo light={dark} wordmark />
       </div>
       <NavList />
-      <button type="button" className="shell-back" onClick={() => dispatch({ type: "REPLAY" })}>
-        Retour à l'accueil
+      <button
+        type="button"
+        className="shell-back"
+        title="Retour à l'accueil"
+        onClick={() => dispatch({ type: "REPLAY" })}
+      >
+        <span className="sr-only">Retour à l'accueil</span>
+        <span aria-hidden="true">←</span>
       </button>
-      <p className="shell-note">
-        {enterprise ? "Dans ce navigateur. Aucune donnée envoyée." : "Exemple fictif. Aucune donnée patient réelle."}
-      </p>
+      {enterprise ? <p className="shell-note">Dans ce navigateur.</p> : null}
     </aside>
   );
 }
@@ -176,7 +181,7 @@ export function BottomNav() {
                 </span>
               )}
             </span>
-            <span className="max-w-full truncate">{item.label}</span>
+            <span className="nav-label">{item.label}</span>
           </button>
         );
       })}

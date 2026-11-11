@@ -411,6 +411,7 @@ test("carte sans clé, mode sombre et routage coupé", async ({ page }, testInfo
 test("OSRM muet : bandeau et tracés estimés", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("ambux.routing", "estimate"));
   await openPlanning(page);
+  await page.getByRole("button", { name: "Autres actions" }).click();
   await expect(page.getByText("Routage dégradé")).toBeVisible();
   await page.getByRole("button", { name: "Carte" }).click();
   await expect(page.getByText("Tracés estimés")).toBeVisible();

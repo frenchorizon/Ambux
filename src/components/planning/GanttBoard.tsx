@@ -73,26 +73,27 @@ export function GanttBoard({
         .find((leg) => leg.transportId === tipTransport.id)
     : undefined;
 
+  const showNow = nowMin > DAY_START && nowMin < DAY_END;
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-card">
+    <div className="da-gantt relative flex h-full min-h-0 flex-col">
       <div ref={scrollRef} className="gantt-scroll min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: label + width }}>
-          <div className="sticky top-0 z-30 flex border-b border-line bg-card">
+          <div className="da-gantt-head sticky top-0 z-30 flex">
             <div
               data-crew-column=""
-              className="sticky left-0 z-40 flex items-end border-r border-line bg-card px-2 pb-2 text-[13px] font-semibold uppercase tracking-wide text-muted"
+              className="da-gantt-crewhead sticky left-0 z-40 flex items-end px-2 pb-2 text-[13px] font-medium text-muted"
               style={{ width: label }}
             >
               Équipage
             </div>
-            <div className="relative h-9" style={{ width }}>
+            <div className="relative h-8" style={{ width }}>
               {hours().map((hour) => (
                 <div
                   key={hour}
-                  className="absolute top-0 flex h-full items-end border-l border-line/80 pb-1 pl-1 text-[13px] font-semibold text-muted"
+                  className="da-hour absolute top-0 flex h-full items-end pb-1 pl-1 text-[13px] text-muted"
                   style={{ left: (hour * 60 - DAY_START) * pxPerMin }}
                 >
-                  {String(hour).padStart(2, "0")} h
+                  {String(hour).padStart(2, "0")}h
                 </div>
               ))}
             </div>
@@ -119,19 +120,15 @@ export function GanttBoard({
                 onTip={onTip}
               />
             ))}
-          {data.live && (
+          {showNow && (
             <div
-              className="pointer-events-none absolute bottom-0 z-20 w-px bg-alert-strong"
-              style={{ left: label + (nowMin - DAY_START) * pxPerMin, top: 36 }}
-            >
-              <span className="absolute -left-5 top-0 rounded bg-alert-strong px-1 py-0.5 text-[13px] font-bold text-white">
-                {formatMin(nowMin, "floor")}
-              </span>
-            </div>
+              className="gantt-now pointer-events-none absolute bottom-0 z-20"
+              style={{ left: label + (nowMin - DAY_START) * pxPerMin, top: 32 }}
+            />
           )}
         </div>
       </div>
-      {tip && tipTransport && !drag?.moved && !narrow && (
+      {tip && tipTransport && !drag?.moved && !narrow && tip.transportId !== data.selectedId && (
         <div
           className="pointer-events-none fixed z-[60] w-64 rounded-xl border border-line bg-card p-3 text-xs shadow-xl"
           style={{
@@ -182,6 +179,8 @@ function sameRowDrag(crewId: string, prev: DragState | null, next: DragState | n
   return prev?.previewKey === next?.previewKey && Boolean(prev?.preview?.ok) === Boolean(next?.preview?.ok);
 }
 
+const CREW_TINTS = ["#8ec5f0", "#9fd8b0", "#e3c48a", "#c4b4e6", "#e7b7c8", "#8fd0c8"];
+
 const CrewRow = memo(function CrewRow({
   crew,
   width,
@@ -218,18 +217,19 @@ const CrewRow = memo(function CrewRow({
   const barH = label < 120 ? 44 : 34;
   const barTop = Math.round((rowH - barH) / 2);
   const family = crew.driver.split(" ").slice(-1)[0] ?? crew.driver;
+  const tint = CREW_TINTS[Math.abs(hashHue(crew.id)) % CREW_TINTS.length] ?? CREW_TINTS[0];
   return (
-    <div className="flex border-b border-line">
+    <div className="da-gantt-row flex">
       <div
-        className="sticky left-0 z-20 flex items-center gap-1.5 border-r border-line bg-card px-1.5"
+        className="da-gantt-crew sticky left-0 z-20 flex items-center gap-2 px-2"
         style={{ width: label, height: rowH }}
         title={`${crew.driver}${crew.mate ? ` · ${crew.mate}` : ""} · ${formatMin(crew.shiftStart)}–${formatMin(crew.shiftEnd)}`}
       >
-        <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: crew.color }} />
+        <span className="da-crew-edge" style={{ background: tint }} />
         <span className="min-w-0">
-          <span className="block truncate text-[13px] font-semibold leading-tight">{crew.code}</span>
-          <span className="block truncate text-[13px] leading-tight text-ink">{family}</span>
-          {mealWarn && <span className="block truncate text-[13px] text-alert">{mealWarn}</span>}
+          <span className="block truncate text-[13px] leading-tight text-muted">{crew.code}</span>
+          <span className="da-crew-family block truncate text-[13px] leading-tight">{family}</span>
+          {mealWarn && <span className="block truncate text-[13px] text-muted">{mealWarn}</span>}
         </span>
       </div>
       <div
@@ -242,7 +242,7 @@ const CrewRow = memo(function CrewRow({
         {hours().map((hour) => (
           <div
             key={hour}
-            className="absolute inset-y-0 border-l border-line/70"
+            className="da-gridline absolute inset-y-0"
             style={{ left: (hour * 60 - DAY_START) * pxPerMin }}
           />
         ))}
@@ -252,9 +252,7 @@ const CrewRow = memo(function CrewRow({
             title={block.kind === "repas" ? "Pause repas obligatoire" : block.label}
             className={cn(
               "absolute flex items-center overflow-hidden rounded-md px-1 text-[13px] font-semibold",
-              block.kind === "repas"
-                ? "border border-meal bg-meal text-meal-ink"
-                : "border border-dashed border-line bg-ice text-muted",
+              block.kind === "repas" ? "da-repas" : "da-gap",
             )}
             style={{
               top: barTop,
@@ -292,7 +290,7 @@ const CrewRow = memo(function CrewRow({
           const keyboard = isKeyboardDrag(drag) && drag.transportId === transport.id;
           const pending = pendingId === transport.id && !dragging;
           const returning = returningId === transport.id;
-          const off = Math.abs(leg.deviationMin) >= 5;
+          const anomaly = Boolean(leg.conflict || leg.incompatible || leg.lateMin >= 1);
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
           const patientLabel = patient ? personName(patient) : "Patient";
@@ -311,8 +309,8 @@ const CrewRow = memo(function CrewRow({
                   dragging && "gantt-dragging",
                   keyboard && "gantt-key",
                   returning && "gantt-returning",
-                  (leg.conflict || leg.incompatible || leg.lateMin >= 1) && "ring-2 ring-alert",
-                  selected && "outline outline-2 outline-offset-1 outline-navy",
+                  selected && "is-selected",
+                  anomaly && "has-anomaly",
                 )}
                 ref={
                   dragging
@@ -326,8 +324,8 @@ const CrewRow = memo(function CrewRow({
                   width: bar,
                   top: barTop,
                   height: barH,
-                  background: "color-mix(in srgb, var(--crew) 16%, transparent)",
-                  ["--crew" as string]: crew.color,
+                  ["--crew" as string]: tint,
+                  ["--crew-edge" as string]: tint,
                   zIndex: dragging ? 25 : undefined,
                 }}
                 data-armed={dragging && !drag.moved ? "1" : undefined}
@@ -375,23 +373,10 @@ const CrewRow = memo(function CrewRow({
                       </span>
                     );
                   })}
-                  {leg.kmEstimated && (
-                    <span
-                      title="Durée estimée : le routage n'a pas répondu"
-                      className="pointer-events-none absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-alert-strong"
-                    />
-                  )}
+                  {anomaly && <span className="gantt-dot" data-anomaly="" />}
+                  <span className="gantt-name">{name}</span>
                 </span>
               </button>
-              {off && (
-                <span
-                  key={`dev-${leg.transportId}`}
-                  className="pointer-events-none absolute z-10 rounded bg-alert-strong px-1 text-[13px] font-bold leading-4 text-white"
-                  style={{ left: left + Math.max(0, bar - 42), top: 2 }}
-                >
-                  {deviationLabel(leg.deviationMin)}
-                </span>
-              )}
               {(transport.stayMin ?? 0) > 0 && (
                 <span
                   className="gantt-stay pointer-events-none absolute z-10 max-w-24 truncate text-[13px] font-semibold leading-none text-navy"
@@ -494,6 +479,12 @@ function DragGhost({
       {!preview.ok && <span className="truncate">{refusalMotif(preview)}</span>}
     </div>
   );
+}
+
+function hashHue(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  return hash;
 }
 
 function ghostSpan(

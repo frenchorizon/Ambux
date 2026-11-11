@@ -34,7 +34,7 @@ import { useData } from "./game/context";
 import { DEMO_PROFILE, depotFromProfile, loadWorkspace, saveWorkspace, subscribeWorkspace } from "./game/workspace";
 import type { ModalId, ViewId } from "./game/types";
 import { RoutingNoticeHost } from "./components/RoutingPrivacy";
-import { matrixSource, useRoutingVersion } from "./lib/routing";
+import { useRoutingVersion } from "./lib/routing";
 import { usePrivateMode } from "./lib/routingPrivacy";
 
 export function App() {
@@ -180,14 +180,7 @@ function RoutingBanner() {
       </div>
     );
   }
-  const source = matrixSource();
-  if (source !== "estimate") return null;
-  return (
-    <div className="routing-banner glass">
-      Routage dégradé : durées et kilomètres estimés, non opposables. Les courses concernées portent la mention « km
-      estimé ».
-    </div>
-  );
+  return null;
 }
 
 function LiveCalls() {

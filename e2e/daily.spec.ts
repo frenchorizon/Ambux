@@ -98,6 +98,7 @@ test("OSRM coupé : tracé estimé et bandeau", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.addInitScript(() => localStorage.setItem("ambux.routing", "estimate"));
   await openPlanning(page);
+  await page.getByRole("button", { name: "Autres actions" }).click();
   await expect(page.getByText("Routage dégradé")).toBeVisible();
   await page.getByRole("button", { name: "Carte" }).click();
   await expect(page.getByText("Tracés estimés")).toBeVisible();

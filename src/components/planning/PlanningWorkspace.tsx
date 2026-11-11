@@ -5,12 +5,15 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { useClock, useData } from "../../game/context";
+import { loadWorkspace, subscribeWorkspace } from "../../game/workspace";
 import { displayedDepart, previewOnGrid, snap5 } from "../../game/schedule";
 import { DAY_START } from "../../game/types";
+import heroPng from "../../assets/hero/hero.png";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
 import { Button } from "../ui/button";
 import {
@@ -500,7 +503,9 @@ export function PlanningWorkspace() {
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
       if (event.key === "Escape") {
+        const dragging = Boolean(dragRef.current) || Boolean(pending.current);
         abortRef.current();
+        if (!dragging) bag.current.data.dispatch({ type: "SELECT", id: undefined });
         return;
       }
       if (isKeyboardDrag(dragRef.current)) {
@@ -698,6 +703,23 @@ export function PlanningWorkspace() {
     },
   };
 
+  const enterprise = useSyncExternalStore(
+    subscribeWorkspace,
+    () => loadWorkspace()?.mode === "entreprise",
+    () => false,
+  );
+  useEffect(() => {
+    const onPointer = (event: PointerEvent) => {
+      if (dragRef.current || pending.current) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(".da-detail, .gantt-block, [data-dpad], .shell-menu, .shell-top, [role='dialog']")) return;
+      if (!bag.current.data.selectedId) return;
+      bag.current.data.dispatch({ type: "SELECT", id: undefined });
+    };
+    window.addEventListener("pointerdown", onPointer);
+    return () => window.removeEventListener("pointerdown", onPointer);
+  }, []);
   const selected = data.selectedId ? data.transportById.get(data.selectedId) : undefined;
   const selectedPatient = selected ? data.patientById.get(selected.patientId) : undefined;
   const selectedLeg = selected
@@ -711,10 +733,12 @@ export function PlanningWorkspace() {
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col"
+      className="da-gantt-scene relative flex h-full min-h-0 flex-col"
       data-gesture={gesture}
       data-keyboard={isKeyboardDrag(drag) ? "1" : undefined}
     >
+      <div className="da-gantt-photo" style={{ backgroundImage: `url(${heroPng})` }} aria-hidden="true" />
+      <div className="da-gantt-veil" aria-hidden="true" />
       <p className="sr-only" aria-live="polite" aria-atomic="true" data-live="keyboard">
         {live}
       </p>
@@ -727,17 +751,20 @@ export function PlanningWorkspace() {
         onStart={onStart}
         dragNodeRef={dragNodeRef}
       />
-      {selected && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-line bg-card px-3 py-2">
+      {selected && !drag && (
+        <aside className="da-detail" aria-label="Détail de la course">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold">
-              {selectedPatient ? personName(selectedPatient) : "Course"}
-            </div>
-            <div className="truncate text-xs text-muted">
-              {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
+            <div className="da-detail-title">
+              <span className="truncate">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
+              <span>
+                {" · "}
+                {postureLabel(selected.posture)}
+                {" · RDV "}
+                {formatMin(selected.appointmentMin ?? selected.windowStart)}
+              </span>
             </div>
             {selectedLeg && (
-              <p className="text-[12px] leading-snug text-ink">
+              <p className="da-detail-line">
                 vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min /
                 dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
                 {selectedLeg.kmEstimated ? " · estimé" : ""}
@@ -764,8 +791,7 @@ export function PlanningWorkspace() {
           </Button>
           <Button
             size="sm"
-            className="h-11"
-            variant="secondary"
+            className="da-detail-primary h-11"
             onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}
           >
             Meilleur créneau
@@ -773,13 +799,14 @@ export function PlanningWorkspace() {
           <Button
             size="sm"
             className="h-11"
-            variant="ghost"
+            variant="secondary"
             onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}
           >
             Retirer
           </Button>
-        </div>
+        </aside>
       )}
+      {!enterprise && <p className="da-fictif">Exemple fictif. Aucune donnée patient réelle.</p>}
       {ui.sheet === "find" && (
         <Sheet title="Chercher et afficher" onClose={closeTimelineSheet}>
           <label className="block text-sm font-semibold">

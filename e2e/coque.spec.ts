@@ -31,8 +31,8 @@ test("coque en verre, bureau et mobile", async ({ page }, testInfo) => {
   await expect(header.getByRole("button", { name: "Rétablir" })).toBeVisible();
   await expect(header.getByRole("button", { name: "Rechercher" })).toBeVisible();
   await expect(header.locator(".version-chip")).toHaveText(/^v\d+$/);
-  if (phone) await expect(header.getByText("16 oct. 2026", { exact: true })).toBeVisible();
-  else await expect(header.getByText("Planning du vendredi 16 octobre")).toBeVisible();
+  await expect(header.getByText("Demain est posé.", { exact: true })).toBeVisible();
+  await expect(header.getByText(/courses/)).toBeVisible();
 
   const blur = await header.evaluate((el) => getComputedStyle(el).backdropFilter);
   expect(blur).toMatch(/blur/);
@@ -92,7 +92,7 @@ test("coque en verre, bureau et mobile", async ({ page }, testInfo) => {
     const activeColor = await nav
       .getByRole("button", { name: "Timeline", exact: true })
       .evaluate((el) => getComputedStyle(el).color);
-    expect(activeColor).toBe("rgb(46, 196, 182)");
+    expect(activeColor).toBe("rgb(255, 255, 255)");
     const main = await page.locator("main").boundingBox();
     const bar = await nav.boundingBox();
     expect(main).not.toBeNull();
@@ -117,17 +117,17 @@ test("coque en verre, bureau et mobile", async ({ page }, testInfo) => {
     await expect(aside).toBeVisible();
     await expect(aside.getByText("Ambux", { exact: true })).toBeVisible();
     const box = await aside.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThanOrEqual(200);
-    expect(box?.width ?? 0).toBeLessThanOrEqual(220);
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(64);
+    expect(box?.width ?? 0).toBeLessThanOrEqual(88);
     const sideBlur = await aside.evaluate((el) => getComputedStyle(el).backdropFilter);
     expect(sideBlur).toMatch(/blur/);
     const sideBg = await aside.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(sideBg).not.toBe("rgba(0, 0, 0, 0)");
     const active = aside.getByRole("button", { name: "Timeline", exact: true });
     const activeBg = await active.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(activeBg).toBe("rgba(46, 196, 182, 0.14)");
+    expect(activeBg).toBe("rgba(255, 255, 255, 0.16)");
     const activeBorder = await active.evaluate((el) => getComputedStyle(el).borderTopColor);
-    expect(activeBorder).toBe("rgb(46, 196, 182)");
+    expect(activeBorder).toBe("rgba(0, 0, 0, 0)");
     const activeText = await active.evaluate((el) => getComputedStyle(el).color);
     expect(activeText).toBe("rgb(255, 255, 255)");
     await expect(aside.getByRole("button", { name: "Données et export" })).toHaveCount(0);
@@ -142,6 +142,7 @@ test("bandeau de routage en verre corail", async ({ page }, testInfo) => {
   const startup = page.getByRole("status");
   await startup.waitFor({ state: "visible", timeout: 8_000 }).catch(() => undefined);
   await startup.waitFor({ state: "hidden", timeout: 8_000 }).catch(() => undefined);
+  await page.getByRole("button", { name: "Autres actions" }).click();
   const banner = page.locator(".routing-banner");
   await expect(banner).toBeVisible();
   await expect(banner).toContainText("Routage dégradé");
@@ -149,7 +150,7 @@ test("bandeau de routage en verre corail", async ({ page }, testInfo) => {
   const blur = await banner.evaluate((el) => getComputedStyle(el).backdropFilter);
   expect(blur).toMatch(/blur/);
   const border = await banner.evaluate((el) => getComputedStyle(el).borderTopColor);
-  expect(border).toBe("rgba(255, 122, 107, 0.55)");
+  expect(border).toBe("rgba(255, 255, 255, 0.1)");
   const shot = testInfo.project.name === "phone" ? "coque-banner-390.png" : "coque-banner-1440.png";
   await page.screenshot({ path: `${shots}/${shot}` });
 });

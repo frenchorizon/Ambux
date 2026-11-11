@@ -1,4 +1,5 @@
 import { CircleHelp, Ellipsis, FileText, Pause, Play, Redo2, Search, Send, Sparkles, Undo2 } from "lucide-react";
+import { matrixSource } from "../lib/routing";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { FeedbackButton } from "./feedback/FeedbackForm";
 import { screenFromApp } from "../feedback/channel";
@@ -49,21 +50,36 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch, live]);
 
+  const baselineKm = Number(data.stats.baselineEmptyKm);
+  const emptyKm = Number(data.metrics.emptyKm);
+  const savedKm = Number.isFinite(baselineKm) && Number.isFinite(emptyKm) ? Math.round(baselineKm - emptyKm) : 0;
+  const kmLabel =
+    baselineKm > 0
+      ? `${savedKm < 0 ? "+" : "−"}${Math.abs(savedKm)} km à vide`
+      : `${Math.round(data.metrics.emptyKm)} km à vide`;
   const dateField = (
-    <label className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-lg px-1">
-      <span className="truncate text-[15px] font-medium">
-        {narrow ? shortDate(missionIso) : planningTitle(missionLabel)}
-      </span>
-      <input
-        type="date"
-        aria-label="Date de mission"
-        value={missionIso}
-        onChange={(event) => {
-          if (event.target.value) dispatch({ type: "SET_MISSION", iso: event.target.value });
-        }}
-        className="absolute inset-0 cursor-pointer opacity-0"
-      />
-    </label>
+    <div className="da-plan-title min-w-0 flex-1">
+      <p className="da-plan-heading">Demain est posé.</p>
+      <p data-plan-meta="" data-courses={data.metrics.placed} data-saved={savedKm}>
+        <label className="relative inline-flex items-center">
+          <span>{missionLabel.replace(/\s+\d{4}$/, "")}</span>
+          <input
+            type="date"
+            aria-label="Date de mission"
+            value={missionIso}
+            onChange={(event) => {
+              if (event.target.value) dispatch({ type: "SET_MISSION", iso: event.target.value });
+            }}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
+        <span>
+          {" · "}
+          {data.metrics.placed} courses · {kmLabel}
+        </span>
+        <span className="sr-only">{narrow ? shortDate(missionIso) : planningTitle(missionLabel)}</span>
+      </p>
+    </div>
   );
 
   return (
@@ -119,15 +135,27 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
               <Search size={18} />
               {!narrow && <span>Rechercher</span>}
             </button>
-            <button
-              type="button"
-              data-tour="controle"
-              className="shell-icon text-[13px] font-medium"
-              aria-label={`À contrôler, ${reviewCount}`}
-              onClick={() => setTimelineSheet("review")}
-            >
-              <span className={cn("shell-count", reviewCount > 0 && "shell-count-alert")}>{reviewCount}</span>
-            </button>
+            {reviewCount > 0 ? (
+              <button
+                type="button"
+                data-tour="controle"
+                className="da-check"
+                aria-label={`À contrôler, ${reviewCount}`}
+                onClick={() => setTimelineSheet("review")}
+              >
+                {reviewCount} points à vérifier
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-tour="controle"
+                className="shell-icon text-[13px] font-medium"
+                aria-label={`À contrôler, ${reviewCount}`}
+                onClick={() => setTimelineSheet("review")}
+              >
+                <span className="da-check-count">0</span>
+              </button>
+            )}
           </>
         )}
         <Button
@@ -210,6 +238,12 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
               dispatch({ type: "OPEN_MODAL", modal: "lomaco" });
             }}
           />
+          {matrixSource() === "estimate" && (
+            <p className="routing-banner" role="status">
+              Routage dégradé : durées et kilomètres estimés, non opposables. Les courses concernées portent la mention
+              « km estimé ».
+            </p>
+          )}
           <MenuButton
             icon={<CircleHelp size={16} />}
             label="Aide"
