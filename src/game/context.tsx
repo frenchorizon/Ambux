@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { indexById } from "../lib/collections";
-import { useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
+import { matrixSource, useRoutingVersion, warmLegs, warmMatrix } from "../lib/routing";
 import type { Metrics } from "./scoring";
 import { metricsFromSchedules } from "./scoring";
 import { indexLocations, scheduleFleet, type CrewSchedule } from "./schedule";
@@ -189,6 +189,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "TOAST", tone: "bad", message: "Le calcul n'a pas abouti." });
     }
   }, [dispatch, state.phase, state.seed]);
+
+  const routedPlan = useRef("");
+  useEffect(() => {
+    if (state.phase !== "playing") return;
+    const source = matrixSource();
+    if (source !== "estimate" && source !== "osrm") return;
+    const key = `${state.seed}:${source}`;
+    if (routedPlan.current === key) return;
+    const current = stateRef.current;
+    if (!current.stats.optimizerApplied || current.stats.moves !== 0) return;
+    routedPlan.current = key;
+    try {
+      const plan = optimizePlan({
+        crews: current.crews,
+        transports: current.transports,
+        blocks: current.blocks.filter((block) => block.kind !== "repas"),
+        locations: current.locations,
+        nowMin: current.nowMin,
+        seed: current.seed,
+        rules: current.rules,
+      });
+      dispatch({ type: "APPLY_STOPS", stops: plan.stops, meals: plan.meals });
+    } catch {
+      dispatch({ type: "TOAST", tone: "bad", message: "Le calcul n'a pas abouti." });
+    }
+  }, [dispatch, routeVersion, state.phase, state.seed, state.stats.moves, state.stats.optimizerApplied]);
 
   useEffect(() => {
     if (state.phase === "briefing") return;

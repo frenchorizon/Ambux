@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { openPlanning } from "./helpers";
 
+function clockOf(text: string): number {
+  const match = text.match(/(\d{2}):(\d{2})/);
+  if (!match) return 0;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("ambux.tour.v1", "1");
@@ -34,13 +40,27 @@ test("un retour tardif affiche l'alerte et le seuil se règle", async ({ page },
   await expect(alert).toContainText("Attention, beaucoup de retard");
   await expect(alert).toContainText(/Retard \d+ min après la sortie/);
   await expect(page.locator("[data-return-alert]").first()).toBeVisible();
-  await expect(page.getByRole("banner")).toContainText(/\d+ points à vérifier/);
+  await expect(page.locator("[data-patient-rdv]")).toContainText(/Retour · Sortie \d{2}:\d{2}/);
+  await expect(page.getByRole("banner")).toContainText(/\d+ points? à vérifier/);
   await retour.evaluate((node) => node.scrollIntoView({ block: "start", inline: "nearest" }));
   if (testInfo.project.name === "phone") {
     await page.screenshot({ path: "/opt/cursor/artifacts/priorite-390.png", scale: "css" });
   }
   if (testInfo.project.name === "desktop") {
     await page.screenshot({ path: "/opt/cursor/artifacts/priorite-1440.png", scale: "css" });
+  }
+  const aller = page.locator("[data-kind='aller'], [data-kind='dialyse_aller']").first();
+  await aller.scrollIntoViewIfNeeded();
+  await aller.click();
+  await expect(page.locator("[data-patient-rdv]")).toContainText(/Aller · RDV \d{2}:\d{2}/);
+  const dropoff = clockOf(await page.locator("[data-patient-dropoff]").innerText());
+  const appointment = clockOf(await page.locator("[data-patient-rdv]").innerText());
+  expect(dropoff).toBeLessThanOrEqual(appointment);
+  if (testInfo.project.name === "phone") {
+    await page.screenshot({ path: "/opt/cursor/artifacts/priorite-aller-390.png", scale: "css" });
+  }
+  if (testInfo.project.name === "desktop") {
+    await page.screenshot({ path: "/opt/cursor/artifacts/priorite-aller-1440.png", scale: "css" });
     await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
     const field = page.getByRole("spinbutton", { name: /Alerte retard de retour/ });
     await expect(field).toHaveValue("30");

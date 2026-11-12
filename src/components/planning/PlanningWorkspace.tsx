@@ -11,7 +11,15 @@ import {
 } from "react";
 import { useClock, useData } from "../../game/context";
 import { loadWorkspace, subscribeWorkspace } from "../../game/workspace";
-import { displayedDepart, dropoffClock, previewOnGrid, returnDelayMin, snap5 } from "../../game/schedule";
+import {
+  appointmentCaption,
+  courseSenseLabel,
+  displayedDepart,
+  dropoffClock,
+  previewOnGrid,
+  returnDelayMin,
+  snap5,
+} from "../../game/schedule";
 import { motifLabel } from "../../game/motif";
 import { DAY_START } from "../../game/types";
 import heroPng from "../../assets/hero/hero.png";
@@ -783,7 +791,11 @@ export function PlanningWorkspace() {
             </p>
           )}
           <p className="da-detail-quiet" data-patient-rdv>
-            {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
+            {postureLabel(selected.posture)}
+            {" · "}
+            {courseSenseLabel(selected.kind)}
+            {" · "}
+            {appointmentCaption(selected.kind)} {formatMin(selected.appointmentMin ?? selected.windowStart)}
           </p>
           {returnAlert && (
             <p className="da-return-alert" data-return-alert="">

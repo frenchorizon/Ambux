@@ -256,7 +256,7 @@ async function restorePlannedTime(page: Page) {
   expect(target).toBeTruthy();
   await page.locator(`[data-transport-id="${target!.id}"]`).click();
   await expect(page.getByRole("button", { name: "Heure prévue" })).toBeVisible();
-  await expect(page.getByText(/RDV \d{2}:\d{2}/)).toBeVisible();
+  await expect(page.getByText(/(RDV|Sortie) \d{2}:\d{2}/)).toBeVisible();
   const before = await barById(page, target!.id);
   await page.getByRole("button", { name: "Heure prévue" }).click();
   const after = await barById(page, target!.id);

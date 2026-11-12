@@ -467,6 +467,14 @@ export function isReturnKind(kind: string): boolean {
   return kind === "retour" || kind === "dialyse_retour";
 }
 
+export function courseSenseLabel(kind: string): "Aller" | "Retour" {
+  return isReturnKind(kind) ? "Retour" : "Aller";
+}
+
+export function appointmentCaption(kind: string): "Sortie" | "RDV" {
+  return isReturnKind(kind) ? "Sortie" : "RDV";
+}
+
 /** Retard après l'heure de sortie. Zéro pour un aller, et si la prise en charge n'est pas en retard. */
 export function returnDelayMin(
   transport: { kind: string; appointmentMin?: number; windowStart: number },

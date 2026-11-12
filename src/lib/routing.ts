@@ -82,11 +82,13 @@ export function rememberTravel(fromId: string, toId: string, travel: Travel): vo
 }
 
 export function travelBetween(fromId: string, toId: string, from: LatLng, to: LatLng): Travel {
-  if (fromId === toId) return { km: 0, min: 0, source: "osrm" };
+  if (fromId === toId) return { km: 0, min: 0, source: "estimate" };
+  const estimate = estimateTravel(from, to);
+  // Le mode privé et l'estimation locale ignorent un cache OSRM déjà arrivé :
+  // sinon le rendez-vous, calé sur l'estimation, ne correspond plus aux durées affichées.
+  if (routingForcedEstimate() || typeof window === "undefined") return estimate;
   const known = travelById.get(idKey(fromId, toId));
   if (known) return known;
-  const estimate = estimateTravel(from, to);
-  if (routingForcedEstimate() || typeof window === "undefined") return estimate;
   return { ...estimate, pending: true };
 }
 
@@ -264,19 +266,19 @@ async function fetchLeg(pair: LegPair): Promise<void> {
   }
   try {
     const osrm = await osrmLeg(OSRM, pair.from, pair.to);
-    if (osrm) {
+    if (osrm && !routingForcedEstimate()) {
       travelById.set(key, { ...osrm, source: "osrm" });
       if (matrixState !== "estimate") matrixState = "osrm";
       return;
     }
     const ors = await orsLeg(pair.from, pair.to);
-    if (ors) {
+    if (ors && !routingForcedEstimate()) {
       travelById.set(key, { ...ors, source: "ors" });
       if (matrixState !== "estimate") matrixState = "osrm";
       return;
     }
     const mirror = await osrmLeg(OSRM_DE, pair.from, pair.to);
-    if (mirror) {
+    if (mirror && !routingForcedEstimate()) {
       travelById.set(key, { ...mirror, source: "osrm" });
       if (matrixState !== "estimate") matrixState = "osrm";
       return;

@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 import { optimizePlan } from "../src/game/optimizer.ts";
 import { reviewIssues } from "../src/game/review.ts";
 import {
+  appointmentCaption,
   appointmentWindow,
+  courseSenseLabel,
   dropoffClock,
   returnDelayMin,
   scheduleCrew,
@@ -185,5 +187,14 @@ describe("priorité aller et retour", () => {
     assert.deepEqual(appointmentWindow("retour", 9 * 60), { windowStart: 9 * 60, windowEnd: DAY_END });
     assert.equal(appointmentWindow("aller", 9 * 60).windowStart, DAY_START);
     assert.equal(appointmentWindow("simple", 9 * 60).windowEnd, 9 * 60);
+  });
+
+  it("nomme Sortie pour un retour et RDV pour un aller", () => {
+    assert.equal(courseSenseLabel("retour"), "Retour");
+    assert.equal(courseSenseLabel("dialyse_retour"), "Retour");
+    assert.equal(courseSenseLabel("aller"), "Aller");
+    assert.equal(courseSenseLabel("simple"), "Aller");
+    assert.equal(appointmentCaption("dialyse_retour"), "Sortie");
+    assert.equal(appointmentCaption("aller"), "RDV");
   });
 });

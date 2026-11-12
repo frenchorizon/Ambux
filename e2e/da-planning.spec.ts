@@ -74,7 +74,7 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   );
   expect(lines[2]).toMatch(/^Prise en charge \d{2}:\d{2}$/);
   expect(lines[3]).toMatch(/^Dépose \d{2}:\d{2}$/);
-  await expect(detail.locator("[data-patient-rdv]")).toContainText(/RDV \d{2}:\d{2}/);
+  await expect(detail.locator("[data-patient-rdv]")).toContainText(/(RDV|Sortie) \d{2}:\d{2}/);
   const nameBox = await detail.locator("[data-patient-name]").boundingBox();
   const cardBox = await detail.boundingBox();
   expect(nameBox && cardBox).toBeTruthy();
@@ -151,7 +151,7 @@ test("un point orange signale une anomalie réelle", async ({ page }, testInfo) 
     }
   }
   await expect(dot.first()).toBeVisible();
-  await expect(page.getByRole("banner")).toContainText(/\d+ points à vérifier/);
+  await expect(page.getByRole("banner")).toContainText(/\d+ points? à vérifier/);
   const shot = testInfo.project.name === "phone" ? "da-anomalie-390.png" : "da-anomalie-1440.png";
   if (testInfo.project.name === "phone" || testInfo.project.name === "desktop") {
     await page.screenshot({ path: `/opt/cursor/artifacts/${shot}`, scale: "css" });

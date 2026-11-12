@@ -147,7 +147,7 @@ export function TopBar({ onChangeMode }: { onChangeMode: () => void }) {
               aria-label={`À contrôler, ${reviewCount}`}
               onClick={() => setTimelineSheet("review")}
             >
-              {reviewCount} points à vérifier
+              {reviewCount} point{reviewCount > 1 ? "s" : ""} à vérifier
             </button>
           )}
           {view === "gantt" && reviewCount === 0 && <span data-tour="controle" className="sr-only" />}

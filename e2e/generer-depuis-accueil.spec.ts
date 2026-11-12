@@ -19,6 +19,10 @@ async function genererDepuisHero(page: Page): Promise<void> {
   await expect(dialog).toBeHidden();
   await expect(page.locator("[data-transport-id]").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /Demain est déjà posé/i })).toHaveCount(0);
+  const meta = page.locator("[data-plan-meta]");
+  await expect(meta).toHaveAttribute("data-courses", "66");
+  await expect(meta).toHaveAttribute("data-saved", "122");
+  await expect(page.getByRole("button", { name: /point(s)? à vérifier/ })).toHaveCount(0);
 }
 
 test("depuis l'accueil à froid, Générer demain pose un planning", async ({ page }, testInfo) => {
