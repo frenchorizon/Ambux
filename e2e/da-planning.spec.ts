@@ -45,7 +45,10 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
         const label = names[0];
         if (!label)
           return [...block.querySelectorAll("span")].some(
-            (node) => (node.textContent ?? "").trim().length > 0 && !node.classList.contains("gantt-dot"),
+            (node) =>
+              (node.textContent ?? "").trim().length > 0 &&
+              !node.classList.contains("gantt-dot") &&
+              !node.hasAttribute("data-return-alert"),
           );
         const box = block.getBoundingClientRect();
         const text = label.getBoundingClientRect();

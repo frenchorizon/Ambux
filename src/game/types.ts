@@ -42,6 +42,11 @@ export interface Rules {
   pecVslMin: number;
   /** Dépose et fin de mission, après le trajet en charge. */
   dropoffMin: number;
+  /**
+   * Retard de retour, en minutes, à partir duquel le régulateur voit
+   * « Attention, beaucoup de retard ». Ce n'est pas une contrainte du solveur.
+   */
+  returnAlertMin: number;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -56,6 +61,7 @@ export const DEFAULT_RULES: Rules = {
   pecAmbMin: 10,
   pecVslMin: 5,
   dropoffMin: 8,
+  returnAlertMin: 30,
 };
 
 export interface StaffMember {

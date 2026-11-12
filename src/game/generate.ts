@@ -14,7 +14,7 @@ import { irand, mulberry32, pick } from "../lib/rng";
 import { clamp } from "../lib/utils";
 import { personName } from "../lib/format";
 import { naiveBaseline } from "./baseline";
-import { indexLocations, simulateLeg, travelLoc } from "./schedule";
+import { appointmentWindow, dropoffClock, indexLocations, isReturnKind, simulateLeg, travelLoc } from "./schedule";
 import { shiftForIndex } from "./shifts";
 import type {
   Call,
@@ -103,19 +103,26 @@ export function generateDay(options: { amb: number; vsl: number; density: Densit
     };
     const inbound = travelLoc(fromId, draft.pickupId, locMap);
     const toleranceMin = draft.toleranceMin ?? 20;
+    const retour = isReturnKind(draft.kind);
     let departBase = cursor;
-    if (draft.appointmentMin != null) {
-      const ideal = draft.appointmentMin - inbound.min;
-      const latest = draft.appointmentMin + toleranceMin - inbound.min;
+    if (draft.appointmentMin != null && retour) {
+      departBase = Math.max(cursor, draft.appointmentMin - inbound.min);
+    } else if (draft.appointmentMin != null) {
+      const loaded = travelLoc(draft.pickupId, draft.dropoffId, locMap);
+      const pec = crew.vehicleType === "ambulance" ? DEFAULT_RULES.pecAmbMin : DEFAULT_RULES.pecVslMin;
+      const latest = draft.appointmentMin - inbound.min - pec - loaded.min;
       if (cursor > latest + 0.5) return null;
-      departBase = Math.max(cursor, ideal);
+      departBase = Math.max(cursor, latest);
     }
     const probe = simulateLeg(wide, departBase, fromId, crew, locMap);
     if (probe.endMin > crew.shiftEnd - 4) return null;
-    const appointmentMin = draft.appointmentMin ?? Math.round(probe.arrivePickup);
-    if (draft.appointmentMin != null && Math.abs(probe.arrivePickup - appointmentMin) > toleranceMin + 0.5) return null;
-    const windowStart = clamp(appointmentMin - toleranceMin, DAY_START, DAY_END - 50);
-    const windowEnd = clamp(appointmentMin + toleranceMin, windowStart + 20, DAY_END - 4);
+    const drop = Math.round(dropoffClock(probe) ?? probe.arrivePickup);
+    const appointmentMin = retour
+      ? (draft.appointmentMin ?? Math.round(probe.arrivePickup))
+      : (draft.appointmentMin ?? drop);
+    if (!retour && drop > appointmentMin + 0.5) return null;
+    if (retour && probe.arrivePickup < appointmentMin - 0.5) return null;
+    const { windowStart, windowEnd } = appointmentWindow(draft.kind, appointmentMin);
     const dropoff = locMap.get(draft.dropoffId);
     const pickupLoc = locMap.get(draft.pickupId);
     const motif = draft.motif ?? motifFor(rng, pickupLoc, dropoff, draft.kind);
@@ -132,7 +139,8 @@ export function generateDay(options: { amb: number; vsl: number; density: Densit
     };
     const leg = simulateLeg(transport, departBase, fromId, crew, locMap);
     if (leg.endMin > crew.shiftEnd) return null;
-    if (Math.abs(leg.arrivePickup - appointmentMin) > toleranceMin + 0.5) return null;
+    if (!retour && (dropoffClock(leg) ?? 0) > appointmentMin + 0.5) return null;
+    if (retour && leg.arrivePickup < appointmentMin - 0.5) return null;
     transport.crewId = crew.id;
     transport.departMin = leg.departMin;
     transports.push(transport);
@@ -316,8 +324,8 @@ export function generateDay(options: { amb: number; vsl: number; density: Densit
       patientId: due.patient.id,
       pickupId: due.centerId,
       dropoffId: due.homeId,
-      windowStart: due.after - toleranceMin,
-      windowEnd: due.after + toleranceMin,
+      windowStart: due.after,
+      windowEnd: DAY_END,
       appointmentMin: due.after,
       toleranceMin,
       centerArriveMin: due.centerArrive,

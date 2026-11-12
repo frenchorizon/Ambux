@@ -1,5 +1,5 @@
 import { parseMotif } from "./motif";
-import { seanceReturnMin, type CrewSchedule } from "./schedule";
+import { appointmentWindow, seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
 import { writeLocal } from "../lib/browserStore";
 import { addressForGeocode, defaultGeocoder, unknownAddressReason, workspaceCity } from "./workspace";
@@ -927,8 +927,7 @@ async function parseTransport(
     patientId,
     pickupId: depart.location.id,
     dropoffId: arrivee.location.id,
-    windowStart: clock - tolerance,
-    windowEnd: clock + tolerance,
+    ...appointmentWindow(kind, clock),
     appointmentMin: clock,
     toleranceMin: tolerance,
     posture,
@@ -967,8 +966,7 @@ async function parseTransport(
       dropoffId: depart.location.id,
       kind: "retour",
       appointmentMin: retourClock,
-      windowStart: retourClock - tolerance,
-      windowEnd: retourClock + tolerance,
+      ...appointmentWindow("retour", retourClock),
       seriesId: transport.seriesId,
       note: record.note ? `${record.note} · retour` : "Retour",
     };

@@ -1,8 +1,9 @@
 import { mealIssue } from "./breaks";
-import type { CrewSchedule } from "./schedule";
+import { isReturnKind, returnDelayMin, type CrewSchedule } from "./schedule";
 import type { Crew, Patient, Rules, TimeBlock, Transport } from "./types";
 
-export type IssueKind = "non_place" | "hors_creneau" | "repas" | "serie" | "dea" | "charge" | "amplitude" | "km_estime";
+export type IssueKind =
+  "non_place" | "hors_creneau" | "repas" | "serie" | "dea" | "charge" | "amplitude" | "km_estime" | "retard_retour";
 
 export interface Issue {
   id: string;
@@ -65,13 +66,26 @@ export function reviewIssues(input: {
     for (const leg of schedule.legs) {
       const transport = byId.get(leg.transportId);
       if (!transport) continue;
-      if (leg.outOfTolerance || leg.lateMin >= 1) {
+      const retour = isReturnKind(transport.kind);
+      if ((retour && leg.outOfTolerance) || (!retour && (leg.outOfTolerance || leg.lateMin >= 1))) {
         const patient = input.patients.get(transport.patientId);
         issues.push({
           id: `ht-${transport.id}`,
           kind: "hors_creneau",
           level: "bloquant",
           title: `${nameOf(patient, transport)} hors créneau (${leg.deviationMin > 0 ? "+" : ""}${leg.deviationMin} min)`,
+          transportId: transport.id,
+          crewId: crew.id,
+        });
+      }
+      const delay = returnDelayMin(transport, leg.arrivePickup);
+      if (delay >= input.rules.returnAlertMin) {
+        const patient = input.patients.get(transport.patientId);
+        issues.push({
+          id: `rd-${transport.id}`,
+          kind: "retard_retour",
+          level: "alerte",
+          title: `${nameOf(patient, transport)} : retard ${delay} min après la sortie`,
           transportId: transport.id,
           crewId: crew.id,
         });
@@ -138,11 +152,7 @@ export function reviewIssues(input: {
       const retourLeg = legOf(input.schedules, retour.id);
       const expected =
         dialyse && retour.centerArriveMin != null ? retour.centerArriveMin + input.rules.sessionMin : null;
-      if (
-        retourLeg &&
-        expected != null &&
-        Math.abs(retourLeg.arrivePickup - expected) > input.rules.toleranceMin + 0.5
-      ) {
+      if (retourLeg && expected != null && retourLeg.arrivePickup < expected - 0.5) {
         issues.push({
           id: `ser-gap-${seriesId}`,
           kind: "serie",
@@ -181,6 +191,7 @@ export function reviewIssues(input: {
     repas: 5,
     serie: 6,
     km_estime: 7,
+    retard_retour: 8,
   };
   return issues.sort((a, b) => order[a.kind] - order[b.kind] || a.title.localeCompare(b.title, "fr"));
 }

@@ -374,20 +374,27 @@ describe("tolérance, geste et contraintes", () => {
     assert.equal(bare.ok, false);
   });
 
-  it("accepte l'intérieur de la tolérance et refuse l'extérieur", () => {
-    const inside = simulateLeg(trip(), 7 * 60 + 50, depot.id, crew(), locMap);
-    assert.equal(inside.outOfTolerance, false);
-    const edge = simulateLeg(
-      trip({ appointmentMin: 8 * 60, toleranceMin: 20, windowStart: 8 * 60 - 20, windowEnd: 8 * 60 + 20 }),
+  it("une dépose après le rendez-vous est hors délai, un retour tardif ne l'est pas", () => {
+    const onTime = simulateLeg(
+      trip({ appointmentMin: 12 * 60, windowStart: DAY_START, windowEnd: 12 * 60 }),
       8 * 60,
       depot.id,
       crew(),
       locMap,
     );
-    assert.equal(edge.outOfTolerance, false);
+    assert.equal(onTime.outOfTolerance, false);
     const late = simulateLeg(trip(), 10 * 60, depot.id, crew(), locMap);
     assert.equal(late.outOfTolerance, true);
     assert.ok(late.lateMin >= 1);
+    const retour = simulateLeg(
+      trip({ kind: "retour", appointmentMin: 8 * 60, windowStart: 8 * 60, windowEnd: 20 * 60 }),
+      12 * 60,
+      depot.id,
+      crew(),
+      locMap,
+    );
+    assert.equal(retour.outOfTolerance, false);
+    assert.ok(retour.lateMin >= 1);
   });
 
   it("compte l'attente de séance dans l'occupation du véhicule", () => {
@@ -579,8 +586,9 @@ describe("aller, retour, série et dialyse", () => {
       seed: 5,
       rules: DEFAULT_RULES,
     });
-    const placed = new Set(plan.stops.map((stop) => stop.transportId));
-    assert.equal(placed.has("a") && placed.has("r"), false);
+    const allerStop = plan.stops.find((stop) => stop.transportId === "a");
+    const retourStop = plan.stops.find((stop) => stop.transportId === "r");
+    if (allerStop && retourStop) assert.ok(retourStop.departMin >= allerStop.departMin);
     const legs = [
       { transportId: "a", departMin: 14 * 60, endMin: 14 * 60 + 30 },
       { transportId: "r", departMin: 8 * 60, endMin: 8 * 60 + 30 },
@@ -765,6 +773,8 @@ describe("règles du jour sur le créneau et le resserrage", () => {
       ],
     };
     const next = reducer(state, { type: "COMPACT" });
-    assert.equal(next.transports[0]?.departMin, 8 * 60 + 50);
+    const depart = next.transports[0]?.departMin ?? 0;
+    assert.ok(depart <= 8 * 60 + 50, `départ ${depart}`);
+    assert.equal(next.transports[0]?.crewId, "c1");
   });
 });

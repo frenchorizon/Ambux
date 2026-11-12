@@ -93,15 +93,27 @@ describe("règles de planning", () => {
     assert.equal(ok.incompatible, false);
   });
 
-  it("signale un écart hors tolérance et accepte l'intérieur", () => {
-    const early = simulateLeg(trip(), 6 * 60, depot.id, crew(), locMap);
-    assert.equal(early.outOfTolerance, false);
-    assert.ok(early.waitMin > 0);
-    const near = simulateLeg(trip(), 7 * 60 + 45, depot.id, crew(), locMap);
-    assert.equal(near.outOfTolerance, false);
-    assert.ok(near.deadheadMin > 0);
+  it("signale une dépose après le rendez-vous et accepte une dépose à l'heure", () => {
+    const onTime = simulateLeg(
+      trip({ appointmentMin: 12 * 60, windowStart: 6 * 60, windowEnd: 12 * 60 }),
+      8 * 60,
+      depot.id,
+      crew(),
+      locMap,
+    );
+    assert.equal(onTime.outOfTolerance, false);
+    assert.ok(onTime.deadheadMin > 0);
     const late = simulateLeg(trip(), 10 * 60, depot.id, crew(), locMap);
     assert.equal(late.outOfTolerance, true);
+    const retour = simulateLeg(
+      trip({ kind: "retour", appointmentMin: 9 * 60, windowStart: 9 * 60, windowEnd: 20 * 60 }),
+      7 * 60,
+      depot.id,
+      crew(),
+      locMap,
+    );
+    assert.ok(retour.waitMin > 0);
+    assert.equal(retour.outOfTolerance, false);
   });
 
   it("prolonge la course de l'attente à l'établissement", () => {

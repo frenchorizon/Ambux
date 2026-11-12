@@ -27,6 +27,7 @@ export function parseRules(value: unknown): Rules {
     pecAmbMin: num(parsed.pecAmbMin, DEFAULT_RULES.pecAmbMin, 1, 40),
     pecVslMin: num(parsed.pecVslMin, DEFAULT_RULES.pecVslMin, 1, 40),
     dropoffMin: num(parsed.dropoffMin, DEFAULT_RULES.dropoffMin, 1, 40),
+    returnAlertMin: num(parsed.returnAlertMin, DEFAULT_RULES.returnAlertMin, 5, 180),
   };
 }
 

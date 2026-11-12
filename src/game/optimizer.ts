@@ -2,7 +2,7 @@ import { indexById } from "../lib/collections";
 import { mulberry32 } from "../lib/rng";
 import { pickMealSlot } from "./breaks";
 import { metricsFromSchedules, type Metrics } from "./scoring";
-import { crewOrigin, scheduleCrew, scheduleFleet, type CrewSchedule, type Leg } from "./schedule";
+import { crewOrigin, isReturnKind, scheduleCrew, scheduleFleet, type CrewSchedule, type Leg } from "./schedule";
 import {
   DEFAULT_RULES,
   type Crew,
@@ -197,17 +197,19 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
   if (!suffixOk(schedule, crew) || !seriesOrderOk(jobs, schedule)) {
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
-  let lateMin = 0;
+  let returnDelay = 0;
   let emptyKm = schedule.returnKm;
-  for (const leg of schedule.legs) {
-    lateMin += leg.lateMin;
+  schedule.legs.forEach((leg, index) => {
     emptyKm += leg.deadheadKm;
-  }
+    const job = jobs[index];
+    if (job && isReturnKind(job.kind)) returnDelay += leg.lateMin;
+  });
   if (jobs.length > 0 && ctx.rules.mealMin > 0 && !pickMealSlot(schedule, crew, ctx.rules)) {
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
   const load = frozen + jobs.length;
-  const cost = emptyKm * 8 + lateMin * 9 + schedule.idleMin * 0.22 + load * load * 1.2;
+  // 0,25 par minute : le retard d'un retour compte, sans jamais approcher le coût d'une course non placée.
+  const cost = emptyKm * 8 + returnDelay * 0.25 + schedule.idleMin * 0.22 + load * load * 1.2;
   return {
     ok: true,
     cost,
@@ -217,12 +219,7 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
 
 function suffixOk(schedule: CrewSchedule, crew: Crew): boolean {
   return schedule.legs.every(
-    (leg: Leg) =>
-      !leg.incompatible &&
-      !leg.conflict &&
-      leg.lateMin <= 0.5 &&
-      !leg.outOfTolerance &&
-      leg.endMin <= crew.shiftEnd + 0.5,
+    (leg: Leg) => !leg.incompatible && !leg.conflict && !leg.outOfTolerance && leg.endMin <= crew.shiftEnd + 0.5,
   );
 }
 
@@ -344,6 +341,7 @@ function partnerCrew(transport: Transport, sol: Sol, ctx: Ctx): string | null {
 
 function rank(transport: Transport): number {
   return (
+    (isReturnKind(transport.kind) ? 20 : 0) +
     (transport.priority === "urgent" ? 0 : 2) +
     (transport.posture === "allonge" ? 0 : 1) +
     (transport.kind.startsWith("dialyse") ? 0 : 1)

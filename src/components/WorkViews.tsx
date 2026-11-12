@@ -189,6 +189,20 @@ export function ReglagesView() {
             className={input}
           />
         </Field>
+        <Field label="Alerte retard de retour (minutes)">
+          <input
+            type="number"
+            min={5}
+            max={180}
+            value={rules.returnAlertMin}
+            onChange={(event) => set({ returnAlertMin: Number(event.target.value) })}
+            className={input}
+          />
+        </Field>
+        <p className="text-xs leading-relaxed text-muted">
+          Au-delà de ce retard après l'heure de sortie, le retour affiche « Attention, beaucoup de retard ». Le solveur
+          ne refuse pas ce retard.
+        </p>
         <Field label="Amplitude de vacation (heures)">
           <input
             type="number"

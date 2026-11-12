@@ -7,6 +7,7 @@ import {
   findPauseStart,
   indexLocations,
   plannedPickup,
+  appointmentWindow,
   previewPlacement,
   scheduleFleet,
   seanceReturnMin,
@@ -1076,8 +1077,7 @@ function applyRules(state: GameState, rules: Rules): GameState {
       ...transport,
       appointmentMin: appointment,
       toleranceMin: rules.toleranceMin,
-      windowStart: appointment - rules.toleranceMin,
-      windowEnd: appointment + rules.toleranceMin,
+      ...appointmentWindow(transport.kind, appointment),
     };
   });
   return placeMeals({ ...state, rules, crews, transports });
@@ -1335,8 +1335,7 @@ function linkSeance(transports: readonly Transport[], aller: Transport, toleranc
     kind: outbound.kind.startsWith("dialyse") ? "dialyse_retour" : "retour",
     appointmentMin: back,
     toleranceMin: tolerance,
-    windowStart: back - tolerance,
-    windowEnd: back + tolerance,
+    ...appointmentWindow("retour", back),
     seriesId,
     stayMin: undefined,
     crewId: previous?.crewId,

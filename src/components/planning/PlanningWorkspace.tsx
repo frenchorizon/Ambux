@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useClock, useData } from "../../game/context";
 import { loadWorkspace, subscribeWorkspace } from "../../game/workspace";
-import { displayedDepart, dropoffClock, previewOnGrid, snap5 } from "../../game/schedule";
+import { displayedDepart, dropoffClock, previewOnGrid, returnDelayMin, snap5 } from "../../game/schedule";
 import { motifLabel } from "../../game/motif";
 import { DAY_START } from "../../game/types";
 import heroPng from "../../assets/hero/hero.png";
@@ -733,6 +733,8 @@ export function PlanningWorkspace() {
   const shownDepart = liveDepart == null ? undefined : displayedDepart(liveDepart);
   const pickupClock = selectedLeg ? formatMin(selectedLeg.arrivePickup) : null;
   const dropoffAt = dropoffClock(selectedLeg);
+  const returnDelay = selected && selectedLeg ? returnDelayMin(selected, selectedLeg.arrivePickup) : 0;
+  const returnAlert = returnDelay >= data.rules.returnAlertMin;
 
   return (
     <div
@@ -783,6 +785,11 @@ export function PlanningWorkspace() {
           <p className="da-detail-quiet" data-patient-rdv>
             {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
           </p>
+          {returnAlert && (
+            <p className="da-return-alert" data-return-alert="">
+              Attention, beaucoup de retard. Retard {returnDelay} min après la sortie.
+            </p>
+          )}
           <div className="da-detail-actions">
             <Button
               size="sm"

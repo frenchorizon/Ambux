@@ -9,7 +9,7 @@ import {
   type TransportKind,
 } from "./types";
 import { parseMotif } from "./motif";
-import { seanceReturnMin, type CrewSchedule } from "./schedule";
+import { appointmentWindow, seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew } from "./types";
 import { formatMin } from "../lib/format";
 
@@ -297,8 +297,7 @@ async function parseLine(
     patientId,
     pickupId: depart.location.id,
     dropoffId: arrivee.location.id,
-    windowStart: clock - tolerance,
-    windowEnd: clock + tolerance,
+    ...appointmentWindow(kind, clock),
     appointmentMin: clock,
     toleranceMin: tolerance,
     posture,
@@ -331,8 +330,7 @@ async function parseLine(
       dropoffId: depart.location.id,
       kind: "retour",
       appointmentMin: back,
-      windowStart: back - tolerance,
-      windowEnd: back + tolerance,
+      ...appointmentWindow("retour", back),
       seriesId: transport.seriesId,
       note: record.note ? `${record.note} · retour` : "Retour",
       stayMin: undefined,

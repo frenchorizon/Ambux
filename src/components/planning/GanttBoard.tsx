@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useClock, useData } from "../../game/context";
-import { displayedDepart, snap5, visualParts, type Leg } from "../../game/schedule";
+import { displayedDepart, isReturnKind, returnDelayMin, snap5, visualParts, type Leg } from "../../game/schedule";
 import { DAY_END, DAY_START, type Crew, type Transport } from "../../game/types";
 import { deviationLabel, formatKm, formatMin, kindLabel, personName, postureLabel } from "../../lib/format";
 import { mealIssue } from "../../game/breaks";
@@ -290,7 +290,11 @@ const CrewRow = memo(function CrewRow({
           const keyboard = isKeyboardDrag(drag) && drag.transportId === transport.id;
           const pending = pendingId === transport.id && !dragging;
           const returning = returningId === transport.id;
-          const anomaly = Boolean(leg.conflict || leg.incompatible || leg.lateMin >= 1);
+          const delay = returnDelayMin(transport, leg.arrivePickup);
+          const returnAlert = delay >= rules.returnAlertMin;
+          const anomaly = Boolean(
+            leg.conflict || leg.incompatible || returnAlert || (!isReturnKind(transport.kind) && leg.lateMin >= 1),
+          );
           const parts = visualParts(leg);
           const name = patient?.lastName.toUpperCase() ?? "Course";
           const patientLabel = patient ? personName(patient) : "Patient";
@@ -301,7 +305,7 @@ const CrewRow = memo(function CrewRow({
                 role="button"
                 draggable={false}
                 title={patientLabel}
-                aria-label={blockAriaLabel(patientLabel, formatMin(shownDepart), crew.code)}
+                aria-label={`${blockAriaLabel(patientLabel, formatMin(shownDepart), crew.code)}${returnAlert ? ". Attention, beaucoup de retard" : ""}`}
                 aria-pressed={keyboard ? true : undefined}
                 data-keyboard={keyboard ? "1" : undefined}
                 className={cn(
@@ -334,6 +338,7 @@ const CrewRow = memo(function CrewRow({
                 onContextMenu={(event) => event.preventDefault()}
                 onDragStart={(event) => event.preventDefault()}
                 data-transport-id={transport.id}
+                data-kind={transport.kind}
                 data-posture={transport.posture}
                 data-depart={shownDepart}
                 data-end={Math.round(leg.endMin)}
@@ -372,6 +377,15 @@ const CrewRow = memo(function CrewRow({
                   )}
                 </span>
               </button>
+              {returnAlert && (
+                <span
+                  className="gantt-return-alert"
+                  data-return-alert=""
+                  style={{ left, top: barTop + barH + 1, maxWidth: bar }}
+                >
+                  Attention, beaucoup de retard
+                </span>
+              )}
               {(transport.stayMin ?? 0) > 0 && (
                 <span
                   className="gantt-stay pointer-events-none absolute z-10 max-w-24 truncate text-[13px] font-semibold leading-none text-navy"

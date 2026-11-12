@@ -1,5 +1,5 @@
 import { clamp } from "../lib/utils";
-import type { CrewSchedule } from "./schedule";
+import { isReturnKind, type CrewSchedule } from "./schedule";
 import type { Crew, Stats, TimeBlock, Transport } from "./types";
 
 export interface Metrics {
@@ -56,8 +56,11 @@ export function metricsFromSchedules(
       emptyKm += leg.deadheadKm;
       loadedKm += leg.loadedKm;
       productiveMin += leg.loadedMin + leg.pecMin;
-      lateMin += leg.lateMin;
-      if (leg.outOfTolerance || leg.lateMin >= 1) lateCount += 1;
+      const transport = transports.find((item) => item.id === leg.transportId);
+      if (!transport || !isReturnKind(transport.kind)) {
+        lateMin += leg.lateMin;
+        if (leg.outOfTolerance || leg.lateMin >= 1) lateCount += 1;
+      }
       if (leg.incompatible) incompatCount += 1;
     }
   }

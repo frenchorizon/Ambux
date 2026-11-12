@@ -1,6 +1,15 @@
 import { indexById } from "../lib/collections";
 import { travelBetween } from "../lib/routing";
-import { DEFAULT_RULES, type Crew, type Location, type Rules, type TimeBlock, type Transport } from "./types";
+import {
+  DAY_END,
+  DAY_START,
+  DEFAULT_RULES,
+  type Crew,
+  type Location,
+  type Rules,
+  type TimeBlock,
+  type Transport,
+} from "./types";
 
 export interface Segment {
   kind: "deadhead" | "wait" | "loaded" | "pec" | "dropoff";
@@ -156,8 +165,12 @@ export function simulateLeg(
   push("dropoff", dropoffArrive, dropoffEnd);
   push("wait", dropoffEnd, endMin);
   const pending = Boolean(deadhead.pending || loaded.pending);
-  const planned = plannedPickup(transport);
-  const tolerance = toleranceOf(transport);
+  const retour = isReturnKind(transport.kind);
+  const exitAt = transport.appointmentMin ?? transport.windowStart;
+  const deadline = transport.appointmentMin ?? transport.windowEnd;
+  const deviationMin = retour ? Math.round(arrivePickup - exitAt) : Math.round(dropoffArrive - deadline);
+  const lateMin = Math.max(0, deviationMin);
+  const outOfTolerance = retour ? arrivePickup < exitAt - 0.5 : dropoffArrive > deadline + 0.5;
 
   return {
     transportId: transport.id,
@@ -172,9 +185,9 @@ export function simulateLeg(
     dropoffMin: service.dropoffMin,
     deadheadKm: deadhead.km,
     loadedKm: loaded.km,
-    lateMin: Math.max(0, arrivePickup - planned - tolerance),
-    deviationMin: Math.round(arrivePickup - planned),
-    outOfTolerance: arrivePickup > planned + tolerance + 0.5 || arrivePickup < planned - tolerance - 0.5,
+    lateMin,
+    deviationMin,
+    outOfTolerance,
     kmEstimated: !pending && (deadhead.source === "estimate" || loaded.source === "estimate"),
     routingPending: pending,
     conflict: false,
@@ -192,9 +205,17 @@ export function smartDepart(
   transport: Transport,
   fromId: string,
   locMap: Map<string, Location>,
+  pecMin = 10,
 ): number {
-  const travel = travelLoc(fromId, transport.pickupId, locMap);
-  return Math.max(earliest, transport.windowStart - travel.min);
+  const inbound = travelLoc(fromId, transport.pickupId, locMap);
+  if (isReturnKind(transport.kind)) {
+    const exitAt = transport.appointmentMin ?? transport.windowStart;
+    return Math.max(earliest, exitAt - inbound.min);
+  }
+  const loaded = travelLoc(transport.pickupId, transport.dropoffId, locMap);
+  const deadline = transport.appointmentMin ?? transport.windowEnd;
+  const latest = deadline - inbound.min - pecMin - loaded.min;
+  return Math.max(earliest, latest);
 }
 
 export function scheduleCrew(
@@ -226,9 +247,10 @@ export function scheduleCrew(
     const keepGrid =
       mode === "anchored" && anchoredDepart != null && Math.abs(anchoredDepart - snap5(anchoredDepart)) < 0.05;
     const onGrid = (time: number) => (keepGrid ? ceil5(time) : time);
+    const service = serviceDurations(crew, rules);
     let depart =
       mode === "chain"
-        ? smartDepart(cursor, transport, locId, locMap)
+        ? smartDepart(cursor, transport, locId, locMap, service.pecMin)
         : Math.max(transport.departMin ?? cursor, cursor);
     let conflict = mode === "anchored" && depart > (transport.departMin ?? depart) + 1;
     const jumped = jumpBreaks(blocks, crew.id, depart);
@@ -441,6 +463,29 @@ export function dropoffClock(leg: Leg | null | undefined): number | null {
   return segment ? segment.start : null;
 }
 
+export function isReturnKind(kind: string): boolean {
+  return kind === "retour" || kind === "dialyse_retour";
+}
+
+/** Retard après l'heure de sortie. Zéro pour un aller, et si la prise en charge n'est pas en retard. */
+export function returnDelayMin(
+  transport: { kind: string; appointmentMin?: number; windowStart: number },
+  arrivePickup: number,
+): number {
+  if (!isReturnKind(transport.kind)) return 0;
+  const exitAt = transport.appointmentMin ?? transport.windowStart;
+  return Math.max(0, Math.round(arrivePickup - exitAt));
+}
+
+/**
+ * Aller : la fenêtre se termine à l'heure de dépose limite, sans faire attendre le véhicule.
+ * Retour : la fenêtre s'ouvre à l'heure de sortie, sans avance et sans heure limite.
+ */
+export function appointmentWindow(kind: string, appointment: number): { windowStart: number; windowEnd: number } {
+  if (isReturnKind(kind)) return { windowStart: appointment, windowEnd: DAY_END };
+  return { windowStart: DAY_START, windowEnd: Math.max(appointment, DAY_START + 30) };
+}
+
 /** Prise en charge du retour : arrivée de l'aller + attente, sur la grille de 5 minutes. */
 export function seanceReturnMin(arrivalMin: number, waitMin: number): number {
   return snap5(arrivalMin + Math.max(0, waitMin));
@@ -508,16 +553,12 @@ export function previewPlacement(
       message: "Conflit horaire : aucun créneau libre sur cet équipage.",
     };
   }
-  const tolerance = toleranceOf(transport);
   let warning: string | undefined;
-  if (leg.lateMin >= 1) {
-    warning = `Hors tolérance : +${leg.deviationMin} min.`;
-  } else if (leg.deviationMin <= -tolerance) {
-    warning = `Hors tolérance : ${leg.deviationMin} min.`;
-  } else if (leg.deviationMin >= 5) {
-    warning = `Prise en charge en retard : +${leg.deviationMin} min.`;
-  } else if (leg.deviationMin <= -8) {
-    warning = `Prise en charge en avance : ${leg.deviationMin} min.`;
+  if (isReturnKind(transport.kind)) {
+    if (leg.outOfTolerance) warning = "Prise en charge avant la sortie du patient.";
+    else if (leg.lateMin >= 1) warning = `Retard après la sortie : +${leg.lateMin} min.`;
+  } else if (leg.lateMin >= 1) {
+    warning = `Dépose après le rendez-vous : +${leg.lateMin} min.`;
   }
   return { ok: true, departMin: leg.departMin, leg, warning };
 }
