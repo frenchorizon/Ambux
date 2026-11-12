@@ -339,6 +339,7 @@ const CrewRow = memo(function CrewRow({
                 onDragStart={(event) => event.preventDefault()}
                 data-transport-id={transport.id}
                 data-kind={transport.kind}
+                data-return-delay={delay || undefined}
                 data-posture={transport.posture}
                 data-depart={shownDepart}
                 data-end={Math.round(leg.endMin)}
