@@ -73,6 +73,7 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   await page.locator(".da-gantt-head").click({ position: { x: 8, y: 8 } });
   await expect(detail).toHaveCount(0);
 
+  await page.getByText("Planning généré").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
   if (testInfo.project.name === "phone") {
     const pill = page.getByRole("navigation", { name: "Navigation" });
     const box = await pill.boundingBox();
@@ -130,14 +131,17 @@ async function contrastSamples(page: import("@playwright/test").Page) {
     const tint = await block.evaluate((node) => getComputedStyle(node).getPropertyValue("--crew").trim());
     if (seen.has(tint)) continue;
     seen.add(tint);
+    await block.scrollIntoViewIfNeeded();
     const box = await block.boundingBox();
-    if (!box || box.width < 48) continue;
+    const view = page.viewportSize();
+    if (!box || !view || box.width < 40 || box.height < 8) continue;
     const clip = {
-      x: Math.max(0, box.x + box.width - 10),
-      y: box.y + box.height / 2 - 2,
+      x: Math.min(view.width - 4, Math.max(0, box.x + Math.min(box.width - 8, box.width * 0.72))),
+      y: Math.min(view.height - 4, Math.max(0, box.y + box.height / 2 - 2)),
       width: 4,
       height: 4,
     };
+    if (clip.x + 4 > view.width || clip.y + 4 > view.height) continue;
     const png = await page.screenshot({ clip });
     const rgb = pngPixel(png);
     result.push({ tint, ratio: Number(contrast(rgb, [255, 255, 255]).toFixed(2)) });
