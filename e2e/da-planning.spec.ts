@@ -74,7 +74,10 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   await page.locator(".da-gantt-head").click({ position: { x: 8, y: 8 } });
   await expect(detail).toHaveCount(0);
 
-  await page.getByText("Planning généré").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+  await page
+    .getByText("Planning généré")
+    .waitFor({ state: "hidden", timeout: 5000 })
+    .catch(() => undefined);
   if (testInfo.project.name === "phone") {
     const pill = page.getByRole("navigation", { name: "Navigation" });
     const box = await pill.boundingBox();
