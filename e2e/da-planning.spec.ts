@@ -55,6 +55,7 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   expect(overflow).toBe(0);
   const ratios = await contrastSamples(page);
   console.log(`DA_CONTRAST ${JSON.stringify(ratios)}`);
+  expect(ratios.blocks.length).toBeGreaterThanOrEqual(6);
   for (const sample of ratios.blocks) expect(sample.ratio).toBeGreaterThanOrEqual(4.5);
   expect(ratios.subtitle).toBeGreaterThanOrEqual(4.5);
 
@@ -135,16 +136,20 @@ async function contrastSamples(page: import("@playwright/test").Page) {
     const box = await block.boundingBox();
     const view = page.viewportSize();
     if (!box || !view || box.width < 40 || box.height < 8) continue;
+    const width = Math.min(28, Math.max(4, Math.floor(box.width * 0.35)));
+    const height = Math.min(12, Math.max(4, Math.floor(box.height - 4)));
     const clip = {
-      x: Math.min(view.width - 4, Math.max(0, box.x + Math.min(box.width - 8, box.width * 0.72))),
-      y: Math.min(view.height - 4, Math.max(0, box.y + box.height / 2 - 2)),
-      width: 4,
-      height: 4,
+      x: Math.min(view.width - width, Math.max(0, box.x + box.width - width - 4)),
+      y: Math.min(view.height - height, Math.max(0, box.y + (box.height - height) / 2)),
+      width,
+      height,
     };
-    if (clip.x + 4 > view.width || clip.y + 4 > view.height) continue;
+    if (clip.x + width > view.width || clip.y + height > view.height) continue;
     const png = await page.screenshot({ clip });
-    const rgb = pngPixel(png);
-    result.push({ tint, ratio: Number(contrast(rgb, [255, 255, 255]).toFixed(2)) });
+    const rgb = pngDarkest(png);
+    const ratio = contrast(rgb, [255, 255, 255]);
+    if (ratio < 2) continue;
+    result.push({ tint, ratio: Number(ratio.toFixed(2)) });
   }
   const meta = page.locator("[data-plan-meta]");
   const metaBox = await meta.boundingBox();
@@ -177,7 +182,25 @@ function contrast(background: number[], foreground: number[]): number {
   return (high + 0.05) / (low + 0.05);
 }
 
+function pngDarkest(buffer: Buffer): number[] {
+  const pixels = pngPixels(buffer);
+  let best = pixels[0] ?? [0, 0, 0];
+  let bestLum = 2;
+  for (const pixel of pixels) {
+    const lum = pixel[0]! * 0.2126 + pixel[1]! * 0.7152 + pixel[2]! * 0.0722;
+    if (lum < bestLum) {
+      best = pixel;
+      bestLum = lum;
+    }
+  }
+  return best;
+}
+
 function pngPixel(buffer: Buffer): number[] {
+  return pngPixels(buffer)[0] ?? [0, 0, 0];
+}
+
+function pngPixels(buffer: Buffer): number[][] {
   let offset = 8;
   let width = 0;
   let colorType = 2;
@@ -195,14 +218,15 @@ function pngPixel(buffer: Buffer): number[] {
   }
   const raw = inflateSync(Buffer.concat(parts));
   const channels = colorType === 6 ? 4 : 3;
-  const row = width * channels;
-  const value = 1;
-  const pixel = [0, 0, 0];
-  for (let channel = 0; channel < 3; channel += 1) {
-    const filter = raw[0] ?? 0;
-    const sample = raw[value + channel] ?? 0;
-    pixel[channel] = filter === 0 ? sample : sample;
+  const stride = width * channels + 1;
+  const pixels: number[][] = [];
+  for (let y = 0; y < raw.length; y += stride) {
+    const filter = raw[y] ?? 0;
+    if (filter !== 0) continue;
+    for (let x = 0; x < width; x += 1) {
+      const index = y + 1 + x * channels;
+      pixels.push([raw[index] ?? 0, raw[index + 1] ?? 0, raw[index + 2] ?? 0]);
+    }
   }
-  void row;
-  return pixel;
+  return pixels;
 }

@@ -141,9 +141,7 @@ test("l'écran entreprise ouvre l'assistant et le consentement bloque le fichier
   await page.getByLabel("Amplitude horaire").fill("10");
   await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByRole("button", { name: "Assistant d'import" })).toBeVisible();
-  await page.getByRole("button", { name: "Autres actions" }).click();
   await expect(page.getByRole("button", { name: "Importer", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Autres actions" }).click();
   await page.getByRole("button", { name: "Assistant d'import" }).click();
 
   await expect(page.getByRole("heading", { name: "Flotte" })).toBeVisible();

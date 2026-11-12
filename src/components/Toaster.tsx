@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { useData } from "../game/context";
+import { useData, useToast } from "../game/context";
 import { cn } from "../lib/utils";
 
 export function Toaster() {
-  const { toast, dispatch } = useData();
+  const toast = useToast();
+  const { dispatch } = useData();
   useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => dispatch({ type: "DISMISS_TOAST" }), 3000);

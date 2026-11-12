@@ -73,7 +73,6 @@ export interface DataValue {
   tomorrowTransports: Transport[];
   tomorrowStops: PlanStop[] | null;
   stats: Stats;
-  toast: Toast | null;
   selectedId?: string;
   crewFilter?: string;
   followNow: boolean;
@@ -99,6 +98,7 @@ export interface DataValue {
 
 const ClockContext = createContext<ClockValue | null>(null);
 const DataContext = createContext<DataValue | null>(null);
+const ToastContext = createContext<Toast | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, resumeOnLoad);
@@ -323,7 +323,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       tomorrowTransports: state.tomorrowTransports,
       tomorrowStops: state.tomorrowStops,
       stats: state.stats,
-      toast: state.toast,
       selectedId: state.selectedId,
       crewFilter: state.crewFilter,
       followNow: state.followNow,
@@ -365,7 +364,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       state.tomorrowTransports,
       state.tomorrowStops,
       state.stats,
-      state.toast,
       state.selectedId,
       state.crewFilter,
       state.followNow,
@@ -391,10 +389,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   return (
     <ClockContext.Provider value={clock}>
-      <DataContext.Provider value={data}>
-        <StorageBanner />
-        {children}
-      </DataContext.Provider>
+      <ToastContext.Provider value={state.toast}>
+        <DataContext.Provider value={data}>
+          <StorageBanner />
+          {children}
+        </DataContext.Provider>
+      </ToastContext.Provider>
     </ClockContext.Provider>
   );
 }
@@ -409,6 +409,10 @@ export function useData(): DataValue {
   const value = useContext(DataContext);
   if (!value) throw new Error("Planning indisponible");
   return value;
+}
+
+export function useToast(): Toast | null {
+  return useContext(ToastContext);
 }
 
 export type { GameState };
