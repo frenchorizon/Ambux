@@ -138,6 +138,14 @@ body {
   transition: transform 180ms ease-out;
 }
 
+/* La ligne source passe au-dessus des suivantes, sinon le bloc qui revient
+   est couvert par la ligne d'en dessous et le pointeur attrape une autre course. */
+.da-gantt-row:has(.gantt-dragging),
+.da-gantt-row:has(.gantt-returning) {
+  position: relative;
+  z-index: 3;
+}
+
 /* Fantôme du créneau aimanté : verre teinté teal ou corail, lisible sur 44 px. */
 .gantt-ghost {
   z-index: 30;

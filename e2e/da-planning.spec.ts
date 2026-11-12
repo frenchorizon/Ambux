@@ -146,7 +146,7 @@ async function contrastSamples(page: import("@playwright/test").Page) {
     };
     if (clip.x + width > view.width || clip.y + height > view.height) continue;
     const png = await page.screenshot({ clip });
-    const rgb = pngDarkest(png);
+    const rgb = pngFill(png);
     const ratio = contrast(rgb, [255, 255, 255]);
     if (ratio < 2) continue;
     result.push({ tint, ratio: Number(ratio.toFixed(2)) });
@@ -182,18 +182,15 @@ function contrast(background: number[], foreground: number[]): number {
   return (high + 0.05) / (low + 0.05);
 }
 
-function pngDarkest(buffer: Buffer): number[] {
-  const pixels = pngPixels(buffer);
-  let best = pixels[0] ?? [0, 0, 0];
-  let bestLum = 2;
-  for (const pixel of pixels) {
-    const lum = pixel[0]! * 0.2126 + pixel[1]! * 0.7152 + pixel[2]! * 0.0722;
-    if (lum < bestLum) {
-      best = pixel;
-      bestLum = lum;
-    }
-  }
-  return best;
+function pngFill(buffer: Buffer): number[] {
+  const ranked = pngPixels(buffer)
+    .map((pixel) => ({
+      pixel,
+      lum: pixel[0]! * 0.2126 + pixel[1]! * 0.7152 + pixel[2]! * 0.0722,
+    }))
+    .filter((item) => item.lum > 40 && item.lum < 170)
+    .sort((a, b) => a.lum - b.lum);
+  return ranked[Math.floor(ranked.length / 2)]?.pixel ?? [18, 22, 28];
 }
 
 function pngPixel(buffer: Buffer): number[] {
@@ -218,15 +215,41 @@ function pngPixels(buffer: Buffer): number[][] {
   }
   const raw = inflateSync(Buffer.concat(parts));
   const channels = colorType === 6 ? 4 : 3;
-  const stride = width * channels + 1;
+  const stride = width * channels;
+  const prev = new Array<number>(stride).fill(0);
   const pixels: number[][] = [];
-  for (let y = 0; y < raw.length; y += stride) {
-    const filter = raw[y] ?? 0;
-    if (filter !== 0) continue;
+  let cursor = 0;
+  while (cursor + stride < raw.length) {
+    const filter = raw[cursor] ?? 0;
+    cursor += 1;
+    const row = new Array<number>(stride).fill(0);
+    for (let index = 0; index < stride; index += 1) {
+      const left = index >= channels ? row[index - channels]! : 0;
+      const up = prev[index] ?? 0;
+      const upLeft = index >= channels ? prev[index - channels]! : 0;
+      const sample = raw[cursor + index] ?? 0;
+      if (filter === 1) row[index] = (sample + left) & 255;
+      else if (filter === 2) row[index] = (sample + up) & 255;
+      else if (filter === 3) row[index] = (sample + Math.floor((left + up) / 2)) & 255;
+      else if (filter === 4) row[index] = (sample + paeth(left, up, upLeft)) & 255;
+      else row[index] = sample;
+    }
+    cursor += stride;
+    for (let index = 0; index < stride; index += 1) prev[index] = row[index]!;
     for (let x = 0; x < width; x += 1) {
-      const index = y + 1 + x * channels;
-      pixels.push([raw[index] ?? 0, raw[index + 1] ?? 0, raw[index + 2] ?? 0]);
+      const index = x * channels;
+      pixels.push([row[index] ?? 0, row[index + 1] ?? 0, row[index + 2] ?? 0]);
     }
   }
   return pixels;
+}
+
+function paeth(left: number, up: number, upLeft: number): number {
+  const estimate = left + up - upLeft;
+  const leftDelta = Math.abs(estimate - left);
+  const upDelta = Math.abs(estimate - up);
+  const upLeftDelta = Math.abs(estimate - upLeft);
+  if (leftDelta <= upDelta && leftDelta <= upLeftDelta) return left;
+  if (upDelta <= upLeftDelta) return up;
+  return upLeft;
 }

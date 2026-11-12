@@ -117,6 +117,7 @@ async function holdFeasible(page: Page): Promise<Bar | null> {
 }
 
 async function holdRefused(page: Page): Promise<Bar | null> {
+  await expect(page.locator(".gantt-returning")).toHaveCount(0);
   const allonge = (await bars(page)).find((item) => item.posture === "allonge" && item.depart >= 8 * 60);
   if (!allonge) return null;
   await center(page, allonge.id);
