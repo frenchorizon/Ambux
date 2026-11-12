@@ -65,14 +65,14 @@ test("le clavier saisit une course, l'annonce et la repose", async ({ page }, te
       const before = await barById(page, candidate.id);
       await page.keyboard.press("ArrowRight");
       let ghost = await aimOf(page);
-      if (ghost.preview !== "ok" || ghost.aim !== before.depart + 5) {
+      if (ghost.preview !== "ok" || ghost.aim !== before.depart + 5 || ghost.depart !== before.depart + 5) {
         await page.keyboard.press("Escape");
         continue;
       }
       await expect(live).toContainText(clock(ghost.depart));
       await page.keyboard.press("Shift+ArrowRight");
       ghost = await aimOf(page);
-      if (ghost.preview !== "ok" || ghost.aim !== before.depart + 20) {
+      if (ghost.preview !== "ok" || ghost.aim !== before.depart + 20 || ghost.depart !== before.depart + 20) {
         await page.keyboard.press("Escape");
         continue;
       }

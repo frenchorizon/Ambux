@@ -163,6 +163,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, [state.seed, state.phase]);
 
+  const routedPlan = useRef("");
+  const awaitRoute = useRef(false);
   useEffect(() => {
     if (state.phase !== "playing") return;
     let armed: boolean;
@@ -174,13 +176,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
     if (!armed) return;
     const current = stateRef.current;
+    awaitRoute.current = true;
     try {
       const plan = optimizePlan({
         crews: current.crews,
         transports: current.transports,
         blocks: current.blocks,
         locations: current.locations,
-        nowMin: current.nowMin,
+        nowMin: current.live ? current.nowMin : -1,
         seed: current.seed,
         rules: current.rules,
       });
@@ -190,15 +193,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [dispatch, state.phase, state.seed]);
 
-  const routedPlan = useRef("");
   useEffect(() => {
-    if (state.phase !== "playing") return;
+    if (state.phase !== "playing" || !awaitRoute.current) return;
     const source = matrixSource();
     if (source !== "estimate" && source !== "osrm") return;
     const key = `${state.seed}:${source}`;
     if (routedPlan.current === key) return;
     const current = stateRef.current;
     if (!current.stats.optimizerApplied || current.stats.moves !== 0) return;
+    awaitRoute.current = false;
     routedPlan.current = key;
     try {
       const plan = optimizePlan({
@@ -206,7 +209,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         transports: current.transports,
         blocks: current.blocks.filter((block) => block.kind !== "repas"),
         locations: current.locations,
-        nowMin: current.nowMin,
+        nowMin: current.live ? current.nowMin : -1,
         seed: current.seed,
         rules: current.rules,
       });

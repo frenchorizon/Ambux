@@ -82,7 +82,7 @@ export function rememberTravel(fromId: string, toId: string, travel: Travel): vo
 }
 
 export function travelBetween(fromId: string, toId: string, from: LatLng, to: LatLng): Travel {
-  if (fromId === toId) return { km: 0, min: 0, source: "estimate" };
+  if (fromId === toId) return { km: 0, min: 0, source: "osrm" };
   const estimate = estimateTravel(from, to);
   const known = travelById.get(idKey(fromId, toId));
   // Hors navigateur, le cache injecté par les tests reste la durée de référence.

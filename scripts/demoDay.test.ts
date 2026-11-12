@@ -4,7 +4,7 @@ import { DEMO_MEASURE } from "../src/data/demoFacts.ts";
 import { emptyDriveMin, naiveBaseline } from "../src/game/baseline.ts";
 import { generateDay } from "../src/game/generate.ts";
 import { optimizePlan } from "../src/game/optimizer.ts";
-import { scheduleFleet } from "../src/game/schedule.ts";
+import { returnDelayMin, scheduleFleet } from "../src/game/schedule.ts";
 import { indexById } from "../src/lib/collections.ts";
 import { DEFAULT_RULES } from "../src/game/types.ts";
 
@@ -59,7 +59,16 @@ describe("journée type Rouen", () => {
       if (!stop) return { ...transport, crewId: undefined, departMin: undefined };
       return { ...transport, crewId: stop.crewId, departMin: stop.departMin };
     });
-    const drive = emptyDriveMin(scheduleFleet(world.crews, shown, plan.meals, locMap, "anchored", DEFAULT_RULES));
+    const schedules = scheduleFleet(world.crews, shown, plan.meals, locMap, "anchored", DEFAULT_RULES);
+    let worstReturn = 0;
+    for (const schedule of schedules.values()) {
+      for (const leg of schedule.legs) {
+        const transport = shown.find((item) => item.id === leg.transportId);
+        if (transport) worstReturn = Math.max(worstReturn, returnDelayMin(transport, leg.arrivePickup));
+      }
+    }
+    assert.ok(worstReturn < DEFAULT_RULES.returnAlertMin, `retour le plus tardif ${worstReturn} min`);
+    const drive = emptyDriveMin(schedules);
     assert.ok(
       naive.emptyDriveMin > drive + 30,
       `temps à vide ${Math.round(naive.emptyDriveMin)} contre ${Math.round(drive)}`,

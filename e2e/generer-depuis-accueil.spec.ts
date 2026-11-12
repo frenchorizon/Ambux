@@ -22,7 +22,7 @@ async function genererDepuisHero(page: Page): Promise<void> {
   const meta = page.locator("[data-plan-meta]");
   await expect(meta).toHaveAttribute("data-courses", "66");
   await expect(meta).toHaveAttribute("data-saved", "122");
-  await expect(page.getByRole("button", { name: /point(s)? à vérifier/ })).toHaveCount(0);
+  await expect(page.locator(".da-check")).toHaveCount(0);
 }
 
 test("depuis l'accueil à froid, Générer demain pose un planning", async ({ page }, testInfo) => {

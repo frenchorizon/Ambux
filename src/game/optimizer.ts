@@ -198,18 +198,24 @@ function evaluateSuffix(crew: Crew, suffix: readonly string[], ctx: Ctx): CrewEv
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
   let returnDelay = 0;
+  let returnOvertime = 0;
   let emptyKm = schedule.returnKm;
   schedule.legs.forEach((leg, index) => {
     emptyKm += leg.deadheadKm;
     const job = jobs[index];
-    if (job && isReturnKind(job.kind)) returnDelay += leg.lateMin;
+    if (job && isReturnKind(job.kind)) {
+      returnDelay += leg.lateMin;
+      // Au-delà d'une demi-heure, le retard pèse plus que quelques kilomètres à vide.
+      // Le seuil d'alerte des réglages ne change pas ce coût : il n'est pas une contrainte.
+      returnOvertime += Math.max(0, leg.lateMin - 30);
+    }
   });
   if (jobs.length > 0 && ctx.rules.mealMin > 0 && !pickMealSlot(schedule, crew, ctx.rules)) {
     return { ok: false, cost: Number.POSITIVE_INFINITY, departs: [] };
   }
   const load = frozen + jobs.length;
   // 0,25 par minute : le retard d'un retour compte, sans jamais approcher le coût d'une course non placée.
-  const cost = emptyKm * 8 + returnDelay * 0.25 + schedule.idleMin * 0.22 + load * load * 1.2;
+  const cost = emptyKm * 8 + returnDelay * 0.25 + returnOvertime + schedule.idleMin * 0.22 + load * load * 1.2;
   return {
     ok: true,
     cost,
