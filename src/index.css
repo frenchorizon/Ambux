@@ -1831,6 +1831,12 @@ html:not(.dark) .da-card p {
   flex-wrap: nowrap;
 }
 
+.da-plan-heading,
+.da-plan-title p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .da-top-actions {
   display: flex;
   flex: 0 0 auto;
@@ -2169,6 +2175,16 @@ html:not(.dark) .da-fictif {
 }
 
 @media (max-width: 1024px) {
+  .da-top-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .da-top-actions {
+    justify-content: flex-end;
+  }
+
   .da-plan-title {
     flex-direction: column;
     align-items: flex-start;

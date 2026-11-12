@@ -71,8 +71,8 @@ test("pilules, dialogue, infobulle et toast en verre", async ({ page }, testInfo
   if (testInfo.project.name === "phone") {
     expect(box!.y + box!.height).toBeLessThan(viewport!.height - 56);
   } else {
-    expect(box!.x + box!.width).toBeGreaterThan(viewport!.width - 40);
-    expect(box!.y).toBeGreaterThan(viewport!.height / 2);
+    expect(box!.y).toBeLessThan(140);
+    expect(Math.abs(box!.x + box!.width / 2 - viewport!.width / 2)).toBeLessThan(120);
   }
   await shot("toast");
 

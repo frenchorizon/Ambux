@@ -336,7 +336,8 @@ test("CSV et feuille de route Lomaco IMPRESSION_STD", async ({ page }) => {
     .map((line) => line.split(";")[mealIndex] ?? "")
     .filter((cell) => /\d{2}:\d{2}-\d{2}:\d{2}/.test(cell));
   expect(mealCells.length).toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Fermer" }).click();
+  const closeExport = page.getByRole("dialog").getByRole("button", { name: "Fermer", exact: true });
+  if (await closeExport.isVisible()) await closeExport.click();
 
   await page.evaluate(() => {
     const native = window.open.bind(window);

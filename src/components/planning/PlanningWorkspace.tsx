@@ -63,7 +63,7 @@ export function PlanningWorkspace() {
   const clock = useClock();
   const ui = useTimelineUi();
   const [pxPerMin, setPxPerMin] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 3.4,
+    typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 2.4,
   );
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);

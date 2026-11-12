@@ -99,6 +99,7 @@ test("le bandeau entreprise ouvre un avis sans le nom de la société", async ({
   await page.goto("/");
   const banner = page.locator(".mode-banner").first();
   await expect(banner).toContainText("Transports Fictifs");
+  await banner.getByRole("button").first().click();
   await banner.getByRole("button", { name: "Donner mon avis" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Les données métier ne sont pas jointes.")).toBeVisible();
