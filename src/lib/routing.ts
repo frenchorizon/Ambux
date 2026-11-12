@@ -84,10 +84,11 @@ export function rememberTravel(fromId: string, toId: string, travel: Travel): vo
 export function travelBetween(fromId: string, toId: string, from: LatLng, to: LatLng): Travel {
   if (fromId === toId) return { km: 0, min: 0, source: "estimate" };
   const estimate = estimateTravel(from, to);
-  // Le mode privé et l'estimation locale ignorent un cache OSRM déjà arrivé :
-  // sinon le rendez-vous, calé sur l'estimation, ne correspond plus aux durées affichées.
-  if (routingForcedEstimate() || typeof window === "undefined") return estimate;
   const known = travelById.get(idKey(fromId, toId));
+  // Hors navigateur, le cache injecté par les tests reste la durée de référence.
+  if (typeof window === "undefined") return known ?? estimate;
+  // Le mode privé ignore un trajet OSRM déjà arrivé : le rendez-vous a été calé sur l'estimation.
+  if (routingForcedEstimate()) return known?.source === "estimate" ? known : estimate;
   if (known) return known;
   return { ...estimate, pending: true };
 }
