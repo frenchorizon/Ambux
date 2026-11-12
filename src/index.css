@@ -654,7 +654,7 @@ html.dark textarea::placeholder {
   }
 }
 
-/* Toast : bas droite au bureau, au-dessus de la barre d'onglets (≤1024 px) avec l'encoche. */
+/* Toast : centré sous l'en-tête, pour ne pas couvrir le sous-titre ni la carte. */
 .toast-dock {
   position: fixed;
   z-index: 75;
@@ -664,12 +664,6 @@ html.dark textarea::placeholder {
   display: flex;
   justify-content: center;
   pointer-events: none;
-}
-
-@media (min-width: 1025px) {
-  .toast-dock {
-    top: 16px;
-  }
 }
 
 @supports not (backdrop-filter: blur(1px)) {
