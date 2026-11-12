@@ -12,7 +12,8 @@ test("menu court, données dans les réglages, gain en synthèse", async ({ page
 
   await page.getByRole("button", { name: "Autres actions" }).click();
   const menu = page.getByRole("group", { name: "Autres actions" });
-  await expect(menu.getByRole("button")).toHaveCount(4);
+  const phone = testInfo.project.name === "phone";
+  await expect(menu.getByRole("button")).toHaveCount(phone ? 7 : 4);
   for (const name of ["Importer", "Feuilles de route", "Exporter", "Aide"]) {
     await expect(menu.getByRole("button", { name, exact: true })).toBeVisible();
   }
@@ -21,7 +22,7 @@ test("menu court, données dans les réglages, gain en synthèse", async ({ page
   await expect(menu.getByRole("button", { name: "Patients" })).toHaveCount(0);
   await expect(menu.getByRole("button", { name: "Mode sombre" })).toHaveCount(0);
   await expect(menu.getByRole("button", { name: "Simuler la journée" })).toHaveCount(0);
-  await expect(menu.getByRole("button", { name: "Annuler" })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "Annuler" })).toHaveCount(phone ? 1 : 0);
   if (testInfo.project.name === "phone") {
     await page.screenshot({ path: "/opt/cursor/artifacts/phone-menu.png" });
   }

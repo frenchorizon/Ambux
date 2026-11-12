@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 export type PadDir = "up" | "down" | "left" | "right";
 
 const REPEAT_ARM_MS = 380;
 const REPEAT_EVERY_MS = 140;
 
+const ARROWS: { dir: PadDir; label: string; glyph: string }[] = [
+  { dir: "left", label: "5 minutes plus tôt", glyph: "←" },
+  { dir: "right", label: "5 minutes plus tard", glyph: "→" },
+  { dir: "up", label: "Véhicule précédent", glyph: "↑" },
+  { dir: "down", label: "Véhicule suivant", glyph: "↓" },
+];
+
 export function DPad({
-  selectedId,
-  departLabel,
-  plannedLabel,
   reason,
   onNudge,
 }: {
@@ -19,28 +22,15 @@ export function DPad({
   reason: string | null;
   onNudge: (dir: PadDir, coalesce: boolean) => void;
 }) {
-  const [hiddenFor, setHiddenFor] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<{ left: number; top: number } | null>(null);
-  const padRef = useRef<HTMLDivElement>(null);
-  const moveRef = useRef<{ pointerId: number; dx: number; dy: number } | null>(null);
   const repeatRef = useRef<{ timeout: number; interval: number } | null>(null);
   const nudgeRef = useRef(onNudge);
   nudgeRef.current = onNudge;
 
   useEffect(() => () => stopRepeat(repeatRef), []);
 
-  if (hiddenFor === selectedId) return null;
-
-  const stop = () => stopRepeat(repeatRef);
-
   const press = (dir: PadDir) => (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      /* évènement synthétique */
-    }
     stopRepeat(repeatRef);
     nudgeRef.current(dir, false);
     const timeout = window.setTimeout(() => {
@@ -51,118 +41,30 @@ export function DPad({
     repeatRef.current = { timeout, interval: 0 };
   };
 
-  const onHandleDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const rect = padRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    moveRef.current = { pointerId: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      /* évènement synthétique */
-    }
-  };
+  const stop = () => stopRepeat(repeatRef);
 
-  const onHandleMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const current = moveRef.current;
-    if (!current || current.pointerId !== event.pointerId) return;
-    const rect = padRef.current?.getBoundingClientRect();
-    const width = rect?.width ?? 220;
-    const height = rect?.height ?? 240;
-    const left = Math.min(window.innerWidth - width - 4, Math.max(4, event.clientX - current.dx));
-    const top = Math.min(window.innerHeight - height - 4, Math.max(4, event.clientY - current.dy));
-    setPlaced({ left, top });
-  };
-
-  const onHandleUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (moveRef.current?.pointerId !== event.pointerId) return;
-    moveRef.current = null;
-  };
-
-  return createPortal(
-    <div
-      ref={padRef}
-      className={placed ? "dpad dpad-placed" : "dpad"}
-      data-dpad
-      style={placed ? { left: placed.left, top: placed.top } : undefined}
-      role="group"
-      aria-label="Déplacer la course"
-    >
-      <div className="dpad-cross">
-        <div className="dpad-glow" aria-hidden />
+  return (
+    <div data-dpad className="da-arrows" role="group" aria-label="Déplacer la course">
+      {ARROWS.map((arrow) => (
         <button
+          key={arrow.dir}
           type="button"
-          className="dpad-btn dpad-up"
-          aria-label="Véhicule précédent"
-          onPointerDown={press("up")}
+          className="da-arrow"
+          aria-label={arrow.label}
+          onPointerDown={press(arrow.dir)}
           onPointerUp={stop}
           onPointerCancel={stop}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <Triangle dir="up" />
+          {arrow.glyph}
         </button>
-        <button
-          type="button"
-          className="dpad-btn dpad-left"
-          aria-label="5 minutes plus tôt"
-          onPointerDown={press("left")}
-          onPointerUp={stop}
-          onPointerCancel={stop}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <Triangle dir="left" />
-        </button>
-        <div
-          className="dpad-handle"
-          role="button"
-          aria-label="Déplacer la croix"
-          onPointerDown={onHandleDown}
-          onPointerMove={onHandleMove}
-          onPointerUp={onHandleUp}
-          onPointerCancel={onHandleUp}
-        />
-        <button
-          type="button"
-          className="dpad-btn dpad-right"
-          aria-label="5 minutes plus tard"
-          onPointerDown={press("right")}
-          onPointerUp={stop}
-          onPointerCancel={stop}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <Triangle dir="right" />
-        </button>
-        <button
-          type="button"
-          className="dpad-btn dpad-down"
-          aria-label="Véhicule suivant"
-          onPointerDown={press("down")}
-          onPointerUp={stop}
-          onPointerCancel={stop}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <Triangle dir="down" />
-        </button>
-        <button
-          type="button"
-          className="dpad-close"
-          aria-label="Fermer la croix"
-          onClick={() => setHiddenFor(selectedId)}
-        >
-          ×
-        </button>
-      </div>
-      <p className="dpad-times">
-        Prise en charge {departLabel} · prévue {plannedLabel}
-      </p>
-      {reason && (
+      ))}
+      {reason ? (
         <p className="dpad-reason" role="status">
           {reason}
         </p>
-      )}
-    </div>,
-    document.body,
+      ) : null}
+    </div>
   );
 }
 
@@ -172,13 +74,4 @@ function stopRepeat(repeatRef: { current: { timeout: number; interval: number } 
   window.clearTimeout(current.timeout);
   if (current.interval) window.clearInterval(current.interval);
   repeatRef.current = null;
-}
-
-function Triangle({ dir }: { dir: PadDir }) {
-  const turn = dir === "right" ? 90 : dir === "down" ? 180 : dir === "left" ? 270 : 0;
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" style={{ transform: `rotate(${turn}deg)` }} aria-hidden>
-      <polygon points="12,4 21,19 3,19" fill="#ffffff" />
-    </svg>
-  );
 }

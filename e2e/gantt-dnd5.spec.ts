@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { barById, bars, center, openPlanning, type Bar } from "./helpers";
+import { barById, bars, center, clickAction, openPlanning, type Bar } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -94,7 +94,7 @@ test("le clavier saisit une course, l'annonce et la repose", async ({ page }, te
       expect(after.depart).toBe(minute);
       expect(after.depart % 5).toBe(0);
       expect(after.crew).toBe(before.crew);
-      await page.getByRole("button", { name: "Annuler" }).click();
+      await clickAction(page, "Annuler");
       expect((await barById(page, candidate.id)).depart).toBe(before.depart);
       expect((await barById(page, candidate.id)).crew).toBe(before.crew);
       placed = before;

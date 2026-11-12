@@ -6,13 +6,13 @@ export function Toaster() {
   const { toast, dispatch } = useData();
   useEffect(() => {
     if (!toast) return;
-    const id = window.setTimeout(() => dispatch({ type: "DISMISS_TOAST" }), 4600);
+    const id = window.setTimeout(() => dispatch({ type: "DISMISS_TOAST" }), 3000);
     return () => window.clearTimeout(id);
   }, [toast, dispatch]);
   if (!toast) return null;
   return (
     <div className="toast-dock" role="status">
-      <div className="glass-opaque type-body flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-ink">
+      <div className="glass type-body flex items-center gap-2.5 rounded-full px-4 py-2 text-white">
         <span
           aria-hidden
           className={cn(

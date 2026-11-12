@@ -9,6 +9,7 @@ import {
   mealWindows,
   minutes,
   openMenu,
+  clickAction,
   openPlanning,
   shiftSpans,
   touch,
@@ -200,16 +201,16 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   expect(moved.after % 5).toBe(0);
   expect(moved.after).toBeGreaterThan(moved.before);
   expect(moved.after - moved.before).toBeLessThanOrEqual(15);
-  await page.getByRole("button", { name: "Annuler" }).click();
+  await clickAction(page, "Annuler");
   expect((await barById(page, moved.id)).depart).toBe(moved.before);
-  await page.getByRole("button", { name: "Rétablir" }).click();
+  await clickAction(page, "Rétablir");
   expect((await barById(page, moved.id)).depart).toBe(moved.after);
   await page.keyboard.press("Control+z");
   expect((await barById(page, moved.id)).depart).toBe(moved.before);
 
   const changed = await changeVehicle(page);
   expect(changed.after).not.toBe(changed.before);
-  await page.getByRole("button", { name: "Annuler" }).click();
+  await clickAction(page, "Annuler");
 
   const allonge = (await bars(page)).find((item) => item.posture === "allonge");
   const vsl = (await bars(page)).find((item) => item.vehicle === "vsl");
@@ -259,9 +260,9 @@ test("séries, date, reprise du lendemain et brouillon", async ({ page }) => {
   await goTimeline(page);
   await page.getByLabel("Date de mission").fill("2026-10-19");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-19");
-  await page.getByRole("button", { name: "Annuler" }).click();
+  await clickAction(page, "Annuler");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-16");
-  await page.getByRole("button", { name: "Rétablir" }).click();
+  await clickAction(page, "Rétablir");
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-19");
 
   await openMenu(page, "Demande de demain");
@@ -514,7 +515,7 @@ async function nudgeFive(page: Page): Promise<{ id: string; before: number; afte
     seen.push(`${before}->${after}`);
     if (after === before) continue;
     if (after % 5 === 0 && after > before && after - before <= 15) return { id: candidate.id, before, after };
-    await page.getByRole("button", { name: "Annuler" }).click();
+    await clickAction(page, "Annuler");
   }
   throw new Error(`aucune course n'est restée sur la grille de 5 minutes (${seen.join(", ")})`);
 }

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { clickAction } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -45,7 +46,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     expect(hit.width).toBeGreaterThanOrEqual(44);
     expect(hit.height).toBeGreaterThanOrEqual(44);
 
-    await page.getByRole("button", { name: "Rechercher" }).click();
+    await clickAction(page, "Rechercher");
     for (let i = 0; i < 8; i++) await page.getByRole("button", { name: "Dézoomer", exact: true }).click();
     await closeFind(page);
     const narrow = await page.evaluate(() => {
@@ -64,7 +65,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       return null;
     });
     expect(narrow).toMatchObject({ hit: true, outside: true });
-    await page.getByRole("button", { name: "Rechercher" }).click();
+    await clickAction(page, "Rechercher");
     for (let i = 0; i < 10; i++) {
       const zoom = await page.locator("span.tabular-nums").innerText();
       if (Number.parseInt(zoom, 10) >= 320) break;
@@ -162,11 +163,11 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       const after = await barById(page, from.id);
       if (after.depart !== from.depart && after.crew === from.crew) {
         expect(after.depart % 5).toBe(0);
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
         expect((await barById(page, from.id)).depart).toBe(from.depart);
-        await page.getByRole("button", { name: "Rétablir" }).click();
+        await clickAction(page, "Rétablir");
         expect((await barById(page, from.id)).depart).toBe(after.depart);
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
         moved = true;
         break;
       }
@@ -220,13 +221,13 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       await page.getByRole("button", { name: "5 minutes plus tard" }).click();
       const twice = await barById(page, candidate.id);
       if (twice.depart === once.depart) {
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
         continue;
       }
       expect(twice.depart % 5).toBe(0);
-      await page.getByRole("button", { name: "Annuler" }).click();
+      await clickAction(page, "Annuler");
       expect((await barById(page, candidate.id)).depart).toBe(once.depart);
-      await page.getByRole("button", { name: "Annuler" }).click();
+      await clickAction(page, "Annuler");
       expect((await barById(page, candidate.id)).depart).toBe(before.depart);
       const handle = page.getByRole("button", { name: "5 minutes plus tard" });
       const box = await handle.boundingBox();
@@ -237,12 +238,12 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       await page.mouse.up();
       const held = await barById(page, candidate.id);
       if (held.depart - before.depart >= 10) {
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
         expect((await barById(page, candidate.id)).depart).toBe(before.depart);
         separate = true;
         break;
       }
-      if (held.depart !== before.depart) await page.getByRole("button", { name: "Annuler" }).click();
+      if (held.depart !== before.depart) await clickAction(page, "Annuler");
     }
     expect(separate).toBe(true);
 
@@ -302,16 +303,9 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     expect(overlaps).toBe(false);
     if (dropped.depart !== from.depart) expect(dropped.depart % 5).toBe(0);
 
-    const pad = await page.locator("[data-dpad]").boundingBox();
-    const grip = await page.getByRole("button", { name: "Déplacer la croix" }).boundingBox();
-    expect(pad && grip).toBeTruthy();
-    await page.mouse.move(grip!.x + grip!.width / 2, grip!.y + grip!.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(grip!.x - 80, grip!.y - 80, { steps: 6 });
-    await page.mouse.up();
-    const movedPad = await page.locator("[data-dpad]").boundingBox();
-    expect(Math.abs(movedPad!.x - pad!.x)).toBeGreaterThan(20);
-    await page.getByRole("button", { name: "Fermer la croix" }).click();
+    await expect(page.locator(".da-detail [data-dpad]")).toBeVisible();
+    await expect(page.locator(".dpad")).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await expect(page.locator("[data-dpad]")).toHaveCount(0);
     await page.locator(`[data-transport-id="${sample.id}"]`).click();
     await expect(page.locator("[data-dpad]")).toBeVisible();
@@ -353,7 +347,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
         return { x, y };
       });
       if (!point) {
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
         continue;
       }
       await touch(page, "pointerdown", point.x, point.y, 21);
@@ -363,11 +357,11 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
       await touch(page, "pointerup", point.x, point.y + 14, 21);
       const dropped = await barById(page, candidate.id);
       if (dropped.depart !== shifted.depart || dropped.crew !== shifted.crew) {
-        await page.getByRole("button", { name: "Annuler" }).click();
-        await page.getByRole("button", { name: "Annuler" }).click();
+        await clickAction(page, "Annuler");
+        await clickAction(page, "Annuler");
         continue;
       }
-      await page.getByRole("button", { name: "Annuler" }).click();
+      await clickAction(page, "Annuler");
       const undone = await barById(page, candidate.id);
       expect(undone.depart).toBe(before.depart);
       expect(await page.locator(".gantt-block").count()).toBe(blocks);
@@ -414,9 +408,9 @@ test("les flèches du clavier décalent la course", async ({ page }, testInfo) =
     } else {
       expect(back.depart % 5).toBe(0);
       expect(Math.abs(back.depart - before.depart)).toBeLessThanOrEqual(2);
-      await page.getByRole("button", { name: "Annuler" }).click();
+      await clickAction(page, "Annuler");
     }
-    await page.getByRole("button", { name: "Annuler" }).click();
+    await clickAction(page, "Annuler");
     expect((await barById(page, candidate.id)).depart).toBe(before.depart);
     movedId = candidate.id;
     break;

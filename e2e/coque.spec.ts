@@ -27,10 +27,14 @@ test("coque en verre, bureau et mobile", async ({ page }, testInfo) => {
     phone ? "Générer" : "Générer le planning",
   );
   await expect(header.getByRole("button", { name: "Autres actions" })).toBeVisible();
-  await expect(header.getByRole("button", { name: "Annuler" })).toBeVisible();
-  await expect(header.getByRole("button", { name: "Rétablir" })).toBeVisible();
-  await expect(header.getByRole("button", { name: "Rechercher" })).toBeVisible();
+  if (!phone) {
+    await expect(header.getByRole("button", { name: "Annuler" })).toBeVisible();
+    await expect(header.getByRole("button", { name: "Rétablir" })).toBeVisible();
+    await expect(header.getByRole("button", { name: "Rechercher" })).toBeVisible();
+  }
+  await header.locator(".da-exemple-pill").click();
   await expect(header.locator(".version-chip")).toHaveText(/^v\d+$/);
+  await header.locator(".da-exemple-pill").click();
   await expect(header.getByText("Demain est posé.", { exact: true })).toBeVisible();
   await expect(header.getByText(/courses/)).toBeVisible();
 
@@ -41,7 +45,7 @@ test("coque en verre, bureau et mobile", async ({ page }, testInfo) => {
   const headerBorder = await header.evaluate((el) => getComputedStyle(el).borderBottomColor);
   expect(headerBorder).not.toBe("rgba(0, 0, 0, 0)");
 
-  for (const name of ["Annuler", "Rétablir", "Rechercher", "Autres actions"]) {
+  for (const name of phone ? ["Autres actions"] : ["Annuler", "Rétablir", "Rechercher", "Autres actions"]) {
     const box = await header.getByRole("button", { name, exact: true }).boundingBox();
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

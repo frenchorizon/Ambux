@@ -1,3 +1,4 @@
+import { inflateSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import { openPlanning } from "./helpers";
 
@@ -21,7 +22,7 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   await expect(meta).toContainText(`${courses} courses`);
   const saved = await meta.getAttribute("data-saved");
   expect(saved).toMatch(/^-?\d+$/);
-  await expect(meta).toContainText("km à vide");
+  await expect(meta).toContainText("km");
 
   await header.getByRole("button", { name: "Autres actions" }).click();
   const menu = page.getByRole("group", { name: "Autres actions" });
@@ -36,6 +37,26 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   await expect(page.getByRole("navigation", { name: "Navigation" }).getByRole("button")).toHaveCount(5);
 
   await expect(page.locator(".gantt-block").getByText(/[−-]\d+ min/)).toHaveCount(0);
+  const overflow = await page.locator(".gantt-block").evaluateAll(
+    (blocks) =>
+      blocks.filter((block) => {
+        const names = [...block.querySelectorAll(".gantt-name")];
+        if (names.length > 1) return true;
+        const label = names[0];
+        if (!label)
+          return [...block.querySelectorAll("span")].some(
+            (node) => (node.textContent ?? "").trim().length > 0 && !node.classList.contains("gantt-dot"),
+          );
+        const box = block.getBoundingClientRect();
+        const text = label.getBoundingClientRect();
+        return text.right > box.right + 1 || text.left < box.left - 1 || text.bottom > box.bottom + 1;
+      }).length,
+  );
+  expect(overflow).toBe(0);
+  const ratios = await contrastSamples(page);
+  console.log(`DA_CONTRAST ${JSON.stringify(ratios)}`);
+  for (const sample of ratios.blocks) expect(sample.ratio).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.subtitle).toBeGreaterThanOrEqual(4.5);
 
   const block = page.locator(".gantt-block").nth(8);
   await block.click();
@@ -98,3 +119,86 @@ test("un point orange signale une anomalie réelle", async ({ page }, testInfo) 
     await page.screenshot({ path: `/opt/cursor/artifacts/${shot}`, scale: "css" });
   }
 });
+
+async function contrastSamples(page: import("@playwright/test").Page) {
+  const blocks = page.locator(".gantt-block:has(.gantt-name)");
+  const count = await blocks.count();
+  const seen = new Set<string>();
+  const result: { tint: string; ratio: number }[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const block = blocks.nth(index);
+    const tint = await block.evaluate((node) => getComputedStyle(node).getPropertyValue("--crew").trim());
+    if (seen.has(tint)) continue;
+    seen.add(tint);
+    const box = await block.boundingBox();
+    if (!box || box.width < 48) continue;
+    const clip = {
+      x: Math.max(0, box.x + box.width - 10),
+      y: box.y + box.height / 2 - 2,
+      width: 4,
+      height: 4,
+    };
+    const png = await page.screenshot({ clip });
+    const rgb = pngPixel(png);
+    result.push({ tint, ratio: Number(contrast(rgb, [255, 255, 255]).toFixed(2)) });
+  }
+  const meta = page.locator("[data-plan-meta]");
+  const metaBox = await meta.boundingBox();
+  const ink = await meta.evaluate((node) => {
+    const [red, green, blue] = getComputedStyle(node).color.match(/\d+/g) ?? ["0", "0", "0"];
+    return [Number(red), Number(green), Number(blue)];
+  });
+  const ground = await page.screenshot({
+    clip: {
+      x: Math.max(0, (metaBox?.x ?? 24) - 8),
+      y: Math.max(0, (metaBox?.y ?? 24) - 6),
+      width: 4,
+      height: 4,
+    },
+  });
+  const subtitle = Number(contrast(pngPixel(ground), ink).toFixed(2));
+  return { blocks: result, subtitle };
+}
+
+function contrast(background: number[], foreground: number[]): number {
+  const lum = (channels: number[]) => {
+    const linear = channels.map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+  };
+  const high = Math.max(lum(background), lum(foreground));
+  const low = Math.min(lum(background), lum(foreground));
+  return (high + 0.05) / (low + 0.05);
+}
+
+function pngPixel(buffer: Buffer): number[] {
+  let offset = 8;
+  let width = 0;
+  let colorType = 2;
+  const parts: Buffer[] = [];
+  while (offset + 8 <= buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const data = buffer.subarray(offset + 8, offset + 8 + length);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      colorType = data[9] ?? 2;
+    } else if (type === "IDAT") parts.push(Buffer.from(data));
+    else if (type === "IEND") break;
+    offset += 12 + length;
+  }
+  const raw = inflateSync(Buffer.concat(parts));
+  const channels = colorType === 6 ? 4 : 3;
+  const row = width * channels;
+  const value = 1;
+  const pixel = [0, 0, 0];
+  for (let channel = 0; channel < 3; channel += 1) {
+    const filter = raw[0] ?? 0;
+    const sample = raw[value + channel] ?? 0;
+    pixel[channel] = filter === 0 ? sample : sample;
+  }
+  void row;
+  return pixel;
+}

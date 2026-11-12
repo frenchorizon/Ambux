@@ -14,8 +14,10 @@ test("le régulateur ouvre le planning de demain", async ({ page }, testInfo) =>
   await page.getByRole("button", { name: "Ouvrir le planning" }).click();
 
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
+  if (testInfo.project.name === "phone") await page.getByRole("button", { name: "Autres actions" }).click();
   await expect(page.getByRole("button", { name: "Annuler" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Rétablir" })).toBeVisible();
+  if (testInfo.project.name === "phone") await page.getByRole("button", { name: "Autres actions" }).click();
   await expect(page.getByLabel("Date de mission")).toHaveValue("2026-10-16");
   await expect(page.getByText("Tolérance ±")).toHaveCount(0);
   await expect(page.getByText("Pause repas")).toHaveCount(0);

@@ -77,17 +77,19 @@ body {
   scrollbar-color: #b7c9db transparent;
 }
 
-.seg-vide {
+.seg-vide,
+.seg-pec,
+.seg-charge {
   background: transparent;
   opacity: 1;
 }
 
 .seg-pec {
-  background: var(--crew);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .seg-charge {
-  background: color-mix(in srgb, var(--crew) 72%, #061018);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .seg-deadhead {
@@ -141,7 +143,7 @@ body {
 
 /* Fantôme du créneau aimanté : verre teinté teal ou corail, lisible sur 44 px. */
 .gantt-ghost {
-  z-index: 18;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -364,6 +366,18 @@ body {
 .dpad-reason {
   color: #9f1239;
   font-weight: 650;
+}
+
+.da-detail .dpad-times,
+.da-detail .dpad-reason {
+  max-width: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 400;
+  box-shadow: none;
 }
 
 .leaflet-container {
@@ -639,18 +653,17 @@ html.dark textarea::placeholder {
 .toast-dock {
   position: fixed;
   z-index: 75;
-  right: 0.75rem;
-  left: 0.75rem;
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  top: 96px;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
 }
 
 @media (min-width: 1025px) {
   .toast-dock {
-    left: auto;
-    right: 1rem;
-    bottom: 1rem;
-    width: min(100% - 2rem, 380px);
+    top: 16px;
   }
 }
 
@@ -1788,23 +1801,84 @@ html:not(.dark) .da-card p {
   gap: 14px;
 }
 
+.da-plan-title {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 16px;
+}
+
 .da-plan-title .da-plan-heading {
   margin: 0;
   color: inherit;
   font-family: "Inter Tight", "Inter", sans-serif;
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 300;
   letter-spacing: -0.04em;
-  line-height: 1.05;
+  line-height: 1;
   white-space: nowrap;
 }
 
 .da-plan-title p {
-  min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: rgba(255, 255, 255, 0.62);
   font-size: 14px;
-  line-height: 1.3;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.da-top-row {
+  flex-wrap: nowrap;
+}
+
+.da-top-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.da-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(12, 14, 18, 0.35);
+  padding: 2px;
+}
+
+.da-exemple-pill {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 16px;
+  color: #fff;
+}
+
+.da-exemple {
+  position: relative;
+}
+
+.da-exemple-pop {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(12, 14, 18, 0.94);
+  padding: 8px;
 }
 
 html:not(.dark) .da-plan-title p {
@@ -1832,8 +1906,14 @@ html:not(.dark) .da-gantt-scene {
 .da-gantt-photo,
 .da-gantt-veil {
   position: absolute;
+  z-index: 0;
   inset: 0;
   pointer-events: none;
+}
+
+.da-gantt {
+  position: relative;
+  z-index: 1;
 }
 
 .da-gantt-photo {
@@ -1925,17 +2005,19 @@ html:not(.dark) .gantt-block.is-selected {
   position: absolute;
   z-index: 2;
   top: 0;
-  right: 10px;
+  right: 8px;
   bottom: 0;
   left: 8px;
-  display: flex;
-  align-items: center;
+  display: block;
   overflow: hidden;
-  color: inherit;
+  color: #fff;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.04em;
+  line-height: 36px;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
   pointer-events: none;
 }
 
@@ -1987,21 +2069,46 @@ html:not(.dark) .gantt-now {
 .da-detail {
   position: fixed;
   z-index: 40;
-  right: 210px;
+  right: 24px;
   bottom: 24px;
   display: flex;
-  width: min(460px, calc(100vw - 240px));
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
+  width: 420px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 28px;
-  background: rgba(12, 14, 18, 0.72);
+  background: rgba(12, 14, 18, 0.78);
   padding: 16px;
   color: #fff;
-  pointer-events: none;
+  pointer-events: auto;
   -webkit-backdrop-filter: blur(22px);
   backdrop-filter: blur(22px);
+}
+
+.da-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.da-arrows {
+  display: flex;
+  gap: 4px;
+}
+
+.da-arrow {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 16px;
 }
 
 .da-detail button {
@@ -2080,14 +2187,15 @@ html:not(.dark) .da-fictif {
   }
 
   .da-detail {
-    right: 168px;
+    right: 8px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
     left: 8px;
     width: auto;
   }
 
-  .da-detail > div:first-child {
-    flex: 1 1 100%;
+  .gantt-block,
+  .gantt-name {
+    line-height: 44px;
   }
 
   .shell-side {

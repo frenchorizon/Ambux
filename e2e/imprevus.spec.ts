@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { clickAction } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -53,7 +54,7 @@ test("absence, épingle, régénération et appel tardif", async ({ page }, test
   await page.screenshot({ path: "/opt/cursor/artifacts/imprevus-absence-390.png" });
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole("button", { name: "Annuler" }).click();
+  await clickAction(page, "Annuler");
   await expect(page.getByRole("button", { name: /Épinglée/ }).first()).toBeVisible();
   expect(await page.getByRole("button", { name: "Détail" }).count()).toBe(before);
 

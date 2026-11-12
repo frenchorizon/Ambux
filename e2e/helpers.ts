@@ -1,5 +1,13 @@
 import { expect, type Page } from "@playwright/test";
 
+export async function clickAction(page: Page, name: string) {
+  const button = page.getByRole("button", { name, exact: true });
+  if (!(await button.isVisible())) {
+    await page.getByRole("button", { name: "Autres actions" }).click();
+  }
+  await button.click();
+}
+
 export async function openPlanning(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Voir l'exemple" }).first().click();

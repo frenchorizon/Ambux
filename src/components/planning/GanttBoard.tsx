@@ -213,8 +213,8 @@ const CrewRow = memo(function CrewRow({
   if (needle && legs.length === 0) return null;
   const hot = drag?.hoverCrewId === crew.id;
   const bad = hot && drag.preview && !drag.preview.ok;
-  const rowH = label < 120 ? 76 : 64;
-  const barH = label < 120 ? 44 : 34;
+  const rowH = label < 120 ? 72 : 80;
+  const barH = label < 120 ? 44 : 36;
   const barTop = Math.round((rowH - barH) / 2);
   const family = crew.driver.split(" ").slice(-1)[0] ?? crew.driver;
   const tint = CREW_TINTS[Math.abs(hashHue(crew.id)) % CREW_TINTS.length] ?? CREW_TINTS[0];
@@ -300,6 +300,7 @@ const CrewRow = memo(function CrewRow({
                 type="button"
                 role="button"
                 draggable={false}
+                title={patientLabel}
                 aria-label={blockAriaLabel(patientLabel, formatMin(shownDepart), crew.code)}
                 aria-pressed={keyboard ? true : undefined}
                 data-keyboard={keyboard ? "1" : undefined}
@@ -345,7 +346,6 @@ const CrewRow = memo(function CrewRow({
                 <span className="gantt-block-clip">
                   {parts.map((part) => {
                     const minutes = part.end - part.start;
-                    const wide = minutes * pxPerMin > 42;
                     return (
                       <span
                         key={part.kind}
@@ -361,20 +361,15 @@ const CrewRow = memo(function CrewRow({
                           left: `${((part.start - leg.departMin) / span) * 100}%`,
                           width: `${(minutes / span) * 100}%`,
                         }}
-                      >
-                        {part.kind === "charge" && wide && (
-                          <span className="pointer-events-none absolute inset-0 flex items-center px-1">
-                            <span className="truncate">
-                              {name}
-                              {transport.priority === "urgent" ? " · URG" : ""}
-                            </span>
-                          </span>
-                        )}
-                      </span>
+                      />
                     );
                   })}
                   {anomaly && <span className="gantt-dot" data-anomaly="" />}
-                  <span className="gantt-name">{name}</span>
+                  {bar >= 36 && (
+                    <span className="gantt-name" title={patientLabel}>
+                      {name}
+                    </span>
+                  )}
                 </span>
               </button>
               {(transport.stayMin ?? 0) > 0 && (

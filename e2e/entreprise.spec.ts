@@ -112,6 +112,7 @@ test("une société vide se configure, se recharge et peut revenir à la démo",
   expect(workspace).toContain("Annecy");
   expect(workspace).not.toContain("ambux-drafts");
 
+  await page.locator(".mode-banner").getByRole("button").first().click();
   await page.locator(".mode-banner").getByRole("button", { name: "Changer" }).click();
   await page.getByRole("button", { name: "Essayer avec des données fictives" }).click();
   await page.getByRole("link", { name: "Accueil" }).click();

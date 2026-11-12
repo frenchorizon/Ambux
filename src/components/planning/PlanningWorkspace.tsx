@@ -63,7 +63,7 @@ export function PlanningWorkspace() {
   const clock = useClock();
   const ui = useTimelineUi();
   const [pxPerMin, setPxPerMin] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 2.4,
+    typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches ? 3.2 : 3.4,
   );
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -753,57 +753,66 @@ export function PlanningWorkspace() {
       />
       {selected && !drag && (
         <aside className="da-detail" aria-label="Détail de la course">
-          <div className="min-w-0 flex-1">
-            <div className="da-detail-title">
-              <span className="truncate">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
-              <span>
-                {" · "}
-                {postureLabel(selected.posture)}
-                {" · RDV "}
-                {formatMin(selected.appointmentMin ?? selected.windowStart)}
-              </span>
-            </div>
-            {selectedLeg && (
-              <p className="da-detail-line">
-                vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min /
-                dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
-                {selectedLeg.kmEstimated ? " · estimé" : ""}
-              </p>
-            )}
-            {(selected.stayMin ?? 0) > 0 && (
-              <p className="text-[12px] font-semibold text-ink" data-stay={selected.stayMin}>
-                Attente à l'établissement : {selected.stayMin} min
-              </p>
-            )}
+          <p className="da-detail-title">
+            <span className="truncate">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
+            <span>
+              {" · "}
+              {postureLabel(selected.posture)}
+              {" · RDV "}
+              {formatMin(selected.appointmentMin ?? selected.windowStart)}
+            </span>
+          </p>
+          {selectedLeg && (
+            <p className="da-detail-line">
+              vide {selectedLeg.deadheadMin} min / PEC {selectedLeg.pecMin} min / trajet {selectedLeg.loadedMin} min /
+              dépose {selectedLeg.dropoffMin} min · {formatKm(selectedLeg.deadheadKm + selectedLeg.loadedKm, 1)}
+              {selectedLeg.kmEstimated ? " · estimé" : ""}
+            </p>
+          )}
+          {(selected.stayMin ?? 0) > 0 && (
+            <p className="da-detail-line" data-stay={selected.stayMin}>
+              Attente à l'établissement : {selected.stayMin} min
+            </p>
+          )}
+          {shownDepart != null && plannedMin != null && (
+            <p className="da-detail-line dpad-times" data-pickup-times>
+              Prise en charge {formatMin(shownDepart)} · prévue {formatMin(plannedMin)}
+            </p>
+          )}
+          <div className="da-detail-actions">
+            <Button
+              size="sm"
+              className="da-detail-primary h-11"
+              onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}
+            >
+              Meilleur créneau
+            </Button>
+            <Button
+              size="sm"
+              className="h-11"
+              variant="secondary"
+              onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}
+            >
+              Retirer
+            </Button>
+            <Button
+              size="sm"
+              className="h-11"
+              variant="secondary"
+              onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}
+            >
+              Heure prévue
+            </Button>
             {shownDepart != null && plannedMin != null && (
-              <p className="text-[12px] font-semibold text-navy" data-pickup-times>
-                Prise en charge {formatMin(shownDepart)} · prévue {formatMin(plannedMin)}
-              </p>
+              <DPad
+                selectedId={selected.id}
+                departLabel={formatMin(shownDepart)}
+                plannedLabel={formatMin(plannedMin)}
+                reason={note}
+                onNudge={(dir, coalesce) => nudgeRef.current(dir, coalesce)}
+              />
             )}
           </div>
-          <Button
-            size="sm"
-            className="h-11"
-            variant="secondary"
-            onClick={() => data.dispatch({ type: "SNAP_BACK", transportId: selected.id })}
-          >
-            Heure prévue
-          </Button>
-          <Button
-            size="sm"
-            className="da-detail-primary h-11"
-            onClick={() => data.dispatch({ type: "BEST_SLOT", transportId: selected.id })}
-          >
-            Meilleur créneau
-          </Button>
-          <Button
-            size="sm"
-            className="h-11"
-            variant="secondary"
-            onClick={() => data.dispatch({ type: "UNASSIGN", transportId: selected.id })}
-          >
-            Retirer
-          </Button>
         </aside>
       )}
       {!enterprise && <p className="da-fictif">Exemple fictif. Aucune donnée patient réelle.</p>}
@@ -876,15 +885,6 @@ export function PlanningWorkspace() {
         </Sheet>
       )}
       {ui.sheet === "review" && <ReviewSheet onClose={closeTimelineSheet} />}
-      {selected && shownDepart != null && plannedMin != null && (
-        <DPad
-          selectedId={selected.id}
-          departLabel={formatMin(shownDepart)}
-          plannedLabel={formatMin(plannedMin)}
-          reason={note}
-          onNudge={(dir, coalesce) => nudgeRef.current(dir, coalesce)}
-        />
-      )}
     </div>
   );
 }

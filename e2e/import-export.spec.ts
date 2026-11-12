@@ -19,9 +19,11 @@ test("import séance puis export du planning", async ({ page }, testInfo) => {
   ].join("\n");
   await openPlanning(page);
   if (phone) {
+    await page.getByRole("button", { name: "Autres actions" }).click();
     await expect(page.getByRole("button", { name: "Importer", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Exporter", exact: true })).toBeVisible();
     await page.screenshot({ path: "/opt/cursor/artifacts/phone-import-export.png" });
+    await page.getByRole("button", { name: "Autres actions" }).click();
   }
 
   await openNamed(page, "Importer", phone);
@@ -88,11 +90,7 @@ async function openPlanning(page: Page) {
   await expect(page.getByText("Équipage", { exact: true })).toBeVisible();
 }
 
-async function openNamed(page: Page, name: "Importer" | "Exporter", phone: boolean) {
-  if (phone) {
-    await page.getByRole("button", { name, exact: true }).click();
-    return;
-  }
+async function openNamed(page: Page, name: "Importer" | "Exporter", _phone: boolean) {
   await page.getByRole("button", { name: "Autres actions" }).click();
   await page.getByRole("group", { name: "Autres actions" }).getByRole("button", { name, exact: true }).click();
 }
