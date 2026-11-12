@@ -8,12 +8,13 @@ import {
   type Transport,
   type TransportKind,
 } from "./types";
+import { parseMotif } from "./motif";
 import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew } from "./types";
 import { formatMin } from "../lib/format";
 
 export const CSV_COLUMNS =
-  "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour;attente";
+  "dossier;nom;prenom;date;heure_rdv;adresse_depart;adresse_arrivee;mobilite;sens;serie;telephone;note;heure_retour;attente;motif";
 
 export function csvSpec(iso: string): string {
   const [year, month, day] = iso.split("-");
@@ -25,6 +26,7 @@ export function csvSpec(iso: string): string {
     "sens : aller, retour, simple (vide = simple, indiqué dans l'aperçu), ou ar.",
     "ar exige heure_retour, sauf si attente est renseignée : le retour est alors créé à l'arrivée de l'aller plus l'attente, sur 5 minutes.",
     "attente : minutes entières, 480 maximum, vide si aucune.",
+    "motif : DIAL, KINE, CONS, ORTHO ou RADI, optionnel. Une colonne absente ou vide est acceptée.",
     "Aucune adresse inconnue n'est remplacée par le CHU.",
     "Un libellé reconnu est affiché dans l'aperçu avant fusion. Une adresse ambiguë est rejetée.",
   ].join(" ");
@@ -266,6 +268,15 @@ async function parseLine(
   if (sens === "ar" && retourClock == null && !(stay && stay > 0)) {
     return { line, raw, reason: "Aller-retour sans heure_retour : le retour n'est pas inventé." };
   }
+  const motifCell = (record.motif ?? "").trim();
+  const motif = motifCell ? parseMotif(motifCell) : null;
+  if (motifCell && !motif) {
+    return {
+      line,
+      raw,
+      reason: `Motif « ${motifCell} » inconnu. Valeurs : DIAL, KINE, CONS, ORTHO, RADI.`,
+    };
+  }
   if (!record.adresse_depart) return { line, raw, reason: "Adresse de départ manquante." };
   if (!record.adresse_arrivee) return { line, raw, reason: "Adresse d'arrivée manquante." };
 
@@ -298,6 +309,7 @@ async function parseLine(
     cancelled: false,
     note: record.note || undefined,
     stayMin: wait > 0 ? wait : undefined,
+    motif: motif ?? undefined,
   };
   const patient: Patient = {
     id: patientId,
@@ -324,6 +336,7 @@ async function parseLine(
       seriesId: transport.seriesId,
       note: record.note ? `${record.note} · retour` : "Retour",
       stayMin: undefined,
+      motif: motif ?? undefined,
     };
   }
   const summary = `${lastName} ${firstName} · ${record.heure_rdv} · ${depart.location.short} → ${arrivee.location.short} · ${posture} · ${sens === "simple" && !(record.sens ?? "").trim() ? "simple (colonne vide)" : sens}${wait ? ` · attente ${wait} min` : ""}${retour ? ` · retour ${formatMin(retour.appointmentMin ?? back!)}` : ""}`;

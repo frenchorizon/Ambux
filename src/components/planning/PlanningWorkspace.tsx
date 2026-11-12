@@ -11,7 +11,8 @@ import {
 } from "react";
 import { useClock, useData } from "../../game/context";
 import { loadWorkspace, subscribeWorkspace } from "../../game/workspace";
-import { displayedDepart, previewOnGrid, snap5 } from "../../game/schedule";
+import { displayedDepart, dropoffClock, previewOnGrid, snap5 } from "../../game/schedule";
+import { motifLabel } from "../../game/motif";
 import { DAY_START } from "../../game/types";
 import heroPng from "../../assets/hero/hero.png";
 import { formatKm, formatMin, personName, postureLabel } from "../../lib/format";
@@ -730,6 +731,8 @@ export function PlanningWorkspace() {
     drag && selected && drag.transportId === selected.id && drag.preview?.ok ? drag.preview : undefined;
   const liveDepart = draggingSelection ? draggingSelection.departMin : selectedLeg?.departMin;
   const shownDepart = liveDepart == null ? undefined : displayedDepart(liveDepart);
+  const pickupClock = selectedLeg ? formatMin(selectedLeg.arrivePickup) : null;
+  const dropoffAt = dropoffClock(selectedLeg);
 
   return (
     <div
@@ -753,14 +756,17 @@ export function PlanningWorkspace() {
       />
       {selected && !drag && (
         <aside className="da-detail" aria-label="Détail de la course">
-          <p className="da-detail-title">
-            <span className="truncate">{selectedPatient ? personName(selectedPatient) : "Course"}</span>
-            <span>
-              {" · "}
-              {postureLabel(selected.posture)}
-              {" · RDV "}
-              {formatMin(selected.appointmentMin ?? selected.windowStart)}
-            </span>
+          <p className="da-detail-title truncate" data-patient-line data-patient-name>
+            {selectedPatient ? personName(selectedPatient) : "Course"}
+          </p>
+          <p className="da-detail-motif" data-patient-line data-patient-motif>
+            {motifLabel(selected)}
+          </p>
+          <p className="da-detail-clock" data-patient-line data-pickup-times>
+            Prise en charge {pickupClock ?? "—"}
+          </p>
+          <p className="da-detail-clock" data-patient-line data-patient-dropoff>
+            Dépose {dropoffAt == null ? "—" : formatMin(dropoffAt)}
           </p>
           {selectedLeg && (
             <p className="da-detail-line">
@@ -774,11 +780,9 @@ export function PlanningWorkspace() {
               Attente à l'établissement : {selected.stayMin} min
             </p>
           )}
-          {shownDepart != null && plannedMin != null && (
-            <p className="da-detail-line dpad-times" data-pickup-times>
-              Prise en charge {formatMin(shownDepart)} · prévue {formatMin(plannedMin)}
-            </p>
-          )}
+          <p className="da-detail-quiet" data-patient-rdv>
+            {postureLabel(selected.posture)} · RDV {formatMin(selected.appointmentMin ?? selected.windowStart)}
+          </p>
           <div className="da-detail-actions">
             <Button
               size="sm"

@@ -1,5 +1,6 @@
 import { postalOf } from "../data/world";
 import { formatMin } from "../lib/format";
+import { MOTIF_LABEL } from "./motif";
 import type { Leg } from "./schedule";
 import { DEMO_REGULATOR, type Crew, type Location, type Patient, type Transport, type TransportKind } from "./types";
 
@@ -18,14 +19,6 @@ const MONTHS = [
   "novembre",
   "décembre",
 ];
-
-const MOTIF_LABEL = {
-  DIAL: "DIAL - DIALYSE",
-  KINE: "KINE - KINE",
-  CONS: "CONS - CONSULTATION",
-  ORTHO: "ORTHO",
-  RADI: "RADI - RADIOTHÉRAPIE",
-} as const;
 
 const ROWS_PER_PAGE = 7;
 

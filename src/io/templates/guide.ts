@@ -71,6 +71,7 @@ export function missionExample(missionIso: string): string[] {
     "exemple fictif",
     "",
     "",
+    "CONS",
   ];
 }
 

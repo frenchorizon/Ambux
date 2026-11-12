@@ -1,3 +1,4 @@
+import { parseMotif } from "./motif";
 import { seanceReturnMin, type CrewSchedule } from "./schedule";
 import type { Crew, Location, Patient, Posture, Rules, Transport, TransportKind, VehicleType } from "./types";
 import { writeLocal } from "../lib/browserStore";
@@ -1090,17 +1091,6 @@ function seriesIdOf(value: string | undefined, fallback?: string): string | unde
   if (key === "unique" || key === "u" || key === "non") return undefined;
   if (key === "serie" || key === "s" || key === "oui") return fallback || "serie";
   return text;
-}
-
-function parseMotif(value: string): "DIAL" | "KINE" | "CONS" | "ORTHO" | "RADI" | null {
-  const key = normKey(value).replace(/\s+/g, "");
-  if (!key) return null;
-  if (key.startsWith("dial")) return "DIAL";
-  if (key.startsWith("kine")) return "KINE";
-  if (key.startsWith("cons")) return "CONS";
-  if (key.startsWith("ortho")) return "ORTHO";
-  if (key.startsWith("radi")) return "RADI";
-  return null;
 }
 
 function parseBirth(value: string): { iso: string; year: number } | null {

@@ -191,10 +191,10 @@ test("Gantt : tap, 5 minutes, véhicule, refus, annuler, à placer", async ({ pa
   const sample = (await bars(page)).find((item) => item.posture === "assis") ?? (await bars(page))[0]!;
   await center(page, sample.id);
   await page.locator(`[data-transport-id="${sample.id}"]`).click();
-  await expect(page.locator("[data-pickup-times]")).toContainText(/Prise en charge \d{2}:\d{2} · prévue \d{2}:\d{2}/);
-  await expect(page.getByText(/RDV \d{2}:\d{2}/)).toBeVisible();
-  const shown = await page.locator("[data-pickup-times]").innerText();
-  const planned = shown.match(/prévue (\d{2}:\d{2})/)?.[1];
+  await expect(page.locator("[data-pickup-times]")).toContainText(/^Prise en charge \d{2}:\d{2}$/);
+  await expect(page.locator("[data-patient-rdv]")).toContainText(/RDV \d{2}:\d{2}/);
+  const shown = await page.locator("[data-patient-rdv]").innerText();
+  const planned = shown.match(/RDV (\d{2}:\d{2})/)?.[1];
   expect(planned).toBe(clock(sample.appointment));
 
   const moved = await nudgeFive(page);

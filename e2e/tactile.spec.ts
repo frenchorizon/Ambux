@@ -114,7 +114,7 @@ test("gestes émulés et croix directionnelle", async ({ page }, testInfo) => {
     await touch(page, "pointerup", from.x + 6, from.y, 10);
     await expect(page.locator("[data-dpad]")).toBeVisible();
     expect((await barById(page, from.id)).depart).toBe(from.depart);
-    await expect(page.locator(".dpad-times")).toContainText(/Prise en charge \d{2}:\d{2} · prévue \d{2}:\d{2}/);
+    await expect(page.locator("[data-pickup-times]")).toContainText(/^Prise en charge \d{2}:\d{2}$/);
 
     await touch(page, "pointerdown", from.x, from.y, 9);
     await touch(page, "pointermove", from.x + 8, from.y, 9);

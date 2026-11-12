@@ -431,6 +431,16 @@ export function displayedDepart(min: number): number {
   return Math.abs(snapped - min) <= 0.51 ? snapped : Math.round(min);
 }
 
+/**
+ * Heure de dépose affichée : début du segment dropoff.
+ * Lecture seule, rien n'est stocké sur la course. Course non placée : null.
+ */
+export function dropoffClock(leg: Leg | null | undefined): number | null {
+  if (!leg) return null;
+  const segment = leg.segments.find((item) => item.kind === "dropoff");
+  return segment ? segment.start : null;
+}
+
 /** Prise en charge du retour : arrivée de l'aller + attente, sur la grille de 5 minutes. */
 export function seanceReturnMin(arrivalMin: number, waitMin: number): number {
   return snap5(arrivalMin + Math.max(0, waitMin));

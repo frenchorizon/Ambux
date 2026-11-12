@@ -63,7 +63,25 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
   await block.click();
   const detail = page.getByRole("complementary", { name: "Détail de la course" });
   await expect(detail).toBeVisible();
-  await expect(detail).toContainText(/RDV \d{2}:\d{2}/);
+  const lines = await detail.locator("[data-patient-line]").allTextContents();
+  expect(lines).toHaveLength(4);
+  expect(lines[0]?.trim()).not.toMatch(/·|RDV|Prise en charge|Dépose/);
+  expect(lines[1]).toMatch(
+    /DIAL - DIALYSE|KINE - KINE|CONS - CONSULTATION|ORTHO|RADI - RADIOTHÉRAPIE|^Aller$|^Retour$/,
+  );
+  expect(lines[2]).toMatch(/^Prise en charge \d{2}:\d{2}$/);
+  expect(lines[3]).toMatch(/^Dépose \d{2}:\d{2}$/);
+  await expect(detail.locator("[data-patient-rdv]")).toContainText(/RDV \d{2}:\d{2}/);
+  const nameBox = await detail.locator("[data-patient-name]").boundingBox();
+  const cardBox = await detail.boundingBox();
+  expect(nameBox && cardBox).toBeTruthy();
+  expect(nameBox!.x).toBeGreaterThanOrEqual(cardBox!.x - 1);
+  expect(nameBox!.x + nameBox!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width + 1);
+  if (testInfo.project.name === "desktop") {
+    expect(cardBox!.width).toBeGreaterThan(400);
+    expect(cardBox!.width).toBeLessThan(450);
+  }
+  if (testInfo.project.name === "phone") expect(cardBox!.width).toBeLessThan(380);
   await expect(detail.getByRole("button", { name: "Meilleur créneau" })).toBeVisible();
   await expect(detail.getByRole("button", { name: "Retirer" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -83,15 +101,27 @@ test("l'en-tête, le menu et la carte de détail suivent la maquette", async ({ 
     const box = await pill.boundingBox();
     expect(box?.width ?? 0).toBeLessThan(390);
     await page.screenshot({ path: "/opt/cursor/artifacts/da-planning-390.png", scale: "css" });
-    await block.click();
-    await expect(detail).toBeVisible();
+    await page
+      .getByRole("button", { name: /MORIN Bernard/ })
+      .first()
+      .click();
+    await expect(detail.locator("[data-patient-name]")).toHaveText("MORIN Bernard");
     await page.screenshot({ path: "/opt/cursor/artifacts/da-detail-390.png", scale: "css" });
+    await page.screenshot({ path: "/opt/cursor/artifacts/carte-patient-390.png", scale: "css" });
   }
   if (testInfo.project.name === "desktop") {
     await page.screenshot({ path: "/opt/cursor/artifacts/da-planning-1440.png", scale: "css" });
-    await block.click();
-    await expect(detail).toBeVisible();
+    await page
+      .getByRole("button", { name: /MORIN Bernard/ })
+      .first()
+      .click();
+    await expect(detail.locator("[data-patient-name]")).toHaveText("MORIN Bernard");
     await page.screenshot({ path: "/opt/cursor/artifacts/da-detail-1440.png", scale: "css" });
+    await page.screenshot({ path: "/opt/cursor/artifacts/carte-patient-1440.png", scale: "css" });
+    await detail.getByRole("button", { name: "Retirer" }).click();
+    await expect(detail.locator("[data-pickup-times]")).toHaveText("Prise en charge —");
+    await expect(detail.locator("[data-patient-dropoff]")).toHaveText("Dépose —");
+    await page.screenshot({ path: "/opt/cursor/artifacts/carte-patient-non-placee-1440.png", scale: "css" });
     await page.keyboard.press("Escape");
     await page.getByRole("navigation").getByRole("button", { name: "Réglages", exact: true }).click();
     await page.getByRole("button", { name: "Mode clair" }).click();

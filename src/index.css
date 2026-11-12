@@ -2127,15 +2127,38 @@ html:not(.dark) .da-detail {
 }
 
 .da-detail-title {
-  display: flex;
   min-width: 0;
-  flex: 1 1 100%;
-  align-items: baseline;
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.da-detail-motif {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.da-detail-clock {
+  margin: 0;
+  font-size: 15px;
   font-weight: 500;
+  line-height: 1.3;
+}
+
+.da-detail-quiet {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  line-height: 1.3;
 }
 
 .da-detail-line,
-.da-detail [data-pickup-times],
 .da-detail [data-stay] {
   margin-top: 4px;
   color: rgba(255, 255, 255, 0.62);
@@ -2145,9 +2168,13 @@ html:not(.dark) .da-detail {
 }
 
 html:not(.dark) .da-detail-line,
-html:not(.dark) .da-detail [data-pickup-times],
-html:not(.dark) .da-detail [data-stay] {
+html:not(.dark) .da-detail [data-stay],
+html:not(.dark) .da-detail-quiet {
   color: #3d5163;
+}
+
+html:not(.dark) .da-detail-motif {
+  color: #1c3344;
 }
 
 .da-detail-primary {
